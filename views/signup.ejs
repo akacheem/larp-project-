@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+</head>
+
+<body>
+    <h2>Create an Account</h2>
+
+    <form action="/submit-signup" method="POST">
+
+        <div>
+            <label for="fullname">Full Name:</label><br>
+            <input type="text" id="fullname" name="fullname" required placeholder="name">
+        </div>
+
+        <br>
+
+        <div>
+            <label for="email">Email Address:</label><br>
+            <input type="email" id="email" name="email" required placeholder="yourname@example.com">
+        </div>
+
+        <br>
+
+        <div>
+            <label for="password">Password:</label><br>
+            <input type="password" id="password" name="password" required minlength="8"
+                placeholder="At least 8 characters">
+        </div>
+
+        <br>
+
+        <div>
+            <label for="confirm-password">Confirm Password:</label><br>
+            <input type="password" id="confirm-password" name="confirm_password" required
+                placeholder="Re-enter password">
+        </div>
+
+        <br>
+
+        <div>
+            <input type="checkbox" id="terms" name="terms" required>
+            <label for="terms">I agree to the <a href="#" target="_blank">Terms and Conditions</a></label>
+        </div>
+
+        <br>
+
+        <div>
+            <button type="submit">Sign Up</button>
+        </div>
+
+    </form>
+</body>
+
+</html>
