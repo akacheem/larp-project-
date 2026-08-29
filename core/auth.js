@@ -3,6 +3,7 @@ import { createClient } from '@libsql/client';
 import 'dotenv/config';
 import { hash } from 'bcrypt';
 import { userTable } from './schema.js';
+import { eq } from 'drizzle-orm';
 
 const client = createClient({ url: process.env.DATABASE_URL || 'file:./database.db' })
 const db = drizzle({ client });
@@ -30,6 +31,16 @@ export async function newUser(name, isOrganizationAccount, email, password) {
     } catch {
         throw new Error("DATABASE_INSERT_FAIL")
     }
+}
+
+export async function isUserAlreadySignup(email) {
+    const existingUser = await db
+        .select()
+        .from(userTable)
+        .where(eq(userTable.email, email))
+        .limit(1)
+
+    return existingUser.length > 0
 }
 
 export async function listAllUser() {

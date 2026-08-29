@@ -13,8 +13,8 @@
     <form action="/submit-signup" method="POST">
 
         <div>
-            <label for="fullname">Full Name:</label><br>
-            <input type="text" id="fullname" name="fullname" required placeholder="name">
+            <label for="username">Full Name:</label><br>
+            <input type="text" id="username" name="username" required placeholder="name">
         </div>
 
         <br>
@@ -43,17 +43,19 @@
         <br>
 
         <div>
-            <input type="checkbox" id="terms" name="terms" required>
-            <label for="terms">I agree to the <a href="#" target="_blank">Terms and Conditions</a></label>
+            <input type="checkbox" id="isOrganization" name="isOrganization" required>
+            <label for="isOrganization">Organization account</label>
         </div>
 
         <br>
 
         <div>
-            <button type="submit">Sign Up</button>
+            <button id="submit-btn">Sign Up</button>
         </div>
 
     </form>
+
+    <script src="/public/signup.js" type="module"></script>
 </body>
 
 </html>

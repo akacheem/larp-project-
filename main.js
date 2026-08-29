@@ -8,10 +8,12 @@ import { fileURLToPath } from 'url';
 import webRoutes from './routes/web.js';
 import fastifyJwt from '@fastify/jwt';
 import { listAllUser } from './core/auth.js';
+import fastifyCookie from '@fastify/cookie';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const PORT = process.env.PORT || 8000;
 const JWT_SECRET = process.env.JWT_SECRET || 'iamgay';
+const COOKIE_SECRET = process.env.COOKIE_SECRET || 'iamgay';
 
 try {
   listAllUser()
@@ -22,6 +24,10 @@ catch (e) {
 const fastify = Fastify({ logger: true });
 
 fastify.register(fastifyJwt, { secret: JWT_SECRET })
+await fastify.register(fastifyCookie, {
+  secret: COOKIE_SECRET,
+  parseOptions: {}
+});
 fastify.register(fastifyFormbody);
 
 fastify.register(fastifyStatic, {
