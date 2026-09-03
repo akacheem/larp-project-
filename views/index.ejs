@@ -9,6 +9,20 @@
 
 <body>
     ok
+    <p id="tmp-p"></p>
+
+    <a href="/signup">/signup</a>
+    <br>
+    <a href="/login">/login</a>
+    <br>
+    <a href="/logout">/logout</a>
+    <br>
+    <script type="module">
+        import { getAuthToken, decodeAuthToken } from "/public/clientAuth.js";
+        const tmpP = document.getElementById("tmp-p");
+
+        tmpP.innerHTML = `Auth Token: ${getAuthToken()}<br>Decoded Auth Token: ${JSON.stringify(await decodeAuthToken())}`
+    </script>
 </body>
 
 </html>

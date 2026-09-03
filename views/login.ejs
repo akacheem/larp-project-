@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+</head>
+
+<body>
+    <h2>Log In</h2>
+
+    <form action="/submit-login" method="POST">
+        <div>
+            <label for="email">Email Address:</label><br>
+            <input type="email" id="email" name="email" required placeholder="yourname@example.com">
+        </div>
+
+        <br>
+
+        <div>
+            <label for="password">Password:</label><br>
+            <input type="password" id="password" name="password" required minlength="8"
+                placeholder="At least 8 characters">
+        </div>
+        <br>
+        <label id="status-text"></label>
+        <br>
+        <div>
+            <button id="submit-btn">Log In</button>
+        </div>
+
+    </form>
+
+    <script src="/public/login.js" type="module"></script>
+</body>
+
+</html>

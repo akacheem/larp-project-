@@ -15,6 +15,9 @@ export async function submitSignup() {
 
     try {
         await signup(username, email, password, isOrganizationAccount)
+        setTimeout(() => {
+            window.location.href = "/";
+        }, 500);
     }
     catch (e) {
         console.log(e)

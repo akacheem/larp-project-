@@ -1,7 +1,7 @@
 import { drizzle } from 'drizzle-orm/libsql';
 import { createClient } from '@libsql/client';
 import 'dotenv/config';
-import { hash } from 'bcrypt';
+import { hash, compare } from 'bcrypt';
 import { userTable } from './schema.js';
 import { eq } from 'drizzle-orm';
 
@@ -31,6 +31,28 @@ export async function newUser(name, isOrganizationAccount, email, password) {
     } catch {
         throw new Error("DATABASE_INSERT_FAIL")
     }
+}
+
+async function verifyPassword(plainPassword, hashedPassword) {
+    try {
+        return await compare(plainPassword, hashedPassword);
+    } catch (error) {
+        console.error("Error during password verification:", error);
+        return false;
+    }
+}
+
+export async function verifyLogin(email, password) {
+    var destUser = await db
+        .select()
+        .from(userTable)
+        .where(eq(userTable.email, email))
+        .limit(1);
+
+    if (destUser.length < 1)
+        return { status: false, user: {} }
+
+    return { status: await verifyPassword(password, destUser[0].passwordHash), user: destUser[0] };
 }
 
 export async function isUserAlreadySignup(email) {
