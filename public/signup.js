@@ -11,12 +11,12 @@ export async function submitSignup() {
     var username = document.getElementById("username").value;
     var email = document.getElementById("email").value;
     var password = document.getElementById("password").value;
-    var isOrganizationAccount = document.getElementById("isOrganization").value == "on";
+    var isOrganizationAccount = document.getElementById("isOrganization").checked;
 
     try {
-        await signup(username, email, password, isOrganizationAccount)
+        await signup(username, email, password, isOrganizationAccount);
         setTimeout(() => {
-            window.location.href = "/";
+            window.location.href = "/dashboard";
         }, 500);
     }
     catch (e) {

@@ -1,27 +1,107 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="vi">
 
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Document</title>
+    <title>EduManager - Trang chủ</title>
+    <!-- Tailwind CSS & Icons -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="/public/style.css">
 </head>
 
-<body>
-    ok
-    <p id="tmp-p"></p>
+<body class="min-h-screen flex flex-col justify-between">
+    <!-- Header -->
+    <header class="glass-card sticky top-0 z-50 px-6 py-4 flex items-center justify-between border-b border-slate-800">
+        <div class="flex items-center space-x-3">
+            <div class="w-10 h-10 rounded-xl gradient-bg flex items-center justify-center text-white shadow-lg shadow-sky-500/20">
+                <i class="fa-solid fa-graduation-cap text-lg"></i>
+            </div>
+            <div>
+                <h1 class="text-xl font-bold gradient-text">EduManager</h1>
+                <p class="text-xs text-slate-400">Hệ thống Quản lý Giáo dục</p>
+            </div>
+        </div>
 
-    <a href="/signup">/signup</a>
-    <br>
-    <a href="/login">/login</a>
-    <br>
-    <a href="/logout">/logout</a>
-    <br>
+        <nav class="flex items-center space-x-3">
+            <a href="/login" class="px-4 py-2 text-sm font-medium bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-xl transition border border-slate-700">
+                <i class="fa-solid fa-right-to-bracket mr-1.5"></i>Đăng nhập
+            </a>
+            <a href="/signup" class="px-4 py-2 text-sm font-medium gradient-bg hover:opacity-90 text-white rounded-xl transition shadow-lg shadow-sky-500/20">
+                <i class="fa-solid fa-user-plus mr-1.5"></i>Đăng ký
+            </a>
+        </nav>
+    </header>
+
+    <!-- Main Content -->
+    <main class="max-w-4xl mx-auto px-6 py-12 w-full space-y-8">
+        <div class="text-center space-y-4">
+            <div class="inline-flex items-center space-x-2 px-3 py-1 bg-sky-500/10 border border-sky-500/20 rounded-full text-sky-400 text-xs font-semibold">
+                <i class="fa-solid fa-sparkles"></i>
+                <span>Nền tảng Quản lý Giáo dục Hiện đại</span>
+            </div>
+            <h2 class="text-4xl font-extrabold text-white tracking-tight">Chào mừng đến với EduManager</h2>
+            <p class="text-slate-400 max-w-xl mx-auto text-sm leading-relaxed">
+                Hệ thống hỗ trợ Tổ chức quản lý đợt niên khóa, danh sách lớp học, phân quyền thành viên và theo dõi rèn luyện của học sinh.
+            </p>
+        </div>
+
+        <!-- Dashboard Quick Access Card -->
+        <div class="glass-card rounded-2xl p-8 border border-slate-800 text-center space-y-6 max-w-xl mx-auto shadow-2xl">
+            <div class="w-16 h-16 bg-sky-500/10 rounded-2xl flex items-center justify-center text-sky-400 text-2xl mx-auto border border-sky-500/20">
+                <i class="fa-solid fa-building-columns"></i>
+            </div>
+            <div class="space-y-2">
+                <h3 class="text-xl font-bold text-slate-100">Bảng điều khiển Tổ chức</h3>
+                <p class="text-xs text-slate-400">Truy cập giao diện quản lý dành cho tài khoản Tổ chức</p>
+            </div>
+            <div>
+                <a href="/dashboard" class="inline-flex items-center space-x-2 px-6 py-3 gradient-bg hover:opacity-90 text-white font-semibold rounded-xl text-sm transition shadow-lg shadow-sky-600/30">
+                    <span>Vào Dashboard Tổ chức</span>
+                    <i class="fa-solid fa-arrow-right"></i>
+                </a>
+            </div>
+        </div>
+
+        <!-- Auth Status Debug Info -->
+        <div class="glass-card rounded-2xl p-6 border border-slate-800 space-y-3">
+            <h4 class="text-xs font-bold uppercase tracking-wider text-slate-400 flex items-center space-x-2">
+                <i class="fa-solid fa-shield-halved text-sky-400"></i>
+                <span>Trạng thái Xác thực Hiện tại (Auth Status)</span>
+            </h4>
+            <div class="p-4 bg-slate-950/80 rounded-xl border border-slate-800/80 text-xs font-mono text-slate-300 break-all space-y-2">
+                <p id="tmp-p">Đang kiểm tra token...</p>
+            </div>
+            <div class="flex justify-end pt-2">
+                <a href="/logout" class="text-xs text-red-400 hover:text-red-300 transition flex items-center space-x-1">
+                    <i class="fa-solid fa-arrow-right-from-bracket"></i>
+                    <span>Đăng xuất tài khoản</span>
+                </a>
+            </div>
+        </div>
+    </main>
+
+    <!-- Footer -->
+    <footer class="glass-card py-6 text-center text-xs text-slate-500 border-t border-slate-800">
+        <p>&copy; 2026 EduManager. All rights reserved.</p>
+    </footer>
+
     <script type="module">
-        import { getAuthToken, decodeAuthToken } from "/public/clientAuth.js";
+        import { getAuthToken, decodeAuthToken, isAlreadyLogin } from "/public/clientAuth.js";
         const tmpP = document.getElementById("tmp-p");
 
-        tmpP.innerHTML = `Auth Token: ${getAuthToken()}<br>Decoded Auth Token: ${JSON.stringify(await decodeAuthToken())}`
+        if (isAlreadyLogin()) {
+            try {
+                const token = getAuthToken();
+                const decoded = await decodeAuthToken();
+                tmpP.innerHTML = `<span class="text-emerald-400 font-semibold">Đã đăng nhập</span><br><span class="text-slate-400">User:</span> ${decoded.username || 'N/A'} (${decoded.email || ''})<br><span class="text-slate-400">JWT Payload:</span> ${JSON.stringify(decoded)}`;
+            } catch (e) {
+                tmpP.innerHTML = `<span class="text-amber-400">Token không hợp lệ</span>`;
+            }
+        } else {
+            tmpP.innerHTML = `<span class="text-slate-500">Chưa đăng nhập (Chưa có Auth Token)</span>`;
+        }
     </script>
 </body>
 

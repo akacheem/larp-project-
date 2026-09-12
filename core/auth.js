@@ -1,15 +1,12 @@
-import { drizzle } from 'drizzle-orm/libsql';
-import { createClient } from '@libsql/client';
 import 'dotenv/config';
 import { hash, compare } from 'bcrypt';
 import { userTable } from './schema.js';
 import { eq } from 'drizzle-orm';
+import { db } from './db.js';
 
-const client = createClient({ url: process.env.DATABASE_URL || 'file:./database.db' })
-const db = drizzle({ client });
 const DEFAULT_SALT_ROUND = 11
 
-// auth func
+// Authentication functions
 export async function newUser(name, isOrganizationAccount, email, password) {
     let passwordHash;
     try {
@@ -27,7 +24,8 @@ export async function newUser(name, isOrganizationAccount, email, password) {
     }
 
     try {
-        await db.insert(userTable).values(user)
+        const res = await db.insert(userTable).values(user).returning();
+        return res[0];
     } catch {
         throw new Error("DATABASE_INSERT_FAIL")
     }

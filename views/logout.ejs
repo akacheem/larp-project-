@@ -1,25 +1,35 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="vi">
 
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Logout Page</title>
+    <title>Đăng xuất - EduManager</title>
+    <!-- Tailwind CSS & Icons -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="/public/style.css">
 </head>
 
-<body>
-    <p id="logout-state">Logging out...</p>
+<body class="min-h-screen flex items-center justify-center p-6">
+    <div class="glass-card w-full max-w-sm rounded-2xl p-8 border border-slate-800 text-center space-y-4 shadow-2xl">
+        <div class="w-12 h-12 bg-sky-500/10 rounded-full flex items-center justify-center mx-auto text-sky-400 text-xl">
+            <i class="fa-solid fa-circle-notch fa-spin"></i>
+        </div>
+        <p id="logout-state" class="text-sm font-medium text-slate-300">Đang thực hiện đăng xuất...</p>
+    </div>
+
     <script type="module">
         import { logout } from "/public/clientAuth.js";
 
-        const logoutSateText = document.getElementById("logout-state");
+        const logoutStateText = document.getElementById("logout-state");
         await logout();
 
-        logoutSateText.innerText = "Logged out!";
+        logoutStateText.innerText = "Đã đăng xuất thành công!";
 
         setTimeout(() => {
             window.location.href = "/";
-        }, 500);
+        }, 600);
     </script>
 </body>
 

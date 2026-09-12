@@ -1,5 +1,3 @@
-import jsonwebtoken from "https://cdn.jsdelivr.net/npm/jsonwebtoken@9.0.3/+esm";
-
 function setAuthToken(tok) {
     localStorage.setItem("authToken", tok);
 }
@@ -23,13 +21,18 @@ export function isAlreadyLogin() {
     return localStorage.getItem("authToken") !== null;
 }
 
-export async function decodeAuthToken() {
+export function decodeAuthToken() {
     if (!isAlreadyLogin())
-        throw new Error("ERROR_AUTH_TOKEN_EMPTY")
+        throw new Error("ERROR_AUTH_TOKEN_EMPTY");
 
     try {
-        const decodedDat = await jsonwebtoken.decode(localStorage.getItem("authToken"));
-        return decodedDat
+        const token = localStorage.getItem("authToken");
+        const base64Url = token.split('.')[1];
+        const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+        const jsonPayload = decodeURIComponent(atob(base64).split('').map(c => 
+            '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2)
+        ).join(''));
+        return JSON.parse(jsonPayload);
     } catch {
         throw new Error("ERROR_BAD_JWT_TOKEN");
     }
@@ -37,18 +40,21 @@ export async function decodeAuthToken() {
 
 export function getAuthToken() {
     if (!isAlreadyLogin())
-        throw new Error("ERROR_AUTH_TOKEN_EMPTY")
+        throw new Error("ERROR_AUTH_TOKEN_EMPTY");
 
-    return localStorage.getItem("authToken")
+    return localStorage.getItem("authToken");
 }
 
 export function logout() {
     localStorage.removeItem("authToken");
 }
 
+export function clientLogout() {
+    logout();
+}
+
 export async function login(email, password) {
     const resp = await fetch("/submit-login", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ email: email, password: password }) });
-    console.log(resp);
     const resj = await resp.json();
 
     if (!resp.ok)

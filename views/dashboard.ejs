@@ -1,0 +1,1377 @@
+<!DOCTYPE html>
+<html lang="vi">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Organization Dashboard - EduManager</title>
+    <!-- Vue 3 CDN -->
+    <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+    <!-- Font Awesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Google Fonts & App Styles -->
+    <link rel="stylesheet" href="/public/style.css">
+    <!-- Tailwind CSS JIT -->
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+
+<body class="min-h-screen bg-slate-950 text-slate-100">
+    <div id="app">
+        <!-- Header Bar -->
+        <header class="glass-card sticky top-0 z-40 px-6 py-4 flex items-center justify-between border-b border-slate-800">
+            <div class="flex items-center space-x-4">
+                <div class="w-10 h-10 rounded-xl gradient-bg flex items-center justify-center text-white shadow-lg shadow-sky-500/20">
+                    <i class="fa-solid fa-building-columns text-lg"></i>
+                </div>
+                <div>
+                    <h1 class="text-xl font-bold gradient-text">Organization Portal</h1>
+                    <p class="text-xs text-slate-400">Hệ thống Quản lý Giáo dục & Phân quyền Tổ chức</p>
+                </div>
+            </div>
+
+            <div v-if="user" class="flex items-center space-x-4">
+                <div class="flex items-center space-x-3">
+                    <span class="text-sm font-semibold text-slate-200">{{ displayName }}</span>
+                    <span v-if="user.isOrganizationAccount" class="px-2.5 py-0.5 text-xs font-bold bg-sky-500/20 text-sky-300 border border-sky-500/30 rounded-full">
+                        <i class="fa-solid fa-crown mr-1 text-amber-400"></i>Quản trị Tổ chức
+                    </span>
+                    <span v-else class="px-2.5 py-0.5 text-xs font-semibold bg-slate-700 text-slate-300 rounded-full">
+                        Thành viên Cá nhân
+                    </span>
+                </div>
+                <a v-if="user.isOrganizationAccount" href="/class-management" class="px-3.5 py-2 text-xs font-bold bg-sky-600 hover:bg-sky-500 text-white rounded-xl transition shadow-lg shadow-sky-600/30 flex items-center space-x-1.5">
+                    <i class="fa-solid fa-graduation-cap"></i>
+                    <span>Quản lý Lớp học</span>
+                </a>
+                <button @click="logout" class="px-3.5 py-2 text-xs font-medium bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-xl transition border border-slate-700 flex items-center space-x-1.5">
+                    <i class="fa-solid fa-arrow-right-from-bracket"></i>
+                    <span>Đăng xuất</span>
+                </button>
+            </div>
+
+            <div v-else class="flex items-center space-x-3">
+                <a href="/login" class="px-4 py-2 text-sm font-medium bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-xl transition border border-slate-700">
+                    <i class="fa-solid fa-right-to-bracket mr-1"></i>Đăng nhập
+                </a>
+            </div>
+        </header>
+
+        <main class="max-w-7xl mx-auto px-6 py-8">
+            <!-- FALLBACK: WHEN USER IS STILL LOADING OR NOT LOGGED IN -->
+            <div v-if="!user" class="flex flex-col items-center justify-center min-h-[50vh] space-y-4 text-center">
+                <div v-if="loadingUser" class="space-y-3">
+                    <i class="fa-solid fa-circle-notch fa-spin text-4xl text-sky-400"></i>
+                    <p class="text-slate-400 text-sm font-medium">Đang tải thông tin bảng điều khiển...</p>
+                </div>
+                <div v-else class="glass-card p-8 rounded-2xl border border-slate-800 space-y-4 max-w-md shadow-2xl">
+                    <div class="w-16 h-16 bg-amber-500/10 rounded-full flex items-center justify-center text-amber-400 text-2xl mx-auto border border-amber-500/20">
+                        <i class="fa-solid fa-user-lock"></i>
+                    </div>
+                    <div class="space-y-1">
+                        <h3 class="text-xl font-bold text-slate-100">Yêu cầu Đăng nhập</h3>
+                        <p class="text-xs text-slate-400">Phiên đăng nhập của bạn đã hết hạn hoặc bạn chưa đăng nhập.</p>
+                    </div>
+                    <div class="pt-2">
+                        <a href="/login" class="inline-flex items-center space-x-2 px-6 py-2.5 gradient-bg hover:opacity-90 text-white text-xs font-bold rounded-xl transition shadow-lg shadow-sky-600/30">
+                            <span>Chuyển đến trang Đăng nhập</span>
+                            <i class="fa-solid fa-arrow-right"></i>
+                        </a>
+                    </div>
+                </div>
+            </div>
+
+            <!-- MAIN DASHBOARD CONTENT (Visible for both Organization & Non-Org Member Accounts) -->
+            <div v-else-if="user" class="space-y-8">
+                <!-- Dashboard Welcome Banner -->
+                <div class="glass-card rounded-2xl p-6 relative overflow-hidden flex flex-col md:flex-row justify-between items-start md:items-center gap-4 border border-sky-500/20 bg-gradient-to-r from-sky-950/40 via-slate-900 to-indigo-950/40">
+                    <div class="space-y-1.5">
+                        <h2 class="text-2xl font-extrabold text-white flex items-center gap-3">
+                            <span>{{ user.isOrganizationAccount ? 'Bảng điều khiển Tổ chức' : 'Bảng điều khiển Thành viên Cá nhân' }}</span>
+                            <span class="px-3 py-1 bg-sky-500/20 border border-sky-400/30 text-sky-300 text-xs font-semibold rounded-full">
+                                {{ displayName }}
+                            </span>
+                        </h2>
+                        <p class="text-slate-400 text-sm">
+                            {{ user.isOrganizationAccount ? 'Tích hợp Gemini AI Chatbot thông minh quản lý lớp học và phân quyền.' : 'Quản lý và thực hiện nhiệm vụ giáo dục tại các lớp học được phân quyền.' }}
+                        </p>
+
+                        <!-- Joined Organizations Pills for Non-Org Members -->
+                        <div v-if="!user.isOrganizationAccount" class="flex flex-wrap items-center gap-2 pt-2">
+                            <span class="text-xs font-semibold text-slate-400"><i class="fa-solid fa-building-user text-sky-400 mr-1"></i>Tổ chức đã tham gia:</span>
+                            <span v-if="userOrganizations.length === 0" class="text-xs text-slate-500 italic">Chưa được mời vào tổ chức nào</span>
+                            <span v-for="org in userOrganizations" :key="org.organizationId" class="px-2.5 py-0.5 bg-sky-500/20 text-sky-300 border border-sky-500/30 rounded-full text-xs font-bold flex items-center">
+                                <i class="fa-solid fa-building mr-1.5 text-sky-400"></i>{{ org.organizationName }}
+                            </span>
+                        </div>
+                    </div>
+
+                    <!-- Stats & Server AI Undo/Redo & Debug Controls -->
+                    <div class="flex items-center space-x-3">
+                        <!-- Debug Mode Status (Configured via .env) -->
+                        <div :class="debugMode ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/40' : 'bg-slate-800/60 text-slate-400 border-slate-700'" class="px-3 py-2 text-xs font-bold rounded-xl border flex items-center space-x-1.5 shadow-md">
+                            <i class="fa-solid" :class="debugMode ? 'fa-bug text-emerald-400' : 'fa-bug-slash'"></i>
+                            <span>Debug Mode: {{ debugMode ? 'Bật (.env)' : 'Tắt (.env)' }}</span>
+                        </div>
+
+                        <!-- Server AI Undo / Redo buttons -->
+                        <button @click="handleServerUndo" :disabled="!canUndo" :class="canUndo ? 'bg-amber-500/20 text-amber-300 hover:bg-amber-500/30 border-amber-500/40' : 'bg-slate-800/40 text-slate-600 border-slate-800 cursor-not-allowed'" class="px-3.5 py-2 text-xs font-semibold rounded-xl border transition flex items-center space-x-1.5">
+                            <i class="fa-solid fa-rotate-left"></i>
+                            <span>Hoàn tác AI (Undo)</span>
+                        </button>
+                        <button @click="handleServerRedo" :disabled="!canRedo" :class="canRedo ? 'bg-indigo-500/20 text-indigo-300 hover:bg-indigo-500/30 border-indigo-500/40' : 'bg-slate-800/40 text-slate-600 border-slate-800 cursor-not-allowed'" class="px-3.5 py-2 text-xs font-semibold rounded-xl border transition flex items-center space-x-1.5">
+                            <i class="fa-solid fa-rotate-right"></i>
+                            <span>Làm lại AI (Redo)</span>
+                        </button>
+
+                        <div class="glass-card px-4 py-2 rounded-xl border border-slate-700/60 text-center">
+                            <span class="block text-xl font-bold text-sky-400">{{ classes.length }}</span>
+                            <span class="text-[10px] text-slate-400 font-medium">Lớp</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Navigation Tabs -->
+                <div class="flex space-x-2 border-b border-slate-800 pb-2">
+                    <button @click="activeTab = 'classes'" :class="activeTab === 'classes' ? 'bg-sky-600 text-white shadow-lg shadow-sky-600/30' : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/60'" class="px-5 py-2.5 font-medium rounded-xl text-sm transition flex items-center space-x-2">
+                        <i class="fa-solid fa-graduation-cap"></i>
+                        <span>Danh sách Lớp học</span>
+                        <span class="px-2 py-0.5 text-xs rounded-full bg-slate-900/60">{{ classes.length }}</span>
+                    </button>
+                    <button @click="activeTab = 'years'" :class="activeTab === 'years' ? 'bg-sky-600 text-white shadow-lg shadow-sky-600/30' : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/60'" class="px-5 py-2.5 font-medium rounded-xl text-sm transition flex items-center space-x-2">
+                        <i class="fa-solid fa-calendar-days"></i>
+                        <span>Đợt Niên khóa</span>
+                        <span class="px-2 py-0.5 text-xs rounded-full bg-slate-900/60">{{ academicYears.length }}</span>
+                    </button>
+                    <button v-if="user.isOrganizationAccount" @click="activeTab = 'members'" :class="activeTab === 'members' ? 'bg-sky-600 text-white shadow-lg shadow-sky-600/30' : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/60'" class="px-5 py-2.5 font-medium rounded-xl text-sm transition flex items-center space-x-2">
+                        <i class="fa-solid fa-user-shield"></i>
+                        <span>Mời & Phân quyền ghi theo lớp</span>
+                        <span class="px-2 py-0.5 text-xs rounded-full bg-slate-900/60">{{ members.length }}</span>
+                    </button>
+                    <button @click="activeTab = 'audit-logs'; fetchAuditLogs()" :class="activeTab === 'audit-logs' ? 'bg-sky-600 text-white shadow-lg shadow-sky-600/30' : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/60'" class="px-5 py-2.5 font-medium rounded-xl text-sm transition flex items-center space-x-2">
+                        <i class="fa-solid fa-clock-rotate-left"></i>
+                        <span>Nhật ký Thay đổi (Audit Logs)</span>
+                    </button>
+                </div>
+
+                <!-- TAB 1: CLASSES MANAGEMENT -->
+                <div v-if="activeTab === 'classes'" class="space-y-6">
+                    <!-- Add Class Form (ONLY FOR ORGANIZATION ACCOUNTS) -->
+                    <div v-if="user.isOrganizationAccount" class="glass-card rounded-2xl p-6 border border-slate-800 space-y-4">
+                        <div class="flex justify-between items-center">
+                            <h3 class="text-lg font-bold text-slate-100 flex items-center space-x-2">
+                                <i class="fa-solid fa-plus-circle text-sky-400"></i>
+                                <span>Thêm lớp học mới</span>
+                            </h3>
+                            <span class="px-2.5 py-1 text-xs bg-sky-500/10 text-sky-300 border border-sky-500/20 rounded-md font-semibold">
+                                <i class="fa-solid fa-shield-halved mr-1"></i>Độc quyền cho Tổ chức
+                            </span>
+                        </div>
+                        <form @submit.prevent="addClass" class="grid grid-cols-1 md:grid-cols-3 gap-4 items-end">
+                            <div>
+                                <label class="block text-xs font-semibold text-slate-400 mb-1.5">Tên lớp học <span class="text-red-400">*</span></label>
+                                <input v-model="newClass.name" type="text" placeholder="Ví dụ: 10A1, 11B2..." required class="w-full px-4 py-2.5 bg-slate-900 border border-slate-700 rounded-xl text-slate-200 text-sm focus:outline-none focus:border-sky-500 transition">
+                            </div>
+                            <div>
+                                <label class="block text-xs font-semibold text-slate-400 mb-1.5">Chọn Niên khóa</label>
+                                <select v-model="newClass.academicYearId" class="w-full px-4 py-2.5 bg-slate-900 border border-slate-700 rounded-xl text-slate-200 text-sm focus:outline-none focus:border-sky-500 transition">
+                                    <option :value="null">-- Chọn niên khóa --</option>
+                                    <option v-for="y in academicYears" :key="y.id" :value="y.id">{{ y.name }}</option>
+                                </select>
+                            </div>
+                            <div>
+                                <button type="submit" :disabled="submittingClass" class="w-full px-5 py-2.5 gradient-bg hover:opacity-90 text-white font-medium rounded-xl transition text-sm flex items-center justify-center space-x-2 shadow-lg shadow-sky-600/20">
+                                    <i v-if="submittingClass" class="fa-solid fa-spinner fa-spin"></i>
+                                    <i v-else class="fa-solid fa-plus"></i>
+                                    <span>Thêm lớp học</span>
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+
+                    <!-- Classes List -->
+                    <div class="glass-card rounded-2xl p-6 border border-slate-800 space-y-4">
+                        <div class="flex justify-between items-center">
+                            <h3 class="text-lg font-bold text-slate-100">Danh sách các lớp học được phân quyền</h3>
+                            <div class="text-xs text-slate-400">Tổng cộng: {{ classes.length }} lớp</div>
+                        </div>
+
+                        <div v-if="loadingData" class="text-center py-8 text-slate-400 space-y-2">
+                            <i class="fa-solid fa-circle-notch fa-spin text-2xl text-sky-400"></i>
+                            <p class="text-xs">Đang tải danh sách lớp...</p>
+                        </div>
+
+                        <div v-else-if="classes.length === 0" class="text-center py-12 text-slate-400 space-y-3">
+                            <i class="fa-solid fa-folder-open text-4xl text-slate-600"></i>
+                            <p class="text-sm">
+                                {{ user.isOrganizationAccount ? 'Chưa có lớp học nào được tạo. Sử dụng biểu mẫu phía trên hoặc Gemini Chatbot.' : 'Bạn chưa được phân quyền truy cập lớp học nào. Hãy liên hệ Quản trị viên Tổ chức để nhận quyền ghi hoặc đọc.' }}
+                            </p>
+                        </div>
+
+                        <div v-else class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                            <div v-for="cls in classes" :key="cls.id" @click="navigateToClass(cls.id)" @contextmenu.prevent="openContextMenu($event, cls)" class="p-5 bg-slate-900/80 border border-slate-800 hover:border-sky-500/50 rounded-xl transition space-y-3 cursor-pointer group relative overflow-hidden shadow-md hover:shadow-sky-500/10">
+                                <div class="flex justify-between items-start">
+                                    <div class="flex items-center space-x-3">
+                                        <div class="w-10 h-10 bg-sky-500/10 text-sky-400 group-hover:bg-sky-500 group-hover:text-white rounded-xl flex items-center justify-center font-bold transition">
+                                            <i class="fa-solid fa-chalkboard-user"></i>
+                                        </div>
+                                        <div>
+                                            <h4 class="font-bold text-slate-100 text-lg group-hover:text-sky-400 transition">{{ cls.name }}</h4>
+                                            <p class="text-xs text-slate-400">
+                                                Mã Lớp: #{{ cls.id }}
+                                                <span v-if="cls.organizationName" class="text-slate-500"> • {{ cls.organizationName }}</span>
+                                            </p>
+                                        </div>
+                                    </div>
+                                    <div class="flex flex-col items-end gap-1">
+                                        <span v-if="cls.canWrite" class="px-2 py-0.5 text-[10px] font-bold rounded-md bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 flex items-center">
+                                            <i class="fa-solid fa-pen mr-1 text-[9px]"></i>Có quyền ghi
+                                        </span>
+                                        <span v-else class="px-2 py-0.5 text-[10px] font-bold rounded-md bg-slate-800 text-slate-400 border border-slate-700 flex items-center">
+                                            <i class="fa-solid fa-eye mr-1 text-[9px]"></i>Chỉ xem
+                                        </span>
+                                    </div>
+                                </div>
+                                <div class="pt-2 border-t border-slate-800/80 flex items-center justify-between text-xs">
+                                    <span class="text-slate-400">Niên khóa: <strong class="text-indigo-300">{{ getYearName(cls.academicYearId) || cls.academicYear || 'Chưa xếp' }}</strong></span>
+                                    <div v-if="user.isOrganizationAccount" class="flex items-center space-x-2" @click.stop>
+                                        <button @click="editClassPrompt(cls)" class="p-1.5 text-slate-400 hover:text-sky-400 transition" title="Sửa tên lớp">
+                                            <i class="fa-solid fa-pen-to-square"></i>
+                                        </button>
+                                        <button @click="removeClass(cls.id)" class="p-1.5 text-slate-400 hover:text-red-400 transition" title="Xóa lớp học">
+                                            <i class="fa-solid fa-trash-can"></i>
+                                        </button>
+                                    </div>
+                                    <div v-else class="text-sky-400 group-hover:translate-x-1 transition font-semibold text-[11px] flex items-center">
+                                        Mở quản lý <i class="fa-solid fa-chevron-right ml-1"></i>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- TAB 2: ACADEMIC YEARS MANAGEMENT -->
+                <div v-if="activeTab === 'years'" class="space-y-6">
+                    <!-- Add Academic Year Form (ONLY FOR ORGANIZATION ACCOUNTS) -->
+                    <div v-if="user.isOrganizationAccount" class="glass-card rounded-2xl p-6 border border-slate-800 space-y-4">
+                        <h3 class="text-lg font-bold text-slate-100 flex items-center space-x-2">
+                            <i class="fa-solid fa-calendar-plus text-indigo-400"></i>
+                            <span>Tạo đợt niên khóa mới</span>
+                        </h3>
+                        <form @submit.prevent="addAcademicYear" class="grid grid-cols-1 md:grid-cols-4 gap-4 items-end">
+                            <div>
+                                <label class="block text-xs font-semibold text-slate-400 mb-1.5">Tên Niên khóa <span class="text-red-400">*</span></label>
+                                <input v-model="newYear.name" type="text" placeholder="Ví dụ: 2024 - 2025" required class="w-full px-4 py-2.5 bg-slate-900 border border-slate-700 rounded-xl text-slate-200 text-sm focus:outline-none focus:border-indigo-500 transition">
+
+                            </div>
+                            <div>
+                                <label class="block text-xs font-semibold text-slate-400 mb-1.5">Ngày bắt đầu</label>
+                                <input v-model="newYear.startDate" type="date" class="w-full px-4 py-2.5 bg-slate-900 border border-slate-700 rounded-xl text-slate-200 text-sm focus:outline-none focus:border-indigo-500 transition">
+                            </div>
+                            <div>
+                                <label class="block text-xs font-semibold text-slate-400 mb-1.5">Ngày kết thúc</label>
+                                <input v-model="newYear.endDate" type="date" class="w-full px-4 py-2.5 bg-slate-900 border border-slate-700 rounded-xl text-slate-200 text-sm focus:outline-none focus:border-indigo-500 transition">
+                            </div>
+                            <div>
+                                <button type="submit" :disabled="submittingYear" class="w-full px-5 py-2.5 bg-indigo-600 hover:bg-indigo-500 text-white font-medium rounded-xl transition text-sm flex items-center justify-center space-x-2 shadow-lg shadow-indigo-600/20">
+                                    <i v-if="submittingYear" class="fa-solid fa-spinner fa-spin"></i>
+                                    <i v-else class="fa-solid fa-plus"></i>
+                                    <span>Tạo Niên khóa</span>
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+
+                    <!-- Academic Years List Table -->
+                    <div class="glass-card rounded-2xl p-6 border border-slate-800 space-y-4">
+                        <h3 class="text-lg font-bold text-slate-100">Danh sách các đợt Niên khóa</h3>
+                        <div class="overflow-x-auto">
+                            <table class="w-full text-left text-sm text-slate-300">
+                                <thead class="bg-slate-900/90 text-xs uppercase text-slate-400 border-b border-slate-800">
+                                    <tr>
+                                        <th class="px-6 py-3.5">ID</th>
+                                        <th class="px-6 py-3.5">Tên Niên khóa</th>
+                                        <th class="px-6 py-3.5">Ngày bắt đầu</th>
+                                        <th class="px-6 py-3.5">Ngày kết thúc</th>
+                                    </tr>
+                                </thead>
+                                <tbody class="divide-y divide-slate-800/60">
+                                    <tr v-if="academicYears.length === 0">
+                                        <td colspan="4" class="text-center py-8 text-slate-500">Chưa có niên khóa nào được tạo.</td>
+                                    </tr>
+                                    <tr v-for="y in academicYears" :key="y.id" class="hover:bg-slate-800/40 transition">
+                                        <td class="px-6 py-4 font-mono text-xs text-slate-500">#{{ y.id }}</td>
+                                        <td class="px-6 py-4 font-bold text-slate-100">{{ y.name }}</td>
+                                        <td class="px-6 py-4 text-slate-400">{{ y.startDate || '-' }}</td>
+                                        <td class="px-6 py-4 text-slate-400">{{ y.endDate || '-' }}</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- TAB 3: MEMBERS & CLASS-LEVEL PERMISSIONS -->
+                <div v-if="activeTab === 'members'" class="space-y-6">
+                    <!-- Invite Non-Org Member Form -->
+                    <div class="glass-card rounded-2xl p-6 border border-slate-800 space-y-4">
+                        <div class="space-y-1">
+                            <h3 class="text-lg font-bold text-slate-100 flex items-center space-x-2">
+                                <i class="fa-solid fa-user-plus text-emerald-400"></i>
+                                <span>Mời thành viên mới vào tổ chức</span>
+                            </h3>
+                            <p class="text-xs text-slate-400">Nhập email tài khoản cá nhân để mời tham gia tổ chức. Sau đó Tổ chức có thể cấp quyền ghi dữ liệu cho từng lớp cụ thể.</p>
+                        </div>
+                        <form @submit.prevent="inviteMember" class="grid grid-cols-1 md:grid-cols-4 gap-4 items-end">
+                            <div class="md:col-span-3">
+                                <label class="block text-xs font-semibold text-slate-400 mb-1.5">Email người dùng cá nhân <span class="text-red-400">*</span></label>
+                                <input v-model="inviteForm.email" type="email" placeholder="nhap.email@example.com" required class="w-full px-4 py-2.5 bg-slate-900 border border-slate-700 rounded-xl text-slate-200 text-sm focus:outline-none focus:border-emerald-500 transition">
+                            </div>
+                            <div>
+                                <button type="submit" :disabled="submittingInvite" class="w-full px-5 py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white font-medium rounded-xl transition text-sm flex items-center justify-center space-x-2 shadow-lg shadow-emerald-600/20">
+                                    <i v-if="submittingInvite" class="fa-solid fa-spinner fa-spin"></i>
+                                    <i v-else class="fa-solid fa-paper-plane"></i>
+                                    <span>Gửi lời mời</span>
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+
+                    <!-- Members Table -->
+                    <div class="glass-card rounded-2xl p-6 border border-slate-800 space-y-4">
+                        <div class="space-y-1">
+                            <h3 class="text-lg font-bold text-slate-100">Danh sách thành viên & Quyền ghi dữ liệu theo lớp</h3>
+                            <p class="text-xs text-slate-400">Tổ chức tùy chỉnh cấp hoặc thu hồi quyền ghi dữ liệu cho từng thành viên trên các lớp học cụ thể.</p>
+                        </div>
+
+                        <div v-if="members.length === 0" class="text-center py-12 text-slate-500">
+                            Chưa có thành viên nào được mời vào tổ chức.
+                        </div>
+
+                        <div v-else class="space-y-4">
+                            <div v-for="m in members" :key="m.id" class="p-5 bg-slate-900/80 border border-slate-800 rounded-xl space-y-4 hover:border-slate-700 transition">
+                                <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-2 border-b border-slate-800 pb-3">
+                                    <div>
+                                        <h4 class="font-bold text-slate-100 text-base flex items-center gap-2">
+                                            <span>{{ m.userName }}</span>
+                                            <span class="text-xs font-normal text-slate-400">({{ m.userEmail }})</span>
+                                        </h4>
+                                        <p class="text-xs text-slate-400 mt-0.5">Tài khoản cá nhân thuộc tổ chức</p>
+                                    </div>
+                                    <div class="flex items-center space-x-2">
+                                        <button @click="removeMember(m.id)" class="px-3 py-1.5 text-xs font-medium bg-red-500/10 hover:bg-red-500/20 text-red-400 rounded-lg transition border border-red-500/20">
+                                            <i class="fa-solid fa-trash mr-1"></i>Xóa khỏi tổ chức
+                                        </button>
+                                    </div>
+                                </div>
+
+                                <!-- Class Write Permissions Selection -->
+                                <div class="space-y-2">
+                                    <label class="block text-xs font-semibold text-slate-300">
+                                        <i class="fa-solid fa-pen-to-square text-sky-400 mr-1"></i>
+                                        Phân quyền ghi dữ liệu cho lớp học:
+                                    </label>
+                                    <div v-if="classes.length === 0" class="text-xs text-slate-500 italic">
+                                        Tổ chức chưa tạo lớp học nào để phân quyền.
+                                    </div>
+                                    <div v-else class="flex flex-wrap gap-2">
+                                        <button v-for="c in classes" :key="c.id" @click="toggleMemberClassWrite(m, c.id)" :class="isClassAllowed(m, c.id) ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/40' : 'bg-slate-800/80 text-slate-400 border-slate-700/60 hover:border-slate-600'" class="px-3 py-1.5 text-xs font-semibold rounded-lg border transition flex items-center space-x-1.5">
+                                            <i :class="isClassAllowed(m, c.id) ? 'fa-solid fa-square-check text-emerald-400' : 'fa-regular fa-square text-slate-500'"></i>
+                                            <span>Lớp {{ c.name }}</span>
+                                            <span v-if="isClassAllowed(m, c.id)" class="text-[10px] uppercase font-bold text-emerald-400 bg-emerald-500/20 px-1 rounded">Có quyền ghi</span>
+                                            <span v-else class="text-[10px] uppercase font-bold text-slate-500">Chỉ xem</span>
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                <!-- TAB 4: AUDIT LOGS (GOOGLE SHEETS STYLE REVISION HISTORY) -->
+                <div v-if="activeTab === 'audit-logs'" class="space-y-6">
+                    <div class="glass-card rounded-2xl p-6 border border-slate-800 space-y-4">
+                        <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-2 border-b border-slate-800 pb-4">
+                            <div>
+                                <h3 class="text-lg font-bold text-slate-100 flex items-center space-x-2">
+                                    <i class="fa-solid fa-clock-rotate-left text-sky-400"></i>
+                                    <span>Lịch sử Thay đổi Dữ liệu & Phân vết AI Agent</span>
+                                </h3>
+                                <p class="text-xs text-slate-400 mt-1">Ghi lại toàn bộ lịch sử chỉnh sửa dữ liệu theo thời gian thực (Google Sheets Version History), phân biệt thao tác từ Người dùng và AI Agent.</p>
+                            </div>
+                            <button @click="fetchAuditLogs" class="px-3.5 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-xl text-xs font-semibold border border-slate-700 flex items-center gap-1.5 transition">
+                                <i class="fa-solid fa-rotate text-sky-400"></i><span>Tải lại nhật ký</span>
+                            </button>
+                        </div>
+
+                        <div v-if="loadingAuditLogs" class="text-center py-12 text-slate-400 space-y-2">
+                            <i class="fa-solid fa-circle-notch fa-spin text-3xl text-sky-400"></i>
+                            <p class="text-xs">Đang tải nhật ký thay đổi...</p>
+                        </div>
+
+                        <div v-else-if="auditLogs.length === 0" class="text-center py-12 text-slate-500 text-xs italic">
+                            Chưa có nhật ký thay đổi nào được ghi nhận.
+                        </div>
+
+                        <div v-else class="space-y-3">
+                            <div v-for="log in auditLogs" :key="log.id" class="p-5 bg-slate-900/80 border border-slate-800 hover:border-slate-700 rounded-xl space-y-3 transition">
+                                <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-2 border-b border-slate-800/80 pb-2.5">
+                                    <div class="flex items-center space-x-3">
+                                        <span :class="log.source === 'AGENT' ? 'bg-amber-500/20 text-amber-300 border-amber-500/30' : 'bg-sky-500/20 text-sky-300 border-sky-500/30'" class="px-2.5 py-1 text-xs font-extrabold border rounded-lg uppercase flex items-center gap-1.5">
+                                            <i :class="log.source === 'AGENT' ? 'fa-solid fa-robot text-amber-400' : 'fa-solid fa-user text-sky-400'"></i>
+                                            {{ log.source === 'AGENT' ? 'AI Agent' : 'Người dùng' }}
+                                        </span>
+                                        <div>
+                                            <span class="font-bold text-slate-100 text-sm">{{ log.userName }}</span>
+                                            <span class="text-slate-400 text-xs ml-1 font-mono">({{ log.userEmail }})</span>
+                                        </div>
+                                    </div>
+                                    <span class="text-slate-400 font-mono text-xs"><i class="fa-regular fa-clock mr-1.5 text-slate-500"></i>{{ formatDate(log.createdAt) }}</span>
+                                </div>
+
+                                <p class="text-sm text-slate-200 font-medium flex items-center gap-2">
+                                    <i class="fa-solid fa-pen-to-square text-sky-400 text-xs"></i>
+                                    <span>{{ log.description }}</span>
+                                </p>
+
+                                <!-- Field Level Diffs (Google Sheets Old Value ➔ New Value) -->
+                                <div v-if="log.diffs && log.diffs.length > 0" class="p-3 bg-slate-950/80 rounded-xl border border-slate-800/80 space-y-2 text-xs">
+                                    <div class="text-[11px] font-bold uppercase tracking-wider text-slate-400 flex items-center gap-1.5">
+                                        <i class="fa-solid fa-code-compare text-sky-400"></i>Chi tiết các thay đổi:
+                                    </div>
+                                    <div class="grid grid-cols-1 md:grid-cols-2 gap-2">
+                                        <div v-for="d in log.diffs" :key="d.field" class="p-2 bg-slate-900 rounded-lg border border-slate-800 flex items-center space-x-2 text-xs flex-wrap gap-y-1">
+                                            <span class="font-semibold text-slate-400 min-w-[100px]">{{ d.label }}:</span>
+                                            <span class="px-2 py-0.5 rounded bg-red-950/80 text-red-300 border border-red-800/50 line-through font-mono text-[11px]">{{ d.oldValue }}</span>
+                                            <i class="fa-solid fa-arrow-right text-slate-500 text-[10px]"></i>
+                                            <span class="px-2 py-0.5 rounded bg-emerald-950/80 text-emerald-300 border border-emerald-800/50 font-bold font-mono text-[11px]">{{ d.newValue }}</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+
+        <!-- GEMINI AI CHATBOT DRAWER & PREVIEW MODAL -->
+        <div v-if="user">
+            <!-- Floating Gemini AI Trigger Button -->
+            <button @click="showAiDrawer = !showAiDrawer" class="fixed bottom-6 right-6 w-14 h-14 gradient-bg text-white rounded-full shadow-2xl flex items-center justify-center text-xl z-40 hover:scale-105 transition border border-white/20">
+                <i class="fa-solid fa-sparkles text-amber-300"></i>
+            </button>
+
+            <!-- Gemini AI Chatbot Drawer Panel -->
+            <div v-if="showAiDrawer" class="fixed bottom-24 right-6 w-96 glass-card rounded-2xl border border-sky-500/30 shadow-2xl z-40 flex flex-col bg-slate-950/95 overflow-hidden h-[480px]">
+                <!-- Chatbot Header -->
+                <div class="px-4 py-3 border-b border-slate-800 flex justify-between items-center bg-slate-900/90">
+                    <div class="flex items-center space-x-2.5">
+                        <div class="w-8 h-8 rounded-lg gradient-bg flex items-center justify-center text-white text-sm shadow-md">
+                            <i class="fa-solid fa-sparkles text-amber-300"></i>
+                        </div>
+                        <div>
+                            <h3 class="font-bold text-slate-100 text-sm flex items-center gap-1.5">
+                                <span>Gemini AI Chatbot</span>
+                                <span v-if="isGeminiPowered" class="px-1.5 py-0.5 text-[9px] bg-amber-500/20 text-amber-300 border border-amber-500/30 rounded font-bold">API Active</span>
+                            </h3>
+                            <p class="text-[10px] text-slate-400">Trợ lý AI quản lý Tổ chức</p>
+                        </div>
+                    </div>
+                    <button @click="showAiDrawer = false" class="text-slate-400 hover:text-slate-200">
+                        <i class="fa-solid fa-xmark text-sm"></i>
+                    </button>
+                </div>
+
+                <!-- Chat Messages Stream -->
+                <div class="flex-1 p-4 overflow-y-auto space-y-3 text-xs">
+                    <div v-for="(msg, idx) in chatMessages" :key="idx" :class="msg.role === 'user' ? 'justify-end' : 'justify-start'" class="flex items-start gap-2">
+                        <div v-if="msg.role === 'assistant'" class="w-6 h-6 rounded-full bg-sky-500/20 text-sky-400 flex items-center justify-center text-[10px] flex-shrink-0 mt-0.5">
+                            <i class="fa-solid fa-robot"></i>
+                        </div>
+                        <div :class="msg.role === 'user' ? 'bg-sky-600 text-white rounded-2xl rounded-tr-none' : 'bg-slate-900 border border-slate-800 text-slate-200 rounded-2xl rounded-tl-none'" class="p-3 max-w-[80%] leading-relaxed space-y-2">
+                            <p>{{ msg.text }}</p>
+                            <div v-if="msg.hasActions" class="pt-1 border-t border-slate-800/80 flex items-center justify-between text-[11px]">
+                                <span class="text-amber-400 font-semibold"><i class="fa-solid fa-list-check mr-1"></i>Có {{ msg.actionsCount }} thao tác đề xuất</span>
+                                <button @click="openPreviewFromChat(msg)" class="px-2 py-1 bg-sky-500/20 hover:bg-sky-500/30 text-sky-300 rounded font-bold transition border border-sky-500/30">
+                                    Xem & Thực thi
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                    <div v-if="parsingAi" class="flex items-center space-x-2 text-slate-400 italic text-xs py-2">
+                        <i class="fa-solid fa-circle-notch fa-spin text-sky-400"></i>
+                        <span>Gemini AI đang suy nghĩ...</span>
+                    </div>
+                </div>
+
+                <!-- Chat Input Bar -->
+                <div class="p-3 border-t border-slate-800 bg-slate-900/90">
+                    <form @submit.prevent="sendChatMessage" class="flex items-center space-x-2">
+                        <input v-model="aiPrompt" type="text" placeholder="Hỏi Gemini AI hoặc yêu cầu tạo lớp..." :disabled="parsingAi" class="flex-1 px-3.5 py-2 bg-slate-950 border border-slate-700 rounded-xl text-slate-200 text-xs focus:outline-none focus:border-sky-500 transition">
+                        <button type="submit" :disabled="parsingAi || !aiPrompt.trim()" class="px-3.5 py-2 gradient-bg hover:opacity-90 text-white rounded-xl text-xs transition font-semibold shadow-md flex items-center justify-center">
+                            <i class="fa-solid fa-paper-plane"></i>
+                        </button>
+                    </form>
+                </div>
+            </div>
+
+            <div v-if="showAiPreviewModal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+                <div class="glass-card max-w-lg w-full rounded-2xl p-6 border border-sky-500/40 space-y-5 bg-slate-900 shadow-2xl">
+                    <div class="flex items-center space-x-3 border-b border-slate-800 pb-3">
+                        <div class="w-10 h-10 rounded-xl bg-sky-500/20 text-sky-400 flex items-center justify-center text-lg">
+                            <i class="fa-solid fa-eye"></i>
+                        </div>
+                        <div>
+                            <h3 class="font-bold text-slate-100 text-base">Xem trước Kế hoạch Gemini AI (Server Preview)</h3>
+                            <p class="text-xs text-slate-400">Các hàm Node.js được phép gọi trực tiếp tại Server.</p>
+                        </div>
+                    </div>
+
+                    <div class="space-y-3">
+                        <div class="p-3 bg-sky-500/10 border border-sky-500/20 rounded-xl text-xs text-sky-300">
+                            <i class="fa-solid fa-info-circle mr-1"></i>{{ proposedPlan.summary }}
+                        </div>
+
+                        <!-- Generated JavaScript Code Preview (ONLY visible in Debug Mode) -->
+                        <div v-if="debugMode && proposedPlan.code" class="space-y-1.5">
+                            <label class="text-[11px] font-semibold text-emerald-400 uppercase tracking-wider flex items-center justify-between">
+                                <span><i class="fa-solid fa-bug mr-1"></i>Mã JavaScript (Debug Mode):</span>
+                                <span class="text-sky-400 font-mono text-[10px]"><i class="fa-brands fa-js mr-1"></i>Node.js Sandbox</span>
+                            </label>
+                            <pre class="p-3 bg-slate-950 rounded-xl border border-slate-800 text-xs font-mono text-emerald-400 overflow-x-auto whitespace-pre-wrap max-h-48"><code>{{ proposedPlan.code }}</code></pre>
+                        </div>
+
+                        <div v-if="proposedPlan.actions && proposedPlan.actions.length" class="space-y-2 max-h-48 overflow-y-auto">
+                            <div v-for="(item, idx) in proposedPlan.actions" :key="idx" class="p-3 bg-slate-950 rounded-xl border border-slate-800 flex items-center justify-between text-xs">
+                                <div class="flex items-center space-x-2">
+                                    <span class="w-5 h-5 bg-slate-800 rounded-full flex items-center justify-center font-bold text-[10px] text-slate-300">{{ idx + 1 }}</span>
+                                    <span class="font-medium text-slate-200">{{ item.description || item.action }}</span>
+                                </div>
+                                <span class="px-2 py-0.5 text-[10px] font-bold rounded bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
+                                    Server Whitelist API
+                                </span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="flex justify-end space-x-3 pt-2 border-t border-slate-800">
+                        <button @click="showAiPreviewModal = false" class="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-semibold rounded-xl transition">
+                            Hủy bỏ
+                        </button>
+                        <button @click="confirmExecuteServerPlan" :disabled="executingAi" class="px-5 py-2 bg-sky-600 hover:bg-sky-500 text-white text-xs font-bold rounded-xl transition flex items-center space-x-2 shadow-lg shadow-sky-600/30">
+                            <i v-if="executingAi" class="fa-solid fa-spinner fa-spin"></i>
+                            <i v-else class="fa-solid fa-check"></i>
+                            <span>Chấp nhận & Thực thi trên Server</span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- STUDENT MANAGEMENT MODAL (Strictly for Organization Accounts) -->
+        <div v-if="showStudentModal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+            <div class="glass-card max-w-3xl w-full rounded-2xl p-6 border border-sky-500/40 space-y-5 bg-slate-900 shadow-2xl max-h-[90vh] flex flex-col">
+                <div class="flex items-center justify-between border-b border-slate-800 pb-3">
+                    <div class="flex items-center space-x-3">
+                        <div class="w-10 h-10 rounded-xl bg-sky-500/20 text-sky-400 flex items-center justify-center text-lg">
+                            <i class="fa-solid fa-user-graduate"></i>
+                        </div>
+                        <div>
+                            <h3 class="font-bold text-slate-100 text-base">Quản lý Học sinh - Lớp {{ selectedClass?.name }}</h3>
+                            <p class="text-xs text-slate-400">Chỉ tài khoản Tổ chức có quyền thêm & quản lý danh sách học sinh</p>
+                        </div>
+                    </div>
+                    <button @click="showStudentModal = false" class="text-slate-400 hover:text-slate-200 text-xl font-bold">
+                        <i class="fa-solid fa-xmark"></i>
+                    </button>
+                </div>
+
+                <!-- Add Student Form -->
+                <div class="p-4 bg-slate-950/80 border border-slate-800 rounded-xl space-y-3">
+                    <h4 class="text-xs font-bold text-sky-400 uppercase tracking-wider flex items-center space-x-1.5">
+                        <i class="fa-solid fa-user-plus"></i>
+                        <span>Thêm học sinh mới vào Lớp {{ selectedClass?.name }}</span>
+                    </h4>
+                    <form @submit.prevent="addStudent" class="grid grid-cols-1 md:grid-cols-3 gap-3">
+                        <div>
+                            <label class="block text-[11px] font-semibold text-slate-400 mb-1">Mã Học sinh</label>
+                            <input v-model="newStudent.studentCode" type="text" placeholder="Tự động tạo nếu để trống" class="w-full px-3 py-2 bg-slate-900 border border-slate-700 rounded-lg text-slate-200 text-xs focus:outline-none focus:border-sky-500 transition">
+                        </div>
+                        <div>
+                            <label class="block text-[11px] font-semibold text-slate-400 mb-1">Họ và Tên <span class="text-red-400">*</span></label>
+                            <input v-model="newStudent.name" type="text" placeholder="Nguyễn Văn A" required class="w-full px-3 py-2 bg-slate-900 border border-slate-700 rounded-lg text-slate-200 text-xs focus:outline-none focus:border-sky-500 transition">
+                        </div>
+                        <div>
+                            <label class="block text-[11px] font-semibold text-slate-400 mb-1">Ngày sinh</label>
+                            <input v-model="newStudent.dateOfBirth" type="date" class="w-full px-3 py-2 bg-slate-900 border border-slate-700 rounded-lg text-slate-200 text-xs focus:outline-none focus:border-sky-500 transition">
+                        </div>
+                        <div>
+                            <label class="block text-[11px] font-semibold text-slate-400 mb-1">SĐT Học sinh</label>
+                            <input v-model="newStudent.phone" type="text" placeholder="0901234567" class="w-full px-3 py-2 bg-slate-900 border border-slate-700 rounded-lg text-slate-200 text-xs focus:outline-none focus:border-sky-500 transition">
+                        </div>
+                        <div>
+                            <label class="block text-[11px] font-semibold text-slate-400 mb-1">Email Học sinh</label>
+                            <input v-model="newStudent.email" type="email" placeholder="student@gmail.com" class="w-full px-3 py-2 bg-slate-900 border border-slate-700 rounded-lg text-slate-200 text-xs focus:outline-none focus:border-sky-500 transition">
+                        </div>
+                        <div>
+                            <label class="block text-[11px] font-semibold text-slate-400 mb-1">SĐT Phụ huynh</label>
+                            <input v-model="newStudent.parentPhone" type="text" placeholder="0987654321" class="w-full px-3 py-2 bg-slate-900 border border-slate-700 rounded-lg text-slate-200 text-xs focus:outline-none focus:border-sky-500 transition">
+                        </div>
+                        <div>
+                            <label class="block text-[11px] font-semibold text-slate-400 mb-1">Email Phụ huynh</label>
+                            <input v-model="newStudent.parentEmail" type="email" placeholder="parent@gmail.com" class="w-full px-3 py-2 bg-slate-900 border border-slate-700 rounded-lg text-slate-200 text-xs focus:outline-none focus:border-sky-500 transition">
+                        </div>
+                        <div>
+                            <label class="block text-[11px] font-semibold text-slate-400 mb-1">Điểm Hạnh kiểm</label>
+                            <input v-model="newStudent.conductScore" type="number" min="0" max="100" placeholder="100" class="w-full px-3 py-2 bg-slate-900 border border-slate-700 rounded-lg text-slate-200 text-xs focus:outline-none focus:border-sky-500 transition">
+                        </div>
+                        <div class="flex items-end">
+                            <button type="submit" :disabled="submittingStudent" class="w-full py-2 bg-sky-600 hover:bg-sky-500 text-white font-bold text-xs rounded-lg transition shadow-md flex items-center justify-center space-x-1.5">
+                                <i v-if="submittingStudent" class="fa-solid fa-spinner fa-spin"></i>
+                                <i v-else class="fa-solid fa-plus"></i>
+                                <span>Thêm vào Lớp</span>
+                            </button>
+                        </div>
+                    </form>
+                </div>
+
+                <!-- Students List Table -->
+                <div class="flex-1 overflow-y-auto space-y-2 min-h-[200px]">
+                    <div class="flex justify-between items-center px-1">
+                        <span class="text-xs font-bold text-slate-300">Danh sách Học sinh ({{ currentStudents.length }})</span>
+                        <span v-if="loadingStudents" class="text-xs text-sky-400 italic"><i class="fa-solid fa-spin fa-circle-notch mr-1"></i>Đang tải dữ liệu...</span>
+                    </div>
+
+                    <div v-if="currentStudents.length === 0" class="p-8 text-center text-slate-500 text-xs italic bg-slate-950/40 rounded-xl border border-slate-800">
+                        Chưa có học sinh nào trong lớp này. Hãy sử dụng biểu mẫu trên để thêm học sinh.
+                    </div>
+
+                    <div v-else class="overflow-x-auto rounded-xl border border-slate-800">
+                        <table class="w-full text-left text-xs text-slate-300">
+                            <thead class="bg-slate-950 text-[11px] uppercase tracking-wider text-slate-400 border-b border-slate-800">
+                                <tr>
+                                    <th class="p-3">Mã HS</th>
+                                    <th class="p-3">Họ và Tên</th>
+                                    <th class="p-3">Ngày sinh</th>
+                                    <th class="p-3">Liên hệ HS</th>
+                                    <th class="p-3">Liên hệ PH</th>
+                                    <th class="p-3">Hạnh kiểm</th>
+                                    <th class="p-3 text-right">Thao tác</th>
+                                </tr>
+                            </thead>
+                            <tbody class="divide-y divide-slate-800/60 bg-slate-900/60">
+                                <tr v-for="st in currentStudents" :key="st.id" class="hover:bg-slate-800/40 transition">
+                                    <td class="p-3 font-mono font-bold text-sky-400">{{ st.studentCode }}</td>
+                                    <td class="p-3 font-semibold text-slate-100">{{ st.name }}</td>
+                                    <td class="p-3 text-slate-400">{{ st.dateOfBirth || '-' }}</td>
+                                    <td class="p-3 text-slate-400">
+                                        <div v-if="st.phone"><i class="fa-solid fa-phone text-[10px] mr-1 text-slate-500"></i>{{ st.phone }}</div>
+                                        <div v-if="st.email"><i class="fa-solid fa-envelope text-[10px] mr-1 text-slate-500"></i>{{ st.email }}</div>
+                                        <div v-if="!st.phone && !st.email">-</div>
+                                    </td>
+                                    <td class="p-3 text-slate-400">
+                                        <div v-if="st.parentPhone"><i class="fa-solid fa-phone text-[10px] mr-1 text-slate-500"></i>{{ st.parentPhone }}</div>
+                                        <div v-if="st.parentEmail"><i class="fa-solid fa-envelope text-[10px] mr-1 text-slate-500"></i>{{ st.parentEmail }}</div>
+                                        <div v-if="!st.parentPhone && !st.parentEmail">-</div>
+                                    </td>
+                                    <td class="p-3 font-bold text-emerald-400">{{ st.conductScore ?? 100 }} đ</td>
+                                    <td class="p-3 text-right">
+                                        <button @click="removeStudent(st.id)" class="px-2 py-1 bg-red-500/20 hover:bg-red-500/30 text-red-300 rounded transition border border-red-500/30">
+                                            <i class="fa-solid fa-trash-can"></i>
+                                        </button>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+        <!-- CUSTOM RIGHT CLICK CONTEXT MENU -->
+        <div v-if="contextMenu.show" :style="{ top: contextMenu.y + 'px', left: contextMenu.x + 'px' }" class="fixed z-50 bg-slate-900 border border-slate-700/80 rounded-xl shadow-2xl py-1.5 min-w-[200px] backdrop-blur-md text-xs space-y-1">
+            <div class="px-3 py-1 border-b border-slate-800 text-[10px] uppercase tracking-wider font-bold text-sky-400">
+                Lớp: {{ contextMenu.cls?.name }}
+            </div>
+            <button @click="navigateToClass(contextMenu.cls?.id)" class="w-full px-3.5 py-2 text-left hover:bg-emerald-600/20 hover:text-emerald-300 text-slate-200 flex items-center space-x-2 transition font-medium">
+                <i class="fa-solid fa-file-excel text-emerald-400"></i>
+                <span>Mở Bảng tính Excel Học sinh</span>
+            </button>
+            <button @click="editClassPrompt(contextMenu.cls)" class="w-full px-3.5 py-2 text-left hover:bg-slate-800 hover:text-slate-100 text-slate-300 flex items-center space-x-2 transition">
+                <i class="fa-solid fa-pen-to-square text-amber-400"></i>
+                <span>Đổi tên lớp học</span>
+            </button>
+            <div class="border-t border-slate-800 my-1"></div>
+            <button @click="removeClass(contextMenu.cls?.id)" class="w-full px-3.5 py-2 text-left hover:bg-red-500/20 hover:text-red-300 text-red-400 flex items-center space-x-2 transition">
+                <i class="fa-solid fa-trash-can text-red-400"></i>
+                <span>Xóa lớp học này</span>
+            </button>
+        </div>
+
+        <!-- Toast Feedback Notification -->
+        <div v-if="toast.show" :class="toast.type === 'error' ? 'bg-red-950 border-red-500 text-red-200' : 'bg-emerald-950 border-emerald-500 text-emerald-200'" class="fixed bottom-6 left-6 px-5 py-3.5 rounded-xl border shadow-xl text-sm flex items-center space-x-3 z-50 transition-all transform duration-300">
+            <i :class="toast.type === 'error' ? 'fa-circle-xmark text-red-400' : 'fa-circle-check text-emerald-400'" class="fa-solid text-lg"></i>
+            <span class="font-medium">{{ toast.message }}</span>
+        </div>
+    </div>
+
+    <script type="module">
+        import { getAuthToken, decodeAuthToken, logout as clientLogout } from "/public/clientAuth.js";
+
+        const { createApp, ref, computed, onMounted } = Vue;
+
+        createApp({
+            setup() {
+                const user = ref(null);
+                const loadingUser = ref(true);
+                const loadingData = ref(false);
+                const activeTab = ref('classes');
+
+                // Data arrays
+                const classes = ref([]);
+                const academicYears = ref([]);
+                const members = ref([]);
+                const userOrganizations = ref([]);
+
+                // Form models
+                const newClass = ref({ name: '', academicYearId: null });
+                const newYear = ref({ name: '', startDate: '', endDate: '' });
+                const inviteForm = ref({ email: '', permission: 'read' });
+
+                // Gemini AI Chatbot & Debug State
+                const debugMode = ref(false);
+                const showAiDrawer = ref(false);
+                const showAiPreviewModal = ref(false);
+                const aiPrompt = ref('');
+                const parsingAi = ref(false);
+                const executingAi = ref(false);
+                const isGeminiPowered = ref(false);
+                const proposedPlan = ref({ summary: '', code: '', actions: [] });
+
+                const chatMessages = ref([
+                    {
+                        role: 'assistant',
+                        text: 'Xin chào! Tôi là Gemini AI Chatbot. Tôi có thể trợ giúp bạn tạo các lớp học, đợt niên khóa và mời thành viên.'
+                    }
+                ]);
+
+                // Server Undo / Redo states
+                const canUndo = ref(false);
+                const canRedo = ref(false);
+
+                // Submitting states
+                const submittingClass = ref(false);
+                const submittingYear = ref(false);
+                const submittingInvite = ref(false);
+                const submittingStudent = ref(false);
+
+                // Student Modal & Data State
+                const showStudentModal = ref(false);
+                const selectedClass = ref(null);
+                const currentStudents = ref([]);
+                const loadingStudents = ref(false);
+                const newStudent = ref({
+                    studentCode: '',
+                    name: '',
+                    dateOfBirth: '',
+                    phone: '',
+                    email: '',
+                    parentPhone: '',
+                    parentEmail: '',
+                    conductScore: 100
+                });
+
+                // Toast notification
+                const toast = ref({ show: false, message: '', type: 'success' });
+                function showToast(msg, type = 'success') {
+                    toast.value = { show: true, message: msg, type };
+                    setTimeout(() => {
+                        toast.value.show = false;
+                    }, 4000);
+                }
+
+                function getTokenHeader() {
+                    try {
+                        const tok = getAuthToken();
+                        return tok ? { 'Authorization': `Bearer ${tok}` } : {};
+                    } catch {
+                        return {};
+                    }
+                }
+
+                const displayName = computed(() => {
+                    if (!user.value) return '';
+                    return user.value.name || user.value.username || user.value.email || '';
+                });
+
+                // RELIABLE DASHBOARD FETCH WITH USER POPULATION
+                async function fetchDashboardData() {
+                    loadingData.value = true;
+                    const headers = getTokenHeader();
+                    if (!headers.Authorization) {
+                        loadingUser.value = false;
+                        return;
+                    }
+
+                    try {
+                        const res = await fetch('/api/organization/dashboard', { headers });
+                        if (!res.ok) {
+                            clientLogout();
+                            loadingUser.value = false;
+                            return;
+                        }
+
+                        const data = await res.json();
+                        user.value = data.user;
+                        userOrganizations.value = data.userOrganizations || [];
+                        classes.value = data.classes || [];
+                        academicYears.value = data.academicYears || [];
+                        members.value = data.members || [];
+                        debugMode.value = Boolean(data.debugMode);
+                        if (data.aiState) {
+                            canUndo.value = data.aiState.canUndo;
+                            canRedo.value = data.aiState.canRedo;
+                        }
+                    } catch (e) {
+                        showToast('Không thể tải dữ liệu từ máy chủ', 'error');
+                    } finally {
+                        loadingUser.value = false;
+                        loadingData.value = false;
+                    }
+                }
+
+                function getYearName(yearId) {
+                    if (!yearId) return null;
+                    const found = academicYears.value.find(y => y.id === yearId);
+                    return found ? found.name : null;
+                }
+
+                function isClassAllowed(member, classId) {
+                    return Array.isArray(member.allowedClassIds) && member.allowedClassIds.includes(classId);
+                }
+
+                async function toggleMemberClassWrite(member, classId) {
+                    let current = Array.isArray(member.allowedClassIds) ? [...member.allowedClassIds] : [];
+                    if (current.includes(classId)) {
+                        current = current.filter(id => id !== classId);
+                    } else {
+                        current.push(classId);
+                    }
+
+                    try {
+                        const headers = { ...getTokenHeader(), 'Content-Type': 'application/json' };
+                        const res = await fetch(`/api/organization/members/${member.id}/class-permissions`, {
+                            method: 'POST',
+                            headers,
+                            body: JSON.stringify({ allowedClassIds: current })
+                        });
+
+                        const data = await res.json();
+                        if (res.ok) {
+                            member.allowedClassIds = current;
+                            showToast('Đã cập nhật quyền ghi dữ liệu cho lớp học thành công!');
+                        } else {
+                            showToast(data.message || 'Lỗi cập nhật quyền ghi lớp', 'error');
+                        }
+                    } catch (e) {
+                        showToast('Lỗi kết nối máy chủ', 'error');
+                    }
+                }
+
+                // Gemini Chatbot Integration
+                async function sendChatMessage() {
+                    const promptText = aiPrompt.value.trim();
+                    if (!promptText) return;
+
+                    chatMessages.value.push({ role: 'user', text: promptText });
+                    aiPrompt.value = '';
+                    parsingAi.value = true;
+
+                    try {
+                        const headers = { ...getTokenHeader(), 'Content-Type': 'application/json' };
+                        const res = await fetch('/api/ai/parse-intent', {
+                            method: 'POST',
+                            headers,
+                            body: JSON.stringify({ prompt: promptText })
+                        });
+
+                        const data = await res.json();
+                        if (res.ok) {
+                            if (data.debugMode !== undefined) debugMode.value = Boolean(data.debugMode);
+                            isGeminiPowered.value = Boolean(data.isGeminiPowered);
+                            const hasCode = Boolean(data.code && data.code.trim());
+                            const hasActions = (Array.isArray(data.actions) && data.actions.length > 0) || hasCode;
+                            
+                            chatMessages.value.push({
+                                role: 'assistant',
+                                text: data.reply || data.summary || 'Đã phân tích yêu cầu của bạn.',
+                                hasActions,
+                                actionsCount: (data.actions && data.actions.length) || (hasCode ? 1 : 0),
+                                plan: data
+                            });
+
+                            if (hasActions) {
+                                proposedPlan.value = data;
+                                showAiPreviewModal.value = true;
+                            }
+                        } else {
+                            chatMessages.value.push({
+                                role: 'assistant',
+                                text: data.message || 'Lỗi xử lý câu lệnh AI.'
+                            });
+                        }
+                    } catch (e) {
+                        chatMessages.value.push({
+                            role: 'assistant',
+                            text: 'Lỗi kết nối tới máy chủ Gemini AI.'
+                        });
+                    } finally {
+                        parsingAi.value = false;
+                    }
+                }
+
+                function openPreviewFromChat(msg) {
+                    if (msg.plan) {
+                        proposedPlan.value = msg.plan;
+                        showAiPreviewModal.value = true;
+                    }
+                }
+
+                async function confirmExecuteServerPlan() {
+                    const hasActions = (proposedPlan.value.actions && proposedPlan.value.actions.length > 0);
+                    const hasCode = Boolean(proposedPlan.value.code && proposedPlan.value.code.trim());
+                    if (!hasActions && !hasCode) return;
+
+                    executingAi.value = true;
+                    try {
+                        const headers = { ...getTokenHeader(), 'Content-Type': 'application/json' };
+                        const res = await fetch('/api/ai/execute-plan', {
+                            method: 'POST',
+                            headers,
+                            body: JSON.stringify({
+                                planActions: proposedPlan.value.actions || [],
+                                code: proposedPlan.value.code || null
+                            })
+                        });
+
+                        const data = await res.json();
+                        if (res.ok) {
+                            showToast('Server AI đã thực thi kịch bản JavaScript thành công!');
+                            showAiPreviewModal.value = false;
+                            await fetchDashboardData();
+                        } else {
+                            showToast(data.message || 'Server thực thi kịch bản thất bại', 'error');
+                        }
+                    } catch (e) {
+                        showToast('Lỗi kết nối máy chủ AI', 'error');
+                    } finally {
+                        executingAi.value = false;
+                    }
+                }
+
+                async function handleServerUndo() {
+                    try {
+                        const headers = getTokenHeader();
+                        const res = await fetch('/api/ai/undo', { method: 'POST', headers });
+                        const data = await res.json();
+                        if (res.ok) {
+                            showToast('Server đã hoàn tác thao tác AI trước thành công!');
+                            fetchDashboardData();
+                        } else {
+                            showToast(data.message || 'Không thể hoàn tác thao tác Server', 'error');
+                        }
+                    } catch (e) {
+                        showToast('Lỗi kết nối máy chủ', 'error');
+                    }
+                }
+
+                async function handleServerRedo() {
+                    try {
+                        const headers = getTokenHeader();
+                        const res = await fetch('/api/ai/redo', { method: 'POST', headers });
+                        const data = await res.json();
+                        if (res.ok) {
+                            showToast('Server đã làm lại thao tác AI thành công!');
+                            fetchDashboardData();
+                        } else {
+                            showToast(data.message || 'Không thể làm lại thao tác Server', 'error');
+                        }
+                    } catch (e) {
+                        showToast('Lỗi kết nối máy chủ', 'error');
+                    }
+                }
+
+                // Add Class
+                async function addClass() {
+                    if (!newClass.value.name.trim()) return;
+                    submittingClass.value = true;
+                    try {
+                        const headers = { ...getTokenHeader(), 'Content-Type': 'application/json' };
+                        const selectedYear = academicYears.value.find(y => y.id === newClass.value.academicYearId);
+                        
+                        const res = await fetch('/api/organization/classes', {
+                            method: 'POST',
+                            headers,
+                            body: JSON.stringify({
+                                name: newClass.value.name.trim(),
+                                academicYearId: newClass.value.academicYearId,
+                                academicYear: selectedYear ? selectedYear.name : null
+                            })
+                        });
+
+                        const data = await res.json();
+                        if (res.ok) {
+                            showToast('Thêm lớp học thành công!');
+                            newClass.value = { name: '', academicYearId: null };
+                            fetchDashboardData();
+                        } else {
+                            showToast(data.message || 'Lỗi thêm lớp học', 'error');
+                        }
+                    } catch (e) {
+                        showToast('Lỗi kết nối máy chủ', 'error');
+                    } finally {
+                        submittingClass.value = false;
+                    }
+                }
+
+                // Add Academic Year
+                async function addAcademicYear() {
+                    if (!newYear.value.name.trim()) return;
+                    submittingYear.value = true;
+                    try {
+                        const headers = { ...getTokenHeader(), 'Content-Type': 'application/json' };
+                        const res = await fetch('/api/organization/academic-years', {
+                            method: 'POST',
+                            headers,
+                            body: JSON.stringify(newYear.value)
+                        });
+
+                        const data = await res.json();
+                        if (res.ok) {
+                            showToast('Tạo niên khóa thành công!');
+                            newYear.value = { name: '', startDate: '', endDate: '' };
+                            fetchDashboardData();
+                        } else {
+                            showToast(data.message || 'Lỗi thêm niên khóa', 'error');
+                        }
+                    } catch (e) {
+                        showToast('Lỗi kết nối máy chủ', 'error');
+                    } finally {
+                        submittingYear.value = false;
+                    }
+                }
+
+                // Invite Member
+                async function inviteMember() {
+                    if (!inviteForm.value.email.trim()) return;
+                    submittingInvite.value = true;
+                    try {
+                        const headers = { ...getTokenHeader(), 'Content-Type': 'application/json' };
+                        const res = await fetch('/api/organization/invite', {
+                            method: 'POST',
+                            headers,
+                            body: JSON.stringify(inviteForm.value)
+                        });
+
+                        const data = await res.json();
+                        if (res.ok) {
+                            showToast('Mời thành viên thành công!');
+                            inviteForm.value = { email: '', permission: 'read' };
+                            fetchDashboardData();
+                        } else {
+                            showToast(data.message || 'Lỗi mời thành viên', 'error');
+                        }
+                    } catch (e) {
+                        showToast('Lỗi kết nối máy chủ', 'error');
+                    } finally {
+                        submittingInvite.value = false;
+                    }
+                }
+
+                // Remove Member
+                async function removeMember(memberId) {
+                    if (!confirm('Bạn có chắc muốn xóa thành viên này khỏi tổ chức?')) return;
+                    try {
+                        const headers = getTokenHeader();
+                        const res = await fetch(`/api/organization/members/${memberId}`, {
+                            method: 'DELETE',
+                            headers
+                        });
+
+                        const data = await res.json();
+                        if (res.ok) {
+                            showToast('Đã xóa thành viên khỏi tổ chức');
+                            fetchDashboardData();
+                        } else {
+                            showToast(data.message || 'Lỗi xóa thành viên', 'error');
+                        }
+                    } catch (e) {
+                        showToast('Lỗi kết nối máy chủ', 'error');
+                    }
+                }
+
+                // --- AUDIT LOGS MANAGEMENT ---
+                const auditLogs = ref([]);
+                const loadingAuditLogs = ref(false);
+
+                async function fetchAuditLogs() {
+                    loadingAuditLogs.value = true;
+                    try {
+                        const headers = getTokenHeader();
+                        const res = await fetch('/api/organization/audit-logs', { headers });
+                        if (res.ok) {
+                            const data = await res.json();
+                            auditLogs.value = data.auditLogs || [];
+                        } else {
+                            showToast('Không thể tải nhật ký thay đổi', 'error');
+                        }
+                    } catch (e) {
+                        showToast('Lỗi kết nối máy chủ', 'error');
+                    } finally {
+                        loadingAuditLogs.value = false;
+                    }
+                }
+
+                // --- STUDENT MANAGEMENT METHODS ---
+                async function openStudentModal(cls) {
+                    selectedClass.value = cls;
+                    showStudentModal.value = true;
+                    await fetchStudents(cls.id);
+                }
+
+                async function fetchStudents(classId) {
+                    loadingStudents.value = true;
+                    try {
+                        const headers = getTokenHeader();
+                        const res = await fetch(`/api/organization/classes/${classId}/students`, { headers });
+                        if (res.ok) {
+                            const data = await res.json();
+                            currentStudents.value = data.students || [];
+                        }
+                    } catch (e) {
+                        showToast('Không thể tải danh sách học sinh', 'error');
+                    } finally {
+                        loadingStudents.value = false;
+                    }
+                }
+
+                async function addStudent() {
+                    if (!newStudent.value.name.trim() || !selectedClass.value) return;
+                    submittingStudent.value = true;
+
+                    try {
+                        const headers = { ...getTokenHeader(), 'Content-Type': 'application/json' };
+                        const res = await fetch('/api/organization/students', {
+                            method: 'POST',
+                            headers,
+                            body: JSON.stringify({
+                                classId: selectedClass.value.id,
+                                ...newStudent.value
+                            })
+                        });
+
+                        const data = await res.json();
+                        if (res.ok) {
+                            showToast('Thêm học sinh vào lớp thành công!');
+                            newStudent.value = {
+                                studentCode: '',
+                                name: '',
+                                dateOfBirth: '',
+                                phone: '',
+                                email: '',
+                                parentPhone: '',
+                                parentEmail: '',
+                                conductScore: 100
+                            };
+                            await fetchStudents(selectedClass.value.id);
+                        } else {
+                            showToast(data.message || 'Lỗi thêm học sinh', 'error');
+                        }
+                    } catch (e) {
+                        showToast('Lỗi kết nối máy chủ', 'error');
+                    } finally {
+                        submittingStudent.value = false;
+                    }
+                }
+
+                async function removeStudent(studentId) {
+                    if (!confirm('Bạn có chắc muốn xóa học sinh này khỏi lớp?')) return;
+                    try {
+                        const headers = getTokenHeader();
+                        const res = await fetch(`/api/organization/students/${studentId}`, {
+                            method: 'DELETE',
+                            headers
+                        });
+
+                        const data = await res.json();
+                        if (res.ok) {
+                            showToast('Đã xóa học sinh khỏi lớp');
+                            if (selectedClass.value) {
+                                await fetchStudents(selectedClass.value.id);
+                            }
+                        } else {
+                            showToast(data.message || 'Lỗi xóa học sinh', 'error');
+                        }
+                    } catch (e) {
+                        showToast('Lỗi kết nối máy chủ', 'error');
+                    }
+                }
+
+                // --- CLASS EDIT / DELETE METHODS ---
+                async function editClassPrompt(cls) {
+                    const newName = prompt('Nhập tên lớp mới:', cls.name);
+                    if (!newName || !newName.trim() || newName.trim() === cls.name) return;
+
+                    try {
+                        const headers = { ...getTokenHeader(), 'Content-Type': 'application/json' };
+                        const res = await fetch(`/api/organization/classes/${cls.id}`, {
+                            method: 'PUT',
+                            headers,
+                            body: JSON.stringify({ name: newName.trim(), academicYearId: cls.academicYearId })
+                        });
+
+                        const data = await res.json();
+                        if (res.ok) {
+                            showToast('Đã cập nhật tên lớp thành công!');
+                            await fetchDashboardData();
+                        } else {
+                            showToast(data.message || 'Lỗi cập nhật tên lớp', 'error');
+                        }
+                    } catch (e) {
+                        showToast('Lỗi kết nối máy chủ', 'error');
+                    }
+                }
+
+                async function removeClass(classId) {
+                    contextMenu.value.show = false;
+                    if (!confirm('Xóa lớp học sẽ làm mất danh sách học sinh thuộc lớp. Bạn có chắc muốn xóa?')) return;
+                    try {
+                        const headers = getTokenHeader();
+                        const res = await fetch(`/api/organization/classes/${classId}`, {
+                            method: 'DELETE',
+                            headers
+                        });
+
+                        const data = await res.json();
+                        if (res.ok) {
+                            showToast('Đã xóa lớp học thành công!');
+                            await fetchDashboardData();
+                        } else {
+                            showToast(data.message || 'Lỗi xóa lớp học', 'error');
+                        }
+                    } catch (e) {
+                        showToast('Lỗi kết nối máy chủ', 'error');
+                    }
+                }
+
+                // --- NAVIGATION & RIGHT CLICK CONTEXT MENU HANDLERS ---
+                const contextMenu = ref({ show: false, x: 0, y: 0, cls: null });
+
+                function navigateToClass(classId) {
+                    contextMenu.value.show = false;
+                    if (!classId) return;
+                    window.location.href = `/class-management/${classId}`;
+                }
+
+                function openContextMenu(event, cls) {
+                    contextMenu.value = {
+                        show: true,
+                        x: event.clientX,
+                        y: event.clientY,
+                        cls
+                    };
+                }
+
+                function closeContextMenu() {
+                    contextMenu.value.show = false;
+                }
+
+                function logout() {
+                    clientLogout();
+                    window.location.href = '/login';
+                }
+
+                onMounted(() => {
+                    // Try decoding local token for instant preliminary header render
+                    try {
+                        const decoded = decodeAuthToken();
+                        if (decoded) {
+                            user.value = {
+                                name: decoded.username || decoded.name,
+                                email: decoded.email,
+                                isOrganizationAccount: Boolean(decoded.isOrganizationAccount)
+                            };
+                        }
+                    } catch (e) {
+                        // ignore empty token error
+                    }
+
+                    // Always fetch authoritative data from server
+                    fetchDashboardData();
+
+                    window.addEventListener('click', closeContextMenu);
+                });
+
+                return {
+                    user,
+                    loadingUser,
+                    displayName,
+                    activeTab,
+                    loadingData,
+                    classes,
+                    academicYears,
+                    members,
+                    userOrganizations,
+                    newClass,
+                    newYear,
+                    inviteForm,
+                    debugMode,
+                    showAiDrawer,
+                    showAiPreviewModal,
+                    aiPrompt,
+                    parsingAi,
+                    executingAi,
+                    isGeminiPowered,
+                    chatMessages,
+                    proposedPlan,
+                    canUndo,
+                    canRedo,
+                    submittingClass,
+                    submittingYear,
+                    submittingInvite,
+                    toast,
+                    contextMenu,
+                    openContextMenu,
+                    closeContextMenu,
+                    navigateToClass,
+                    showStudentModal,
+                    selectedClass,
+                    currentStudents,
+                    loadingStudents,
+                    newStudent,
+                    auditLogs,
+                    loadingAuditLogs,
+                    fetchAuditLogs,
+                    submittingStudent,
+                    openStudentModal,
+                    fetchStudents,
+                    addStudent,
+                    removeStudent,
+                    getYearName,
+                    isClassAllowed,
+                    toggleMemberClassWrite,
+                    sendChatMessage,
+                    openPreviewFromChat,
+                    confirmExecuteServerPlan,
+                    handleServerUndo,
+                    handleServerRedo,
+                    addClass,
+                    editClassPrompt,
+                    removeClass,
+                    addAcademicYear,
+                    inviteMember,
+                    removeMember,
+                    logout
+                };
+            }
+        }).mount('#app');
+    </script>
+</body>
+
+</html>
