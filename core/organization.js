@@ -309,8 +309,19 @@ export async function deleteClass(organizationId, classId) {
     return deleted[0] || null;
 }
 
-// Delete Academic Year (Used for Undo/Revert)
+// Delete Academic Year (Unlinks classes first)
 export async function deleteAcademicYear(organizationId, academicYearId) {
+    // Unlink classes referencing this academic year
+    await db
+        .update(classesTable)
+        .set({ academicYearId: null })
+        .where(
+            and(
+                eq(classesTable.academicYearId, Number(academicYearId)),
+                eq(classesTable.organizationId, organizationId)
+            )
+        );
+
     const deleted = await db
         .delete(academicYearsTable)
         .where(

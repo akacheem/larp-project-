@@ -4,6 +4,7 @@ import {
     secureCreateClass,
     secureDeleteClass,
     secureCreateAcademicYear,
+    secureDeleteAcademicYear,
     secureAddStudent,
     secureUpdateStudent,
     secureDeleteStudent,
@@ -17,6 +18,8 @@ import {
     getStudentsByClass,
     getAcademicYears
 } from './organization.js';
+
+import ivm from 'isolated-vm';
 
 /**
  * Server-side AI Bridge Layer powered by Google Gemini API
@@ -63,6 +66,9 @@ const WHITELISTED_SERVER_ACTIONS = {
     },
     'create_academic_year': async (actorUser, orgId, params) => {
         return await secureCreateAcademicYear(actorUser, params, 'AGENT');
+    },
+    'delete_academic_year': async (actorUser, orgId, params) => {
+        return await secureDeleteAcademicYear(actorUser, params.academicYearId, 'AGENT');
     },
     'invite_member': async (actorUser, orgId, params) => {
         return await secureInviteMember(actorUser, params, 'AGENT');
@@ -127,14 +133,19 @@ async function callGeminiApi(prompt, context = {}) {
 
     try {
         const ai = new GoogleGenAI({ apiKey });
-        const systemInstruction = `Bạn là trợ lý AI thông minh cấp cao quản lý ứng dụng EduManager cho Tổ chức.
-Nhiệm vụ của bạn là đọc yêu cầu của người dùng và tạo ra mã JavaScript (async code) tối ưu để thực thi trực tiếp trên Server.
+        const systemInstruction = `Bạn là trợ lý AI thông minh quản lý ứng dụng EduManager cho Tổ chức.
+Nhiệm vụ của bạn là đọc yêu cầu của người dùng và tạo ra mã JavaScript (async code) tối ưu để thực thi trực tiếp trên Server trong V8 Isolate Sandbox (isolated-vm).
 
-BẠN ĐƯỢC KHUYẾN KHÍCH VÀ KHUYÊN NÊN SỬ DỤNG:
-- Vòng lặp JavaScript (như for, for...of, forEach, while, map, filter) khi thao tác với nhiều lớp học, nhiều học sinh hoặc danh sách dữ liệu hàng loạt.
-- Câu lệnh điều kiện (như if / else, switch / case, toán tử ba ngôi ? :) để kiểm tra điều kiện dữ liệu (ví dụ: điểm hạnh kiểm, định dạng email, tên lớp) trước khi thực thi.
+QUY TẮC PHẠM VI DỮ LIỆU & QUYỀN HẠN (CRITICAL CONTEXT CONSTRAINTS):
+1. ƯU TIÊN VÀ CHỈ TÁC ĐỘNG LÊN MÀN HÌNH HIỆN TẠI NẾU KHÔNG CÓ YÊU CẦU KHÁC:
+   - Trong context được truyền vào có thông tin: currentClass (màn hình lớp học hiện tại người dùng đang xem) và currentStudents (danh sách học sinh thuộc lớp học hiện tại cùng ID và Tên).
+   - Nếu người dùng đưa ra câu lệnh thao tác học sinh (ví dụ: "trừ điểm Nguyễn Văn A", "thêm học sinh mới", "cập nhật học sinh"), BẠN PHẢI ƯU TIÊN TÌM HỌC SINH VÀ LỚP HỌC TRONG currentClass VÀ currentStudents CỦA MÀN HÌNH HIỆN TẠI TRƯỚC TIÊN.
+   - TUYỆT ĐỐI KHÔNG CHỈNH SỬA, KHÔNG XÓA VÀ KHÔNG TRỪ ĐIỂM HỌC SINH HOẶC LỚP HỌC KHÔNG LIÊN QUAN ở màn hình khác trừ khi người dùng chỉ định rõ ràng tên lớp học khác hoặc niên khóa khác.
 
-Bạn CHỈ ĐƯỢC PHÉP gọi các hàm API Server sau đây được cung cấp sẵn trong context với đúng kiểu dữ liệu (Types):
+2. QUY TẮC THAO TÁC MÃ JAVASCRIPT:
+   - Sử dụng vòng lặp (for, for...of, forEach) khi thao tác hàng loạt.
+   - Kiểm tra điều kiện (if/else) trước khi gọi hàm.
+   - Luôn sử dụng đúng ID học sinh (studentId) và ID lớp (classId) dựa vào danh sách currentStudents và classes có trong Context.
 
 DANH SÁCH KIỂU DỮ LIỆU (TYPES & INTERFACES):
 - StudentInput: {
@@ -171,50 +182,37 @@ DANH SÁCH HÀM API SERVER & CÚ PHÁP (SERVER API SIGNATURES):
 3. await getClasses(): Promise<Array<{ id: number, name: string, academicYearId: number | null }>>
    -> Lấy danh sách tất cả các lớp học hiện có của Tổ chức. Ví dụ: const classes = await getClasses()
 
-4. await getStudents(classId: number): Promise<Array<{ id: number, studentCode: string, name: string, conductScore: number }>>
-   -> Lấy danh sách tất cả học sinh thuộc lớp classId. Ví dụ: const students = await getStudents(1)
+4. await getStudents(classId?: number): Promise<Array<{ id: number, studentCode: string, name: string, conductScore: number }>>
+   -> Lấy danh sách tất cả học sinh thuộc lớp classId (hoặc tất cả học sinh nếu không truyền classId).
 
 5. await createAcademicYear(name: string, startDate?: string, endDate?: string): Promise<{ id: number, name: string }>
    -> Tạo đợt niên khóa mới. Ví dụ: await createAcademicYear("2024 - 2025", "2024-09-01", "2025-05-31")
 
-6. await getAcademicYears(): Promise<Array<{ id: number, name: string, startDate: string, endDate: string }>>
+6. await deleteAcademicYear(academicYearId: number): Promise<{ id: number }>
+   -> Xóa niên khóa theo academicYearId (number). Ví dụ: await deleteAcademicYear(1)
+
+7. await getAcademicYears(): Promise<Array<{ id: number, name: string, startDate: string, endDate: string }>>
    -> Lấy danh sách các đợt niên khóa của Tổ chức. Ví dụ: const years = await getAcademicYears()
 
-7. await inviteMember(email: string, permission?: "read" | "write"): Promise<{ id: number, email: string }>
+8. await inviteMember(email: string, permission?: "read" | "write"): Promise<{ id: number, email: string }>
    -> Mời thành viên mới vào tổ chức qua email. Ví dụ: await inviteMember("user@example.com", "read")
 
-8. await addStudent(classId: number, studentData: StudentInput): Promise<{ id: number, name: string, classId: number }>
+9. await addStudent(classId: number, studentData: StudentInput): Promise<{ id: number, name: string, classId: number }>
    -> Thêm học sinh mới vào lớp. Ví dụ: await addStudent(1, { name: "Nguyễn Văn A", conductScore: 100 })
 
-9. await updateStudent(studentId: number, updateData: StudentUpdateInput): Promise<{ id: number, name: string }>
-   -> Cập nhật thông tin học sinh theo studentId. Ví dụ: await updateStudent(10, { conductScore: 95 })
+10. await updateStudent(studentId: number, updateData: StudentUpdateInput): Promise<{ id: number, name: string }>
+    -> Cập nhật thông tin học sinh theo studentId. Ví dụ: await updateStudent(10, { conductScore: 95 })
 
-10. await deleteStudent(studentId: number): Promise<{ id: number }>
+11. await deleteStudent(studentId: number): Promise<{ id: number }>
     -> Xóa học sinh theo studentId (number). Ví dụ: await deleteStudent(10)
 
-11. await deductConductScore(studentId: number, points: number, reason: string): Promise<{ id: number, name: string, conductScore: number }>
+12. await deductConductScore(studentId: number, points: number, reason: string): Promise<{ id: number, name: string, conductScore: number }>
     -> Trừ điểm hạnh kiểm của học sinh kèm lý do. Ví dụ: await deductConductScore(10, 5, "Đi học muộn")
 
 Yêu cầu trả về kết quả định dạng JSON gồm:
-1. "reply": Phản hồi trò chuyện bằng tiếng Việt thân thiện, giải thích rõ ràng logic vòng lặp / điều kiện và thao tác mà mã JS sẽ thực hiện.
+1. "reply": Phản hồi trò chuyện bằng tiếng Việt thân thiện, giải thích rõ ràng thao tác sẽ thực hiện.
 2. "summary": Tóm tắt ngắn gọn mục tiêu của đoạn mã JS.
-3. "code": Đoạn mã JavaScript hợp lệ (thuần mã JS, KHÔNG chứa markdown block \`\`\`js) xử lý logic.
-
-Ví dụ 1 (Dùng vòng lặp và câu điều kiện):
-{
-  "reply": "Tôi sẽ dùng vòng lặp để tạo niên khóa 2024-2025 và khởi tạo hàng loạt 5 lớp từ 10A1 đến 10A5 với điều kiện xếp vào niên khóa mới.",
-  "summary": "Tạo niên khóa và dùng vòng lặp tạo 5 lớp học",
-  "code": "const year = await createAcademicYear('2024 - 2025');\\nconst classes = ['10A1', '10A2', '10A3', '10A4', '10A5'];\\nfor (const name of classes) {\\n    if (name.startsWith('10')) {\\n        await createClass(name, year.id);\\n    }\\n}"
-}
-
-Ví dụ 2 (Thao tác học sinh với điều kiện):
-{
-  "reply": "Tôi sẽ thêm danh sách học sinh vào lớp 1 với kiểm tra nếu điểm hạnh kiểm chưa nhập thì tự động gán là 100.",
-  "summary": "Thêm hàng loạt học sinh có điều kiện hạnh kiểm",
-  "code": "const students = [{ name: 'Nguyễn Văn A', conductScore: 95 }, { name: 'Trần Thị B' }];\\nfor (let i = 0; i < students.length; i++) {\\n    const st = students[i];\\n    const score = st.conductScore !== undefined ? st.conductScore : 100;\\n    await addStudent(1, { name: st.name, studentCode: \`HS00\${i + 1}\`, conductScore: score });\\n}"
-}
-
-Nếu là câu hỏi thông thường không cần thao tác dữ liệu, đặt "code": "".
+3. "code": Đoạn mã JavaScript hợp lệ (thuần mã JS, KHÔNG chứa markdown block \`\`\`js) xử lý logic, có thể trống nếu không thực hiện bất kì mã nào.
 `;
 
         const response = await ai.models.generateContent({
@@ -375,7 +373,7 @@ export async function parseAiPromptOnServer(orgId, prompt, context = {}) {
 /**
  * 2. Execute Approved JavaScript Code or Plan directly on Server in a Whitelisted Context
  */
-export async function executeAiPlanOnServer(actorUser, orgId, planActions, codeScript = null) {
+export async function executeAiPlanOnServer(actorUser, orgId, planActions, codeScript = null, screenContext = {}) {
     const history = getOrgHistory(orgId);
     const redoStack = getOrgRedo(orgId);
     const executedBatch = [];
@@ -388,85 +386,139 @@ export async function executeAiPlanOnServer(actorUser, orgId, planActions, codeS
             .replace(/```/g, '')
             .trim();
 
-        const sandbox = {
-            createClass: async (name, academicYearIdOrName) => {
-                let yearId = null;
-                let yearName = null;
-                if (typeof academicYearIdOrName === 'number') yearId = academicYearIdOrName;
-                else if (typeof academicYearIdOrName === 'string') yearName = academicYearIdOrName;
+        // Ultra-secure V8 sandbox execution using isolated-vm
+        const isolate = new ivm.Isolate({ memoryLimit: 128 });
+        const v8Context = await isolate.createContext();
+        const jail = v8Context.global;
 
-                const res = await WHITELISTED_SERVER_ACTIONS['create_class'](actorUser, orgId, { name, academicYearId: yearId, academicYear: yearName });
-                executedBatch.push({ action: 'create_class', params: { name, academicYearId: yearId, academicYear: yearName }, result: res });
-                return res;
-            },
-            deleteClass: async (classId) => {
-                const params = { classId: Number(classId) };
-                const res = await WHITELISTED_SERVER_ACTIONS['delete_class'](actorUser, orgId, params);
-                executedBatch.push({ action: 'delete_class', params, result: res });
-                return res;
-            },
-            getClasses: async () => {
-                return await WHITELISTED_SERVER_ACTIONS['get_classes'](actorUser, orgId);
-            },
-            getStudents: async (classId) => {
-                return await WHITELISTED_SERVER_ACTIONS['get_students'](actorUser, orgId, { classId: Number(classId) });
-            },
-            getAcademicYears: async () => {
-                return await WHITELISTED_SERVER_ACTIONS['get_academic_years'](actorUser, orgId);
-            },
-            createAcademicYear: async (name, startDate, endDate) => {
-                const res = await WHITELISTED_SERVER_ACTIONS['create_academic_year'](actorUser, orgId, { name, startDate, endDate });
-                executedBatch.push({ action: 'create_academic_year', params: { name }, result: res });
-                return res;
-            },
-            inviteMember: async (email, permission = 'read') => {
-                const res = await WHITELISTED_SERVER_ACTIONS['invite_member'](actorUser, orgId, { email, permission });
-                executedBatch.push({ action: 'invite_member', params: { email, permission }, result: res });
-                return res;
-            },
-            addStudent: async (classId, studentObj) => {
-                const params = { classId, ...studentObj };
-                const res = await WHITELISTED_SERVER_ACTIONS['add_student'](actorUser, orgId, params);
-                executedBatch.push({ action: 'add_student', params, result: res });
-                return res;
-            },
-            updateStudent: async (studentId, studentObj) => {
-                const params = { studentId, ...studentObj };
-                const res = await WHITELISTED_SERVER_ACTIONS['update_student'](actorUser, orgId, params);
-                executedBatch.push({ action: 'update_student', params, result: res });
-                return res;
-            },
-            deleteStudent: async (studentId) => {
-                const params = { studentId };
-                const res = await WHITELISTED_SERVER_ACTIONS['delete_student'](actorUser, orgId, params);
-                executedBatch.push({ action: 'delete_student', params, result: res });
-                return res;
-            },
-            deductConductScore: async (studentId, points, reason) => {
-                const params = { studentId: Number(studentId), points: Number(points), reason };
-                const res = await WHITELISTED_SERVER_ACTIONS['deduct_conduct_score'](actorUser, orgId, params);
-                executedBatch.push({ action: 'deduct_conduct_score', params, result: res });
-                return res;
-            },
-            console: {
-                log: (...args) => console.log('[AI JS Execution]', ...args),
-                error: (...args) => console.error('[AI JS Execution Error]', ...args)
-            }
-        };
+        // Bind ReferenceFunctions for Whitelisted APIs
+        await jail.set('_createClass', new ivm.Reference(async (name, academicYearIdOrName) => {
+            let yearId = null;
+            let yearName = null;
+            if (typeof academicYearIdOrName === 'number') yearId = academicYearIdOrName;
+            else if (typeof academicYearIdOrName === 'string') yearName = academicYearIdOrName;
 
-        // Securely bind sandbox variables to AsyncFunction scope
-        const scriptBody = `
-            return (async () => {
+            const res = await WHITELISTED_SERVER_ACTIONS['create_class'](actorUser, orgId, { name, academicYearId: yearId, academicYear: yearName });
+            executedBatch.push({ action: 'create_class', params: { name, academicYearId: yearId, academicYear: yearName }, result: res });
+            return new ivm.ExternalCopy(res).copyInto();
+        }));
+
+        await jail.set('_deleteClass', new ivm.Reference(async (classId) => {
+            const params = { classId: Number(classId) };
+            const res = await WHITELISTED_SERVER_ACTIONS['delete_class'](actorUser, orgId, params);
+            executedBatch.push({ action: 'delete_class', params, result: res });
+            return new ivm.ExternalCopy(res).copyInto();
+        }));
+
+        await jail.set('_getClasses', new ivm.Reference(async () => {
+            const res = await WHITELISTED_SERVER_ACTIONS['get_classes'](actorUser, orgId);
+            return new ivm.ExternalCopy(res).copyInto();
+        }));
+
+        await jail.set('_getStudents', new ivm.Reference(async (classId) => {
+            const params = classId ? { classId: Number(classId) } : {};
+            const res = await WHITELISTED_SERVER_ACTIONS['get_students'](actorUser, orgId, params);
+            return new ivm.ExternalCopy(res).copyInto();
+        }));
+
+        await jail.set('_getAcademicYears', new ivm.Reference(async () => {
+            const res = await WHITELISTED_SERVER_ACTIONS['get_academic_years'](actorUser, orgId);
+            return new ivm.ExternalCopy(res).copyInto();
+        }));
+
+        await jail.set('_createAcademicYear', new ivm.Reference(async (name, startDate, endDate) => {
+            const res = await WHITELISTED_SERVER_ACTIONS['create_academic_year'](actorUser, orgId, { name, startDate, endDate });
+            executedBatch.push({ action: 'create_academic_year', params: { name }, result: res });
+            return new ivm.ExternalCopy(res).copyInto();
+        }));
+
+        await jail.set('_deleteAcademicYear', new ivm.Reference(async (academicYearId) => {
+            const params = { academicYearId: Number(academicYearId) };
+            const res = await WHITELISTED_SERVER_ACTIONS['delete_academic_year'](actorUser, orgId, params);
+            executedBatch.push({ action: 'delete_academic_year', params, result: res });
+            return new ivm.ExternalCopy(res).copyInto();
+        }));
+
+        await jail.set('_inviteMember', new ivm.Reference(async (email, permission = 'read') => {
+            const res = await WHITELISTED_SERVER_ACTIONS['invite_member'](actorUser, orgId, { email, permission });
+            executedBatch.push({ action: 'invite_member', params: { email, permission }, result: res });
+            return new ivm.ExternalCopy(res).copyInto();
+        }));
+
+        await jail.set('_addStudent', new ivm.Reference(async (classId, studentObj) => {
+            const params = { classId: Number(classId), ...(studentObj || {}) };
+            const res = await WHITELISTED_SERVER_ACTIONS['add_student'](actorUser, orgId, params);
+            executedBatch.push({ action: 'add_student', params, result: res });
+            return new ivm.ExternalCopy(res).copyInto();
+        }));
+
+        await jail.set('_updateStudent', new ivm.Reference(async (studentId, studentObj) => {
+            const params = { studentId: Number(studentId), ...(studentObj || {}) };
+            const res = await WHITELISTED_SERVER_ACTIONS['update_student'](actorUser, orgId, params);
+            executedBatch.push({ action: 'update_student', params, result: res });
+            return new ivm.ExternalCopy(res).copyInto();
+        }));
+
+        await jail.set('_deleteStudent', new ivm.Reference(async (studentId) => {
+            const params = { studentId: Number(studentId) };
+            const res = await WHITELISTED_SERVER_ACTIONS['delete_student'](actorUser, orgId, params);
+            executedBatch.push({ action: 'delete_student', params, result: res });
+            return new ivm.ExternalCopy(res).copyInto();
+        }));
+
+        await jail.set('_deductConductScore', new ivm.Reference(async (studentId, points, reason) => {
+            const params = { studentId: Number(studentId), points: Number(points), reason };
+            const res = await WHITELISTED_SERVER_ACTIONS['deduct_conduct_score'](actorUser, orgId, params);
+            executedBatch.push({ action: 'deduct_conduct_score', params, result: res });
+            return new ivm.ExternalCopy(res).copyInto();
+        }));
+
+        await jail.set('_log', new ivm.Reference((...args) => {
+            console.log('[isolated-vm AI Execution Log]:', ...args);
+        }));
+
+        const safeContext = (screenContext && typeof screenContext === 'object') ? screenContext : {};
+        await jail.set('context', new ivm.ExternalCopy(safeContext).copyInto());
+        await jail.set('currentClass', new ivm.ExternalCopy(safeContext.currentClass || null).copyInto());
+        await jail.set('currentStudents', new ivm.ExternalCopy(safeContext.currentStudents || []).copyInto());
+        await jail.set('classes', new ivm.ExternalCopy(safeContext.classes || []).copyInto());
+        await jail.set('academicYears', new ivm.ExternalCopy(safeContext.academicYears || []).copyInto());
+
+        // Script bootstrap inside isolated V8 context
+        const bootstrapScript = `
+            const callHost = (fnRef, ...args) => fnRef.apply(undefined, args, { arguments: { copy: true }, result: { promise: true, copy: true } });
+            const callHostSync = (fnRef, ...args) => fnRef.applySync(undefined, args, { arguments: { copy: true } });
+
+            const createClass = (...args) => callHost(_createClass, ...args);
+            const deleteClass = (...args) => callHost(_deleteClass, ...args);
+            const getClasses = (...args) => callHost(_getClasses, ...args);
+            const getStudents = (...args) => callHost(_getStudents, ...args);
+            const getAcademicYears = (...args) => callHost(_getAcademicYears, ...args);
+            const createAcademicYear = (...args) => callHost(_createAcademicYear, ...args);
+            const deleteAcademicYear = (...args) => callHost(_deleteAcademicYear, ...args);
+            const inviteMember = (...args) => callHost(_inviteMember, ...args);
+            const addStudent = (...args) => callHost(_addStudent, ...args);
+            const updateStudent = (...args) => callHost(_updateStudent, ...args);
+            const deleteStudent = (...args) => callHost(_deleteStudent, ...args);
+            const deductConductScore = (...args) => callHost(_deductConductScore, ...args);
+            const console = { log: (...args) => callHostSync(_log, ...args) };
+
+            (async function __runUserCode() {
                 ${cleanScript}
             })();
         `;
 
         try {
-            const func = new Function(...Object.keys(sandbox), scriptBody);
-            await func(...Object.values(sandbox));
+            const script = await isolate.compileScript(bootstrapScript);
+            const promiseRef = await script.run(v8Context, { timeout: 10000, promise: true });
+            if (promiseRef && typeof promiseRef.then === 'function') {
+                await promiseRef;
+            }
         } catch (err) {
-            console.error('[Server AI Bridge JS Execution Error]:', err);
-            throw new Error(`Lỗi khi thực thi mã JavaScript trên Server: ${err.message}`);
+            console.error('[isolated-vm Sandbox Execution Error]:', err);
+            throw new Error(`Lỗi khi thực thi mã JavaScript trên Server (isolated-vm): ${err.message}`);
+        } finally {
+            isolate.dispose();
         }
     } else if (Array.isArray(planActions)) {
         // Fallback execution for planActions array

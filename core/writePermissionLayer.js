@@ -8,6 +8,7 @@ import {
     updateClass,
     deleteClass,
     createAcademicYear,
+    deleteAcademicYear,
     addStudentToClass,
     updateStudent,
     deleteStudent,
@@ -157,6 +158,33 @@ export async function secureCreateAcademicYear(actorUser, { name, startDate, end
     });
 
     return created;
+}
+
+// 5. Secure Delete Academic Year (Chỉ tài khoản Tổ chức sở hữu mới có quyền xóa niên khóa)
+export async function secureDeleteAcademicYear(actorUser, academicYearId, source = 'USER') {
+    const dbUser = await getUserById(actorUser.id);
+    if (!dbUser || !dbUser.isOrganizationAccount) {
+        throw new Error('CHỈ_TỔ_CHỨC_MỚI_CÓ_QUYỀN: Chỉ tài khoản Tổ chức mới có quyền xóa niên khóa.');
+    }
+
+    const deleted = await deleteAcademicYear(dbUser.id, Number(academicYearId));
+    if (!deleted) {
+        throw new Error('Niên khóa không tồn tại hoặc đã bị xóa.');
+    }
+
+    await logAuditChange({
+        actorUser: dbUser,
+        organizationId: dbUser.id,
+        action: 'DELETE_ACADEMIC_YEAR',
+        entityType: 'academic_year',
+        entityId: Number(academicYearId),
+        description: `Xóa niên khóa: "${deleted.name}"`,
+        beforeState: deleted,
+        afterState: null,
+        source
+    });
+
+    return deleted;
 }
 
 // 5. Secure Add Student (Chỉ người sở hữu Tổ chức mới có quyền thêm học sinh)

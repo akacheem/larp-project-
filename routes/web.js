@@ -526,11 +526,17 @@ export default async function (fastify) {
         const { prompt, classId } = request.body;
         try {
             const { targetOrgId } = await resolveTargetOrgForAi(authUser, classId);
-            const [classList, yearList] = await Promise.all([
+            const [classList, yearList, studentList] = await Promise.all([
                 getClasses(targetOrgId),
-                getAcademicYears(targetOrgId)
+                getAcademicYears(targetOrgId),
+                classId ? getStudentsByClass(targetOrgId, Number(classId)) : Promise.resolve([])
             ]);
+
+            const currentClassObj = classId ? classList.find(c => Number(c.id) === Number(classId)) : null;
+
             const context = {
+                currentClass: currentClassObj ? { id: currentClassObj.id, name: currentClassObj.name, academicYearId: currentClassObj.academicYearId } : null,
+                currentStudents: (studentList || []).map(s => ({ id: s.id, studentCode: s.studentCode, name: s.name, conductScore: s.conductScore })),
                 classes: classList.map(c => ({ id: c.id, name: c.name, academicYearId: c.academicYearId })),
                 academicYears: yearList.map(y => ({ id: y.id, name: y.name }))
             };
@@ -556,8 +562,23 @@ export default async function (fastify) {
 
         try {
             const { targetOrgId } = await resolveTargetOrgForAi(authUser, classId);
+            const [classList, yearList, studentList] = await Promise.all([
+                getClasses(targetOrgId),
+                getAcademicYears(targetOrgId),
+                classId ? getStudentsByClass(targetOrgId, Number(classId)) : Promise.resolve([])
+            ]);
+
+            const currentClassObj = classId ? classList.find(c => Number(c.id) === Number(classId)) : null;
+
+            const context = {
+                currentClass: currentClassObj ? { id: currentClassObj.id, name: currentClassObj.name, academicYearId: currentClassObj.academicYearId } : null,
+                currentStudents: (studentList || []).map(s => ({ id: s.id, studentCode: s.studentCode, name: s.name, conductScore: s.conductScore })),
+                classes: classList.map(c => ({ id: c.id, name: c.name, academicYearId: c.academicYearId })),
+                academicYears: yearList.map(y => ({ id: y.id, name: y.name }))
+            };
+
             // Execute AI script strictly under caller's permission & writePermissionLayer
-            const res = await executeAiPlanOnServer(authUser, targetOrgId, planActions, code);
+            const res = await executeAiPlanOnServer(authUser, targetOrgId, planActions, code, context);
             return reply.send(res);
         } catch (err) {
             return reply.status(400).send({ error: 'Server Permission Error', message: err.message });
