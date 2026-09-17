@@ -127,7 +127,7 @@ const SERVER_REVERSAL_HANDLERS = {
 /**
  * Call Google Gemini API to parse intent into structured actions
  */
-async function callGeminiApi(prompt, context = {}) {
+async function callGeminiApi(prompt, context = {}, fileData = null) {
     const apiKey = process.env.GEMINI_API_KEY;
     if (!apiKey) return null;
 
@@ -215,10 +215,20 @@ Yêu cầu trả về kết quả định dạng JSON gồm:
 3. "code": Đoạn mã JavaScript hợp lệ (thuần mã JS, KHÔNG chứa markdown block \`\`\`js) xử lý logic, có thể trống nếu không thực hiện bất kì mã nào.
 `;
 
+        const parts = [{ text: `Câu lệnh người dùng: "${prompt}"\nBối cảnh dữ liệu hiện tại: ${JSON.stringify(context)}` }];
+        if (fileData && fileData.data && fileData.mimeType) {
+            parts.push({
+                inlineData: {
+                    data: fileData.data,
+                    mimeType: fileData.mimeType
+                }
+            });
+        }
+
         const response = await ai.models.generateContent({
-            model: 'gemini-2.5-flash',
+            model: 'gemini-3.6-flash',
             contents: [
-                { role: 'user', parts: [{ text: `Câu lệnh người dùng: "${prompt}"\nBối cảnh dữ liệu hiện tại: ${JSON.stringify(context)}` }] }
+                { role: 'user', parts: parts }
             ],
             config: {
                 systemInstruction,
@@ -313,13 +323,13 @@ function parseIntentFallback(prompt) {
 /**
  * 1. Server-side Intent Interpreter: Integrates Gemini API to generate JS Code with Whitelist Security
  */
-export async function parseAiPromptOnServer(orgId, prompt, context = {}) {
+export async function parseAiPromptOnServer(orgId, prompt, context = {}, fileData = null) {
     if (!prompt || !prompt.trim()) {
         throw new Error('Vui lòng nhập câu lệnh');
     }
 
     // Try Gemini API first
-    let geminiRes = await callGeminiApi(prompt, context);
+    let geminiRes = await callGeminiApi(prompt, context, fileData);
     let reply = '';
     let summary = '';
     let code = '';

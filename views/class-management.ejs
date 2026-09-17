@@ -381,6 +381,10 @@
                         <i class="fa-solid fa-robot"></i>
                     </div>
                     <div :class="msg.role === 'user' ? 'bg-sky-600 text-white rounded-2xl rounded-tr-none' : 'bg-slate-900 border border-slate-800 text-slate-200 rounded-2xl rounded-tl-none'" class="p-3 max-w-[80%] leading-relaxed space-y-2">
+                        <div v-if="msg.fileName" class="flex items-center space-x-2 bg-sky-700/50 p-2 rounded text-xs mb-2">
+                            <i class="fa-solid fa-paperclip text-sky-200"></i>
+                            <span class="truncate">{{ msg.fileName }}</span>
+                        </div>
                         <p>{{ msg.text }}</p>
                         <div v-if="msg.hasActions" class="pt-1 border-t border-slate-800/80 flex items-center justify-between text-[11px]">
                             <span class="text-amber-400 font-semibold"><i class="fa-solid fa-list-check mr-1"></i>Có {{ msg.actionsCount }} thao tác đề xuất</span>
@@ -396,10 +400,27 @@
                 </div>
             </div>
 
-            <div class="p-3 border-t border-slate-800 bg-slate-900/90">
+            <div class="p-3 border-t border-slate-800 bg-slate-900/90 relative">
+                <!-- File Preview Chip -->
+                <div v-if="aiAttachedFile" class="absolute bottom-[60px] left-3 right-3 flex items-center justify-between bg-slate-800 border border-slate-700 px-3 py-2 rounded-lg z-10 shadow-lg">
+                    <div class="flex items-center space-x-2 overflow-hidden">
+                        <i class="fa-solid fa-file-lines text-sky-400"></i>
+                        <span class="text-xs text-slate-200 truncate">{{ aiAttachedFile.name }}</span>
+                        <span class="text-[10px] text-slate-500">({{ (aiAttachedFile.size / 1024).toFixed(1) }} KB)</span>
+                    </div>
+                    <button @click="removeAiFile" type="button" class="text-slate-400 hover:text-red-400 transition">
+                        <i class="fa-solid fa-xmark"></i>
+                    </button>
+                </div>
+
                 <form @submit.prevent="sendChatMessage" class="flex items-center space-x-2">
-                    <input v-model="aiPrompt" type="text" placeholder="Thêm học sinh hoặc yêu cầu AI..." :disabled="parsingAi" class="flex-1 px-3.5 py-2 bg-slate-950 border border-slate-700 rounded-xl text-slate-200 text-xs focus:outline-none focus:border-sky-500 transition">
-                    <button type="submit" :disabled="parsingAi || !aiPrompt.trim()" class="px-3.5 py-2 gradient-bg hover:opacity-90 text-white rounded-xl text-xs transition font-semibold shadow-md flex items-center justify-center">
+                    <button type="button" @click="$refs.aiFileInput.click()" :disabled="parsingAi" class="px-3 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-xl text-xs transition shadow-md border border-slate-700">
+                        <i class="fa-solid fa-paperclip"></i>
+                    </button>
+                    <input type="file" ref="aiFileInput" @change="onAiFileSelected" accept=".pdf,.doc,.docx,.csv,image/*" class="hidden">
+                    
+                    <input v-model="aiPrompt" type="text" placeholder="Thêm học sinh hoặc đính kèm file..." :disabled="parsingAi" class="flex-1 px-3.5 py-2 bg-slate-950 border border-slate-700 rounded-xl text-slate-200 text-xs focus:outline-none focus:border-sky-500 transition">
+                    <button type="submit" :disabled="parsingAi || (!aiPrompt.trim() && !aiAttachedFile)" class="px-3.5 py-2 gradient-bg hover:opacity-90 text-white rounded-xl text-xs transition font-semibold shadow-md flex items-center justify-center">
                         <i class="fa-solid fa-paper-plane"></i>
                     </button>
                 </form>
@@ -614,6 +635,7 @@
                 const showAiDrawer = ref(false);
                 const showAiPreviewModal = ref(false);
                 const aiPrompt = ref('');
+                const aiAttachedFile = ref(null);
                 const parsingAi = ref(false);
                 const executingAi = ref(false);
                 const isGeminiPowered = ref(false);
@@ -958,12 +980,51 @@
                 }
 
                 // Gemini Chatbot Integration
+                function onAiFileSelected(event) {
+                    const file = event.target.files[0];
+                    if (!file) return;
+                    if (file.size > 5 * 1024 * 1024) {
+                        showToast('Dung lượng file quá lớn (tối đa 5MB)', 'error');
+                        event.target.value = '';
+                        return;
+                    }
+                    aiAttachedFile.value = file;
+                }
+
+                function removeAiFile() {
+                    aiAttachedFile.value = null;
+                }
+
+                function readFileAsBase64(file) {
+                    return new Promise((resolve, reject) => {
+                        const reader = new FileReader();
+                        reader.onload = () => resolve(reader.result.split(',')[1]);
+                        reader.onerror = error => reject(error);
+                        reader.readAsDataURL(file);
+                    });
+                }
+
                 async function sendChatMessage() {
                     const promptText = aiPrompt.value.trim();
-                    if (!promptText) return;
+                    if (!promptText && !aiAttachedFile.value) return;
 
-                    chatMessages.value.push({ role: 'user', text: promptText });
+                    let fileData = null;
+                    if (aiAttachedFile.value) {
+                        const base64Data = await readFileAsBase64(aiAttachedFile.value);
+                        fileData = {
+                            mimeType: aiAttachedFile.value.type,
+                            data: base64Data
+                        };
+                    }
+
+                    chatMessages.value.push({ 
+                        role: 'user', 
+                        text: promptText,
+                        fileName: aiAttachedFile.value ? aiAttachedFile.value.name : null
+                    });
+
                     aiPrompt.value = '';
+                    aiAttachedFile.value = null;
                     parsingAi.value = true;
 
                     try {
@@ -971,7 +1032,7 @@
                         const res = await fetch('/api/ai/parse-intent', {
                             method: 'POST',
                             headers,
-                            body: JSON.stringify({ prompt: promptText, classId: getClassIdFromUrl() })
+                            body: JSON.stringify({ prompt: promptText, classId: getClassIdFromUrl(), fileData })
                         });
 
                         const data = await res.json();
@@ -1069,6 +1130,7 @@
                     showAiDrawer,
                     showAiPreviewModal,
                     aiPrompt,
+                    aiAttachedFile,
                     parsingAi,
                     executingAi,
                     isGeminiPowered,
@@ -1095,7 +1157,9 @@
                     openDeductModal,
                     confirmDeduction,
                     classAuditLogs,
-                    getStudentDeductionHistory
+                    getStudentDeductionHistory,
+                    onAiFileSelected,
+                    removeAiFile
                 };
             }
         }).mount('#app');

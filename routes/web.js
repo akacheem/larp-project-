@@ -523,7 +523,7 @@ export default async function (fastify) {
         const authUser = await authenticate(request, reply);
         if (!authUser) return;
 
-        const { prompt, classId } = request.body;
+        const { prompt, classId, fileData } = request.body;
         try {
             const { targetOrgId } = await resolveTargetOrgForAi(authUser, classId);
             const [classList, yearList, studentList] = await Promise.all([
@@ -540,7 +540,7 @@ export default async function (fastify) {
                 classes: classList.map(c => ({ id: c.id, name: c.name, academicYearId: c.academicYearId })),
                 academicYears: yearList.map(y => ({ id: y.id, name: y.name }))
             };
-            const result = await parseAiPromptOnServer(targetOrgId, prompt, context);
+            const result = await parseAiPromptOnServer(targetOrgId, prompt, context, fileData);
             return reply.send({
                 ...result,
                 debugMode: process.env.DEBUG_MODE === 'true'
