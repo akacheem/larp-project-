@@ -23,9 +23,9 @@
         }
 
         .excel-th {
-            background-color: #0f172a;
-            border: 1px solid #1e293b;
-            color: #94a3b8;
+            background-color: #f1f5f9;
+            border: 1px solid #cbd5e1;
+            color: #334155;
             font-size: 11px;
             font-weight: 700;
             text-transform: uppercase;
@@ -37,30 +37,30 @@
         }
 
         .excel-col-header {
-            background-color: #1e293b;
-            color: #cbd5e1;
+            background-color: #e2e8f0;
+            color: #475569;
             font-family: 'JetBrains Mono', monospace;
             font-size: 11px;
             text-align: center;
-            border: 1px solid #334155;
+            border: 1px solid #cbd5e1;
             padding: 4px 8px;
         }
 
         .excel-row-num {
-            background-color: #1e293b;
-            color: #94a3b8;
+            background-color: #e2e8f0;
+            color: #475569;
             font-family: 'JetBrains Mono', monospace;
             font-size: 11px;
             text-align: center;
-            border: 1px solid #334155;
+            border: 1px solid #cbd5e1;
             width: 40px;
             min-width: 40px;
         }
 
         .excel-cell {
-            border: 1px solid #1e293b;
+            border: 1px solid #cbd5e1;
             padding: 0;
-            background-color: #020617;
+            background-color: #ffffff;
             transition: all 0.15s ease;
         }
 
@@ -69,7 +69,7 @@
             height: 100%;
             padding: 8px 12px;
             background: transparent;
-            color: #f8fafc;
+            color: #0f172a;
             font-size: 13px;
             outline: none;
             border: 2px solid transparent;
@@ -77,23 +77,23 @@
         }
 
         .excel-cell input:focus {
-            background-color: #0f172a;
-            border-color: #0ea5e9;
-            box-shadow: 0 0 0 2px rgba(14, 165, 233, 0.2);
+            background-color: #ffffff;
+            border-color: #3b82f6;
+            box-shadow: inset 0 0 0 2px rgba(59, 130, 246, 0.2);
             z-index: 5;
         }
 
         .excel-cell-modified input {
-            color: #38bdf8;
+            color: #0284c7;
             font-weight: 600;
         }
 
         .excel-toolbar-btn {
             padding: 6px 12px;
-            background-color: #1e293b;
-            border: 1px solid #334155;
+            background-color: #ffffff;
+            border: 1px solid #cbd5e1;
             border-radius: 8px;
-            color: #cbd5e1;
+            color: #334155;
             font-size: 12px;
             font-weight: 600;
             display: flex;
@@ -110,14 +110,14 @@
     </style>
 </head>
 
-<body class="bg-slate-950 text-slate-100 font-sans antialiased min-h-screen flex flex-col">
+<body class="bg-slate-50 text-slate-800 font-sans antialiased min-h-screen flex flex-col">
     <div id="app" class="relative min-h-screen flex flex-col flex-1">
         <!-- Excel Navigation & Ribbon Toolbar Header -->
-        <header class="border-b border-slate-800 bg-slate-900 sticky top-0 z-40 shadow-xl">
+        <header class="border-b border-slate-200 bg-white sticky top-0 z-40 shadow-xl">
             <!-- Top App Bar -->
-            <div class="px-6 py-3 flex items-center justify-between border-b border-slate-800/80">
+            <div class="px-6 py-3 flex items-center justify-between border-b border-slate-200/80">
                 <div class="flex items-center space-x-4">
-                    <a href="/dashboard" class="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-lg text-xs font-semibold transition border border-slate-700 flex items-center space-x-1.5">
+                    <a href="/dashboard" class="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-lg text-xs font-semibold transition border border-slate-300 flex items-center space-x-1.5">
                         <i class="fa-solid fa-arrow-left"></i>
                         <span>Về Bảng điều khiển</span>
                     </a>
@@ -127,7 +127,7 @@
                             <i class="fa-solid fa-file-excel"></i>
                         </div>
                         <div>
-                            <h1 class="text-sm font-bold text-slate-100 flex items-center gap-2">
+                            <h1 class="text-sm font-bold text-slate-800 flex items-center gap-2">
                                 <span>EduManager Excel Sheet</span>
                                 <span v-if="!userPermission.canWrite" class="px-2 py-0.5 text-[10px] font-extrabold bg-amber-500/20 text-amber-300 border border-amber-500/30 rounded uppercase flex items-center">
                                     <i class="fa-solid fa-lock mr-1 text-[9px]"></i>Chế độ Chỉ xem
@@ -136,17 +136,17 @@
                                     <i class="fa-solid fa-pen mr-1 text-[9px]"></i>Lớp {{ currentClass?.name }}
                                 </span>
                             </h1>
-                            <p class="text-[10px] text-slate-400">Trình quản lý Học sinh trực tiếp dạng Bảng tính Spreadsheet</p>
+                            <p class="text-[10px] text-slate-500">Trình quản lý Học sinh trực tiếp dạng Bảng tính Spreadsheet</p>
                         </div>
                     </div>
                 </div>
 
                 <div class="flex items-center space-x-3">
-                    <div :class="debugMode ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/40' : 'bg-slate-800/60 text-slate-400 border-slate-700'" class="px-3 py-1.5 text-xs font-bold rounded-lg border flex items-center space-x-1.5 shadow-md">
+                    <div :class="debugMode ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/40' : 'bg-slate-100/60 text-slate-500 border-slate-300'" class="px-3 py-1.5 text-xs font-bold rounded-lg border flex items-center space-x-1.5 shadow-md">
                         <i class="fa-solid" :class="debugMode ? 'fa-bug text-emerald-400' : 'fa-bug-slash'"></i>
                         <span>Debug Mode: {{ debugMode ? 'Bật (.env)' : 'Tắt (.env)' }}</span>
                     </div>
-                    <button @click="saveAllChanges" :disabled="saving || !userPermission.canWrite" :class="!userPermission.canWrite ? 'bg-slate-800 text-slate-500 border border-slate-700 cursor-not-allowed' : 'bg-emerald-600 hover:bg-emerald-500 text-white shadow-lg shadow-emerald-600/30'" class="px-4 py-1.5 font-bold text-xs rounded-lg transition flex items-center space-x-1.5">
+                    <button @click="saveAllChanges" :disabled="saving || !userPermission.canWrite" :class="!userPermission.canWrite ? 'bg-slate-100 text-slate-500 border border-slate-300 cursor-not-allowed' : 'bg-emerald-600 hover:bg-emerald-500 text-white shadow-lg shadow-emerald-600/30'" class="px-4 py-1.5 font-bold text-xs rounded-lg transition flex items-center space-x-1.5">
                         <i v-if="saving" class="fa-solid fa-circle-notch fa-spin"></i>
                         <i v-else-if="!userPermission.canWrite" class="fa-solid fa-lock"></i>
                         <i v-else class="fa-solid fa-floppy-disk"></i>
@@ -156,9 +156,9 @@
             </div>
 
             <!-- Excel Ribbon Toolbar -->
-            <div class="px-6 py-2 bg-slate-950/60 flex items-center justify-between gap-4 overflow-x-auto text-xs">
+            <div class="px-6 py-2 bg-slate-50/60 flex items-center justify-between gap-4 overflow-x-auto text-xs">
                 <div class="flex items-center space-x-2">
-                    <button @click="addNewRow" :disabled="!userPermission.isOwner" :class="!userPermission.isOwner ? 'opacity-50 cursor-not-allowed text-slate-500 border-slate-800 bg-slate-900' : 'text-emerald-400 border-emerald-500/40 bg-emerald-500/10 hover:bg-emerald-500/20'" class="excel-toolbar-btn" :title="!userPermission.isOwner ? 'Chỉ Người sở hữu Tổ chức mới được phép thêm học sinh' : ''">
+                    <button @click="addNewRow" :disabled="!userPermission.isOwner" :class="!userPermission.isOwner ? 'opacity-50 cursor-not-allowed text-slate-500 border-slate-200 bg-white' : 'text-emerald-400 border-emerald-500/40 bg-emerald-500/10 hover:bg-emerald-500/20'" class="excel-toolbar-btn" :title="!userPermission.isOwner ? 'Chỉ Người sở hữu Tổ chức mới được phép thêm học sinh' : ''">
                         <i class="fa-solid fa-plus"></i>
                         <span>Thêm hàng mới (Add Row)</span>
                     </button>
@@ -176,17 +176,17 @@
                     </button>
                     <div class="relative ml-2">
                         <i class="fa-solid fa-magnifying-glass absolute left-3 top-2.5 text-slate-500"></i>
-                        <input v-model="searchQuery" type="text" placeholder="Tìm tên, mã HS, SĐT..." class="pl-8 pr-3 py-1.5 bg-slate-900 border border-slate-700 rounded-lg text-slate-200 text-xs focus:outline-none focus:border-emerald-500 transition w-56">
+                        <input v-model="searchQuery" type="text" placeholder="Tìm tên, mã HS, SĐT..." class="pl-8 pr-3 py-1.5 bg-white border border-slate-300 rounded-lg text-slate-700 text-xs focus:outline-none focus:border-emerald-500 transition w-56">
                     </div>
                 </div>
 
-                <div class="flex items-center space-x-3 text-xs text-slate-400">
+                <div class="flex items-center space-x-3 text-xs text-slate-500">
                     <button @click="showAiDrawer = !showAiDrawer" class="px-3 py-1.5 gradient-bg hover:opacity-90 text-white rounded-lg transition font-semibold flex items-center space-x-1.5 shadow-md">
                         <i class="fa-solid fa-sparkles text-amber-300"></i>
                         <span>Trợ lý Gemini AI</span>
                     </button>
                     <span>|</span>
-                    <span class="flex items-center gap-1.5"><i class="fa-solid fa-layer-group text-sky-400"></i>Tổng hàng: <strong class="text-slate-200">{{ students.length }}</strong></span>
+                    <span class="flex items-center gap-1.5"><i class="fa-solid fa-layer-group text-sky-400"></i>Tổng hàng: <strong class="text-slate-700">{{ students.length }}</strong></span>
                     <span>|</span>
                     <span class="flex items-center gap-1.5"><i class="fa-solid fa-pen text-amber-400"></i>Đang sửa: <strong class="text-amber-400">{{ modifiedCount }}</strong></span>
                 </div>
@@ -194,7 +194,7 @@
         </header>
 
         <!-- Main Excel Spreadsheet Work Area -->
-        <main class="flex-1 flex flex-col overflow-hidden p-4 bg-slate-950">
+        <main class="flex-1 flex flex-col overflow-hidden p-4 bg-slate-50">
             <!-- Read-Only Banner for Members with Read Permission -->
             <div v-if="!userPermission.canWrite" class="mb-3 p-3 bg-amber-500/10 border border-amber-500/30 rounded-xl text-amber-300 text-xs flex items-center justify-between shadow-lg">
                 <span class="flex items-center gap-2">
@@ -206,11 +206,11 @@
             <!-- Loading Indicator -->
             <div v-if="loading" class="flex-1 flex flex-col items-center justify-center space-y-3">
                 <i class="fa-solid fa-circle-notch fa-spin text-4xl text-emerald-500"></i>
-                <p class="text-xs text-slate-400 font-medium">Đang tải bảng tính Excel...</p>
+                <p class="text-xs text-slate-500 font-medium">Đang tải bảng tính Excel...</p>
             </div>
 
             <!-- Spreadsheet Grid Container -->
-            <div v-else class="flex-1 glass-card rounded-xl border border-slate-800 overflow-auto flex flex-col excel-table-container shadow-2xl">
+            <div v-else class="flex-1 glass-card rounded-xl border border-slate-200 overflow-auto flex flex-col excel-table-container shadow-2xl">
                 <table class="w-full text-left border-collapse min-w-[1100px]">
                     <thead>
                         <!-- Column Header Letters (A, B, C, D...) -->
@@ -252,7 +252,7 @@
 
                             <!-- Cell B: Name (Chỉ Owner chỉnh sửa) -->
                             <td class="excel-cell" :class="{'excel-cell-modified': row.isModified}">
-                                <input v-model="row.name" @input="markModified(row)" :readonly="!userPermission.isOwner" type="text" placeholder="Nguyễn Văn A" class="font-semibold text-slate-100" :title="!userPermission.isOwner ? 'Chỉ Người sở hữu Tổ chức mới được sửa thông tin cá nhân' : ''">
+                                <input v-model="row.name" @input="markModified(row)" :readonly="!userPermission.isOwner" type="text" placeholder="Nguyễn Văn A" class="font-semibold text-slate-800" :title="!userPermission.isOwner ? 'Chỉ Người sở hữu Tổ chức mới được sửa thông tin cá nhân' : ''">
                             </td>
 
                             <!-- Cell C: DOB (Chỉ Owner chỉnh sửa) -->
@@ -299,36 +299,36 @@
                                 </div>
 
                                 <!-- Hover Tooltip: Show Deduction History & Who Deducted -->
-                                <div class="hidden group-hover:block absolute left-0 bottom-full mb-2 w-72 p-3 bg-slate-900 border border-amber-500/40 rounded-xl shadow-2xl z-50 pointer-events-none text-left backdrop-blur-md">
-                                    <div class="flex items-center justify-between border-b border-slate-800 pb-1.5 mb-2">
+                                <div class="hidden group-hover:block absolute left-0 bottom-full mb-2 w-72 p-3 bg-white border border-amber-500/40 rounded-xl shadow-2xl z-50 pointer-events-none text-left backdrop-blur-md">
+                                    <div class="flex items-center justify-between border-b border-slate-200 pb-1.5 mb-2">
                                         <span class="text-xs font-bold text-amber-300 flex items-center gap-1.5">
                                             <i class="fa-solid fa-clock-rotate-left text-amber-400"></i>
                                             <span>Lịch sử trừ điểm: {{ row.name }}</span>
                                         </span>
-                                        <span class="text-[10px] font-mono text-slate-400">ID: {{ row.id }}</span>
+                                        <span class="text-[10px] font-mono text-slate-500">ID: {{ row.id }}</span>
                                     </div>
 
-                                    <div v-if="getStudentDeductionHistory(row.id).length === 0" class="text-[11px] text-slate-400 italic py-1">
+                                    <div v-if="getStudentDeductionHistory(row.id).length === 0" class="text-[11px] text-slate-500 italic py-1">
                                         Chưa có lịch sử trừ điểm nào được ghi nhận.
                                     </div>
 
                                     <div v-else class="space-y-2 max-h-48 overflow-y-auto pr-1">
-                                        <div v-for="h in getStudentDeductionHistory(row.id)" :key="h.id" class="p-2 bg-slate-950/80 rounded-lg border border-slate-800 text-[11px] space-y-1">
-                                            <div class="flex items-center justify-between text-slate-300">
+                                        <div v-for="h in getStudentDeductionHistory(row.id)" :key="h.id" class="p-2 bg-slate-50/80 rounded-lg border border-slate-200 text-[11px] space-y-1">
+                                            <div class="flex items-center justify-between text-slate-600">
                                                 <span :class="h.source === 'AGENT' ? 'text-amber-300 font-bold' : 'text-emerald-300 font-bold'" class="flex items-center gap-1">
                                                     <i :class="h.source === 'AGENT' ? 'fa-robot' : 'fa-user'" class="fa-solid text-[10px]"></i>
                                                     <span>{{ h.userName || h.userEmail || 'Ẩn danh' }}</span>
                                                 </span>
                                                 <span class="text-[10px] text-slate-500 font-mono">{{ formatDate(h.createdAt) }}</span>
                                             </div>
-                                            <p class="text-slate-200 font-medium text-[10px] leading-snug">{{ h.description }}</p>
+                                            <p class="text-slate-700 font-medium text-[10px] leading-snug">{{ h.description }}</p>
                                         </div>
                                     </div>
                                 </div>
                             </td>
 
                             <!-- Action Column: Delete Row (Chỉ Owner mới có quyền xóa) -->
-                            <td class="excel-cell text-center align-middle bg-slate-900/60">
+                            <td class="excel-cell text-center align-middle bg-white/60">
                                 <button v-if="userPermission.isOwner" @click="deleteRow(index, row)" class="p-2 text-slate-500 hover:text-red-400 transition" title="Xóa hàng này (Chỉ Người sở hữu Tổ chức)">
                                     <i class="fa-solid fa-trash-can"></i>
                                 </button>
@@ -341,7 +341,7 @@
         </main>
 
         <!-- Status Footer Bar -->
-        <footer class="bg-slate-900 border-t border-slate-800 px-6 py-2 flex items-center justify-between text-xs text-slate-400">
+        <footer class="bg-white border-t border-slate-200 px-6 py-2 flex items-center justify-between text-xs text-slate-500">
             <div class="flex items-center space-x-2">
                 <span class="w-2 h-2 rounded-full bg-emerald-500"></span>
                 <span>Bảng tính đã sẵn sàng</span>
@@ -356,21 +356,21 @@
         </button>
 
         <!-- Gemini AI Chatbot Drawer Panel -->
-        <div v-if="showAiDrawer" class="fixed bottom-24 right-6 w-96 glass-card rounded-2xl border border-sky-500/30 shadow-2xl z-40 flex flex-col bg-slate-950/95 overflow-hidden h-[480px]">
-            <div class="px-4 py-3 border-b border-slate-800 flex justify-between items-center bg-slate-900/90">
+        <div v-if="showAiDrawer" class="fixed bottom-24 right-6 w-96 glass-card rounded-2xl border border-sky-500/30 shadow-2xl z-40 flex flex-col bg-slate-50/95 overflow-hidden h-[480px]">
+            <div class="px-4 py-3 border-b border-slate-200 flex justify-between items-center bg-white/90">
                 <div class="flex items-center space-x-2.5">
                     <div class="w-8 h-8 rounded-lg gradient-bg flex items-center justify-center text-white text-sm shadow-md">
                         <i class="fa-solid fa-sparkles text-amber-300"></i>
                     </div>
                     <div>
-                        <h3 class="font-bold text-slate-100 text-sm flex items-center gap-1.5">
+                        <h3 class="font-bold text-slate-800 text-sm flex items-center gap-1.5">
                             <span>Gemini AI Chatbot</span>
                             <span v-if="isGeminiPowered" class="px-1.5 py-0.5 text-[9px] bg-amber-500/20 text-amber-300 border border-amber-500/30 rounded font-bold">API Active</span>
                         </h3>
-                        <p class="text-[10px] text-slate-400">Trợ lý AI quản lý Lớp học & Bảng tính</p>
+                        <p class="text-[10px] text-slate-500">Trợ lý AI quản lý Lớp học & Bảng tính</p>
                     </div>
                 </div>
-                <button @click="showAiDrawer = false" class="text-slate-400 hover:text-slate-200">
+                <button @click="showAiDrawer = false" class="text-slate-500 hover:text-slate-700">
                     <i class="fa-solid fa-xmark text-sm"></i>
                 </button>
             </div>
@@ -380,13 +380,13 @@
                     <div v-if="msg.role === 'assistant'" class="w-6 h-6 rounded-full bg-sky-500/20 text-sky-400 flex items-center justify-center text-[10px] flex-shrink-0 mt-0.5">
                         <i class="fa-solid fa-robot"></i>
                     </div>
-                    <div :class="msg.role === 'user' ? 'bg-sky-600 text-white rounded-2xl rounded-tr-none' : 'bg-slate-900 border border-slate-800 text-slate-200 rounded-2xl rounded-tl-none'" class="p-3 max-w-[80%] leading-relaxed space-y-2">
+                    <div :class="msg.role === 'user' ? 'bg-sky-600 text-white rounded-2xl rounded-tr-none' : 'bg-white border border-slate-200 text-slate-700 rounded-2xl rounded-tl-none'" class="p-3 max-w-[80%] leading-relaxed space-y-2">
                         <div v-if="msg.fileName" class="flex items-center space-x-2 bg-sky-700/50 p-2 rounded text-xs mb-2">
                             <i class="fa-solid fa-paperclip text-sky-200"></i>
                             <span class="truncate">{{ msg.fileName }}</span>
                         </div>
                         <p>{{ msg.text }}</p>
-                        <div v-if="msg.hasActions" class="pt-1 border-t border-slate-800/80 flex items-center justify-between text-[11px]">
+                        <div v-if="msg.hasActions" class="pt-1 border-t border-slate-200/80 flex items-center justify-between text-[11px]">
                             <span class="text-amber-400 font-semibold"><i class="fa-solid fa-list-check mr-1"></i>Có {{ msg.actionsCount }} thao tác đề xuất</span>
                             <button @click="openPreviewFromChat(msg)" class="px-2 py-1 bg-sky-500/20 hover:bg-sky-500/30 text-sky-300 rounded font-bold transition border border-sky-500/30">
                                 Xem & Thực thi
@@ -394,32 +394,32 @@
                         </div>
                     </div>
                 </div>
-                <div v-if="parsingAi" class="flex items-center space-x-2 text-slate-400 italic text-xs py-2">
+                <div v-if="parsingAi" class="flex items-center space-x-2 text-slate-500 italic text-xs py-2">
                     <i class="fa-solid fa-circle-notch fa-spin text-sky-400"></i>
                     <span>Gemini AI đang suy nghĩ...</span>
                 </div>
             </div>
 
-            <div class="p-3 border-t border-slate-800 bg-slate-900/90 relative">
+            <div class="p-3 border-t border-slate-200 bg-white/90 relative">
                 <!-- File Preview Chip -->
-                <div v-if="aiAttachedFile" class="absolute bottom-[60px] left-3 right-3 flex items-center justify-between bg-slate-800 border border-slate-700 px-3 py-2 rounded-lg z-10 shadow-lg">
+                <div v-if="aiAttachedFile" class="absolute bottom-[60px] left-3 right-3 flex items-center justify-between bg-slate-100 border border-slate-300 px-3 py-2 rounded-lg z-10 shadow-lg">
                     <div class="flex items-center space-x-2 overflow-hidden">
                         <i class="fa-solid fa-file-lines text-sky-400"></i>
-                        <span class="text-xs text-slate-200 truncate">{{ aiAttachedFile.name }}</span>
+                        <span class="text-xs text-slate-700 truncate">{{ aiAttachedFile.name }}</span>
                         <span class="text-[10px] text-slate-500">({{ (aiAttachedFile.size / 1024).toFixed(1) }} KB)</span>
                     </div>
-                    <button @click="removeAiFile" type="button" class="text-slate-400 hover:text-red-400 transition">
+                    <button @click="removeAiFile" type="button" class="text-slate-500 hover:text-red-400 transition">
                         <i class="fa-solid fa-xmark"></i>
                     </button>
                 </div>
 
                 <form @submit.prevent="sendChatMessage" class="flex items-center space-x-2">
-                    <button type="button" @click="$refs.aiFileInput.click()" :disabled="parsingAi" class="px-3 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-xl text-xs transition shadow-md border border-slate-700">
+                    <button type="button" @click="$refs.aiFileInput.click()" :disabled="parsingAi" class="px-3 py-2 bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-xl text-xs transition shadow-md border border-slate-300">
                         <i class="fa-solid fa-paperclip"></i>
                     </button>
                     <input type="file" ref="aiFileInput" @change="onAiFileSelected" accept=".pdf,.doc,.docx,.csv,image/*" class="hidden">
                     
-                    <input v-model="aiPrompt" type="text" placeholder="Thêm học sinh hoặc đính kèm file..." :disabled="parsingAi" class="flex-1 px-3.5 py-2 bg-slate-950 border border-slate-700 rounded-xl text-slate-200 text-xs focus:outline-none focus:border-sky-500 transition">
+                    <input v-model="aiPrompt" type="text" placeholder="Thêm học sinh hoặc đính kèm file..." :disabled="parsingAi" class="flex-1 px-3.5 py-2 bg-slate-50 border border-slate-300 rounded-xl text-slate-700 text-xs focus:outline-none focus:border-sky-500 transition">
                     <button type="submit" :disabled="parsingAi || (!aiPrompt.trim() && !aiAttachedFile)" class="px-3.5 py-2 gradient-bg hover:opacity-90 text-white rounded-xl text-xs transition font-semibold shadow-md flex items-center justify-center">
                         <i class="fa-solid fa-paper-plane"></i>
                     </button>
@@ -427,15 +427,15 @@
             </div>
         </div>
 
-        <div v-if="showAiPreviewModal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-            <div class="glass-card max-w-lg w-full rounded-2xl p-6 border border-sky-500/40 space-y-5 bg-slate-900 shadow-2xl">
-                <div class="flex items-center space-x-3 border-b border-slate-800 pb-3">
+        <div v-if="showAiPreviewModal" class="fixed inset-0 bg-slate-50/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+            <div class="glass-card max-w-lg w-full rounded-2xl p-6 border border-sky-500/40 space-y-5 bg-white shadow-2xl">
+                <div class="flex items-center space-x-3 border-b border-slate-200 pb-3">
                     <div class="w-10 h-10 rounded-xl bg-sky-500/20 text-sky-400 flex items-center justify-center text-lg">
                         <i class="fa-solid fa-eye"></i>
                     </div>
                     <div>
-                        <h3 class="font-bold text-slate-100 text-base">Xem trước Kế hoạch Gemini AI (Server Preview)</h3>
-                        <p class="text-xs text-slate-400">Các hàm Node.js được phép gọi trực tiếp tại Server.</p>
+                        <h3 class="font-bold text-slate-800 text-base">Xem trước Kế hoạch Gemini AI (Server Preview)</h3>
+                        <p class="text-xs text-slate-500">Các hàm Node.js được phép gọi trực tiếp tại Server.</p>
                     </div>
                 </div>
 
@@ -449,14 +449,14 @@
                             <span><i class="fa-solid fa-bug mr-1"></i>Mã JavaScript (Debug Mode):</span>
                             <span class="text-sky-400 font-mono text-[10px]"><i class="fa-brands fa-js mr-1"></i>Node.js Sandbox</span>
                         </label>
-                        <pre class="p-3 bg-slate-950 rounded-xl border border-slate-800 text-xs font-mono text-emerald-400 overflow-x-auto whitespace-pre-wrap max-h-48"><code>{{ proposedPlan.code }}</code></pre>
+                        <pre class="p-3 bg-slate-50 rounded-xl border border-slate-200 text-xs font-mono text-emerald-400 overflow-x-auto whitespace-pre-wrap max-h-48"><code>{{ proposedPlan.code }}</code></pre>
                     </div>
 
                     <div v-if="proposedPlan.actions && proposedPlan.actions.length" class="space-y-2 max-h-48 overflow-y-auto">
-                        <div v-for="(item, idx) in proposedPlan.actions" :key="idx" class="p-3 bg-slate-950 rounded-xl border border-slate-800 flex items-center justify-between text-xs">
+                        <div v-for="(item, idx) in proposedPlan.actions" :key="idx" class="p-3 bg-slate-50 rounded-xl border border-slate-200 flex items-center justify-between text-xs">
                             <div class="flex items-center space-x-2">
-                                <span class="w-5 h-5 bg-slate-800 rounded-full flex items-center justify-center font-bold text-[10px] text-slate-300">{{ idx + 1 }}</span>
-                                <span class="font-medium text-slate-200">{{ item.description || item.action }}</span>
+                                <span class="w-5 h-5 bg-slate-100 rounded-full flex items-center justify-center font-bold text-[10px] text-slate-600">{{ idx + 1 }}</span>
+                                <span class="font-medium text-slate-700">{{ item.description || item.action }}</span>
                             </div>
                             <span class="px-2 py-0.5 text-[10px] font-bold rounded bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
                                 Server Whitelist API
@@ -465,8 +465,8 @@
                     </div>
                 </div>
 
-                <div class="flex justify-end space-x-3 pt-2 border-t border-slate-800">
-                    <button @click="showAiPreviewModal = false" class="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-semibold rounded-xl transition">
+                <div class="flex justify-end space-x-3 pt-2 border-t border-slate-200">
+                    <button @click="showAiPreviewModal = false" class="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-600 text-xs font-semibold rounded-xl transition">
                         Hủy bỏ
                     </button>
                     <button @click="confirmExecuteServerPlan" :disabled="executingAi" class="px-5 py-2 bg-sky-600 hover:bg-sky-500 text-white text-xs font-bold rounded-xl transition flex items-center space-x-2 shadow-lg shadow-sky-600/30">
@@ -479,53 +479,53 @@
         </div>
 
         <!-- Conduct Deduction Popup Modal -->
-        <div v-if="showDeductModal" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-md">
-            <div class="bg-slate-900 border border-slate-700/80 rounded-2xl max-w-md w-full p-6 shadow-2xl space-y-4">
-                <div class="flex items-center justify-between pb-3 border-b border-slate-800">
+        <div v-if="showDeductModal" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-50/80 backdrop-blur-md">
+            <div class="bg-white border border-slate-300/80 rounded-2xl max-w-md w-full p-6 shadow-2xl space-y-4">
+                <div class="flex items-center justify-between pb-3 border-b border-slate-200">
                     <div class="flex items-center space-x-2.5">
                         <div class="w-9 h-9 rounded-xl bg-amber-500/20 text-amber-400 border border-amber-500/30 flex items-center justify-center font-bold">
                             <i class="fa-solid fa-minus-circle"></i>
                         </div>
                         <div>
-                            <h3 class="text-sm font-bold text-slate-100">Trừ Điểm Hạnh Kiểm</h3>
-                            <p class="text-xs text-slate-400">Học sinh: <strong class="text-amber-300">{{ targetDeductStudent?.name }}</strong> ({{ targetDeductStudent?.studentCode }})</p>
+                            <h3 class="text-sm font-bold text-slate-800">Trừ Điểm Hạnh Kiểm</h3>
+                            <p class="text-xs text-slate-500">Học sinh: <strong class="text-amber-300">{{ targetDeductStudent?.name }}</strong> ({{ targetDeductStudent?.studentCode }})</p>
                         </div>
                     </div>
-                    <button @click="showDeductModal = false" class="text-slate-400 hover:text-slate-200">
+                    <button @click="showDeductModal = false" class="text-slate-500 hover:text-slate-700">
                         <i class="fa-solid fa-xmark"></i>
                     </button>
                 </div>
 
                 <div class="space-y-3 text-xs">
                     <div>
-                        <label class="block text-slate-400 font-semibold mb-1">Điểm hiện tại:</label>
-                        <input :value="targetDeductStudent?.conductScore ?? 100" readonly type="text" class="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-lg text-slate-300 font-bold">
+                        <label class="block text-slate-500 font-semibold mb-1">Điểm hiện tại:</label>
+                        <input :value="targetDeductStudent?.conductScore ?? 100" readonly type="text" class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-slate-600 font-bold">
                     </div>
 
                     <div>
                         <label class="block text-amber-400 font-semibold mb-1">Số điểm muốn trừ (*):</label>
-                        <input v-model.number="deductPoints" type="number" min="1" max="100" placeholder="Ví dụ: 5" class="w-full px-3 py-2 bg-slate-950 border border-slate-700 rounded-lg text-slate-100 font-bold focus:border-amber-500 outline-none">
+                        <input v-model.number="deductPoints" type="number" min="1" max="100" placeholder="Ví dụ: 5" class="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-lg text-slate-800 font-bold focus:border-amber-500 outline-none">
                     </div>
 
                     <div>
-                        <label class="block text-slate-300 font-semibold mb-1">Lý do vi phạm / trừ điểm (*):</label>
-                        <textarea v-model="deductReason" rows="3" placeholder="Nhập lý do chi tiết (Ví dụ: Đóng tiền muộn, đi học trễ, không mặc đồng phục...)" class="w-full px-3 py-2 bg-slate-950 border border-slate-700 rounded-lg text-slate-200 focus:border-amber-500 outline-none"></textarea>
+                        <label class="block text-slate-600 font-semibold mb-1">Lý do vi phạm / trừ điểm (*):</label>
+                        <textarea v-model="deductReason" rows="3" placeholder="Nhập lý do chi tiết (Ví dụ: Đóng tiền muộn, đi học trễ, không mặc đồng phục...)" class="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-lg text-slate-700 focus:border-amber-500 outline-none"></textarea>
                     </div>
 
                     <!-- Common preset reasons -->
                     <div>
-                        <label class="block text-[11px] text-slate-400 mb-1">Gợi ý nhanh lý do vi phạm:</label>
+                        <label class="block text-[11px] text-slate-500 mb-1">Gợi ý nhanh lý do vi phạm:</label>
                         <div class="flex flex-wrap gap-1.5">
-                            <button @click="deductReason = 'Đi học muộn/Đi trễ'" type="button" class="px-2 py-1 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded text-[10px]">Đi học muộn</button>
-                            <button @click="deductReason = 'Không mặc đúng đồng phục'" type="button" class="px-2 py-1 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded text-[10px]">Không đồng phục</button>
-                            <button @click="deductReason = 'Không làm bài tập về nhà'" type="button" class="px-2 py-1 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded text-[10px]">Thiếu BT về nhà</button>
-                            <button @click="deductReason = 'Mất trật tự trong giờ học'" type="button" class="px-2 py-1 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded text-[10px]">Mất trật tự</button>
+                            <button @click="deductReason = 'Đi học muộn/Đi trễ'" type="button" class="px-2 py-1 bg-slate-100 hover:bg-slate-200 text-slate-600 rounded text-[10px]">Đi học muộn</button>
+                            <button @click="deductReason = 'Không mặc đúng đồng phục'" type="button" class="px-2 py-1 bg-slate-100 hover:bg-slate-200 text-slate-600 rounded text-[10px]">Không đồng phục</button>
+                            <button @click="deductReason = 'Không làm bài tập về nhà'" type="button" class="px-2 py-1 bg-slate-100 hover:bg-slate-200 text-slate-600 rounded text-[10px]">Thiếu BT về nhà</button>
+                            <button @click="deductReason = 'Mất trật tự trong giờ học'" type="button" class="px-2 py-1 bg-slate-100 hover:bg-slate-200 text-slate-600 rounded text-[10px]">Mất trật tự</button>
                         </div>
                     </div>
                 </div>
 
-                <div class="flex justify-end space-x-2 pt-3 border-t border-slate-800">
-                    <button @click="showDeductModal = false" class="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-semibold rounded-xl transition">
+                <div class="flex justify-end space-x-2 pt-3 border-t border-slate-200">
+                    <button @click="showDeductModal = false" class="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-600 text-xs font-semibold rounded-xl transition">
                         Hủy
                     </button>
                     <button @click="confirmDeduction" class="px-5 py-2 bg-amber-600 hover:bg-amber-500 text-white text-xs font-bold rounded-xl transition flex items-center space-x-1.5 shadow-lg shadow-amber-600/30">
@@ -537,28 +537,28 @@
         </div>
 
         <!-- Google Sheets Style Version History Modal -->
-        <div v-if="showAuditLogsModal" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-md">
-            <div class="bg-slate-900 border border-slate-700/80 rounded-2xl max-w-4xl w-full p-6 shadow-2xl flex flex-col max-h-[85vh]">
-                <div class="flex items-center justify-between pb-4 border-b border-slate-800">
+        <div v-if="showAuditLogsModal" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-50/80 backdrop-blur-md">
+            <div class="bg-white border border-slate-300/80 rounded-2xl max-w-4xl w-full p-6 shadow-2xl flex flex-col max-h-[85vh]">
+                <div class="flex items-center justify-between pb-4 border-b border-slate-200">
                     <div class="flex items-center space-x-3">
                         <div class="w-9 h-9 rounded-xl bg-indigo-600/20 text-indigo-400 border border-indigo-500/30 flex items-center justify-center font-bold">
                             <i class="fa-solid fa-clock-rotate-left"></i>
                         </div>
                         <div>
-                            <h3 class="text-base font-bold text-slate-100 flex items-center gap-2">
+                            <h3 class="text-base font-bold text-slate-800 flex items-center gap-2">
                                 <span>Lịch sử Phiên bản & Nhật ký Thay đổi</span>
-                                <span class="px-2 py-0.5 text-[10px] bg-slate-800 text-slate-400 rounded border border-slate-700">Google Sheets Diff Style</span>
+                                <span class="px-2 py-0.5 text-[10px] bg-slate-100 text-slate-500 rounded border border-slate-300">Google Sheets Diff Style</span>
                             </h3>
-                            <p class="text-xs text-slate-400">Theo dõi toàn bộ lịch sử chỉnh sửa dữ liệu, phân biệt giữa Người dùng và AI Agent</p>
+                            <p class="text-xs text-slate-500">Theo dõi toàn bộ lịch sử chỉnh sửa dữ liệu, phân biệt giữa Người dùng và AI Agent</p>
                         </div>
                     </div>
-                    <button @click="showAuditLogsModal = false" class="text-slate-400 hover:text-slate-200 transition">
+                    <button @click="showAuditLogsModal = false" class="text-slate-500 hover:text-slate-700 transition">
                         <i class="fa-solid fa-xmark text-lg"></i>
                     </button>
                 </div>
 
                 <div class="flex-1 overflow-y-auto py-4 space-y-3">
-                    <div v-if="loadingAuditLogs" class="text-center py-12 text-slate-400">
+                    <div v-if="loadingAuditLogs" class="text-center py-12 text-slate-500">
                         <i class="fa-solid fa-circle-notch fa-spin text-2xl mb-2 text-indigo-400"></i>
                         <p class="text-xs">Đang tải lịch sử phiên bản...</p>
                     </div>
@@ -568,29 +568,29 @@
                         <p class="text-xs">Chưa có nhật ký thay đổi nào cho lớp học này</p>
                     </div>
 
-                    <div v-else v-for="log in auditLogs" :key="log.id" class="p-4 bg-slate-950/60 rounded-xl border border-slate-800/80 hover:border-slate-700 transition">
+                    <div v-else v-for="log in auditLogs" :key="log.id" class="p-4 bg-slate-50/60 rounded-xl border border-slate-200/80 hover:border-slate-300 transition">
                         <div class="flex items-center justify-between gap-4 mb-2">
                             <div class="flex items-center space-x-2.5">
                                 <span :class="log.source === 'AGENT' ? 'bg-amber-500/20 text-amber-300 border-amber-500/30' : 'bg-emerald-500/20 text-emerald-300 border-emerald-500/30'" class="px-2.5 py-0.5 text-[11px] font-bold rounded-md border flex items-center gap-1.5">
                                     <i :class="log.source === 'AGENT' ? 'fa-robot text-amber-400' : 'fa-user text-emerald-400'" class="fa-solid"></i>
                                     <span>{{ log.source === 'AGENT' ? 'AI Agent' : 'Người dùng' }}</span>
                                 </span>
-                                <span class="font-semibold text-slate-200 text-xs">{{ log.userName || log.userEmail || 'Ẩn danh' }}</span>
+                                <span class="font-semibold text-slate-700 text-xs">{{ log.userName || log.userEmail || 'Ẩn danh' }}</span>
                                 <span class="text-slate-500 text-xs">({{ log.action }})</span>
                             </div>
                             <span class="text-[11px] text-slate-500 font-mono">{{ formatDate(log.createdAt) }}</span>
                         </div>
 
-                        <p class="text-xs text-slate-300 font-medium mb-2">{{ log.description }}</p>
+                        <p class="text-xs text-slate-600 font-medium mb-2">{{ log.description }}</p>
 
                         <!-- Google Sheets Diff View -->
-                        <div v-if="log.diffs && log.diffs.length > 0" class="mt-2 space-y-1.5 bg-slate-900/90 p-3 rounded-lg border border-slate-800">
-                            <div class="text-[11px] font-semibold text-slate-400 mb-1 flex items-center gap-1">
+                        <div v-if="log.diffs && log.diffs.length > 0" class="mt-2 space-y-1.5 bg-white/90 p-3 rounded-lg border border-slate-200">
+                            <div class="text-[11px] font-semibold text-slate-500 mb-1 flex items-center gap-1">
                                 <i class="fa-solid fa-code-compare text-indigo-400"></i>
                                 <span>Chi tiết các trường thay đổi:</span>
                             </div>
-                            <div v-for="d in log.diffs" :key="d.field" class="flex items-start justify-between text-xs py-1 px-2 rounded bg-slate-950/50 border border-slate-800/50">
-                                <span class="text-slate-400 font-medium w-1/4">{{ d.field }}:</span>
+                            <div v-for="d in log.diffs" :key="d.field" class="flex items-start justify-between text-xs py-1 px-2 rounded bg-slate-50/50 border border-slate-200/50">
+                                <span class="text-slate-500 font-medium w-1/4">{{ d.field }}:</span>
                                 <div class="w-3/4 flex items-center gap-2 font-mono text-[11px]">
                                     <span class="text-red-400 line-through bg-red-950/40 px-1.5 py-0.5 rounded border border-red-900/40 truncate max-w-[45%]">{{ d.oldValue }}</span>
                                     <i class="fa-solid fa-arrow-right text-slate-500 text-[10px]"></i>
@@ -601,8 +601,8 @@
                     </div>
                 </div>
 
-                <div class="flex justify-end pt-3 border-t border-slate-800">
-                    <button @click="showAuditLogsModal = false" class="px-5 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-semibold rounded-xl transition">
+                <div class="flex justify-end pt-3 border-t border-slate-200">
+                    <button @click="showAuditLogsModal = false" class="px-5 py-2 bg-slate-100 hover:bg-slate-200 text-slate-600 text-xs font-semibold rounded-xl transition">
                         Đóng
                     </button>
                 </div>
