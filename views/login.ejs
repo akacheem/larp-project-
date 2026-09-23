@@ -4,65 +4,72 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Đăng nhập - EduManager</title>
-    <!-- Tailwind CSS & Icons -->
+    <title>Đăng nhập — EduManager</title>
+    <!-- Tailwind CSS & Lucide Icons -->
     <script src="https://cdn.tailwindcss.com"></script>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <script src="/public/lucide-safe.js"></script>
     <link rel="stylesheet" href="/public/style.css">
 </head>
 
-<body class="min-h-screen flex items-center justify-center p-6">
-    <div class="glass-card w-full max-w-md rounded-2xl p-8 border border-slate-800 space-y-6 shadow-2xl">
+<body class="min-h-screen bg-[#f5f5f7] text-[#1d1d1f] flex flex-col items-center justify-center p-6 antialiased selection:bg-[#0071e3] selection:text-white">
+
+    <!-- Top Minimal Navigation -->
+    <div class="fixed top-6 left-6">
+        <a href="/" class="flex items-center space-x-2 text-xs font-medium text-[#86868b] hover:text-[#1d1d1f] transition px-3.5 py-1.5 rounded-full bg-black/[0.03] hover:bg-black/[0.06] border border-black/[0.04]">
+            <i data-lucide="chevron-left" class="w-3.5 h-3.5"></i>
+            <span>Trang chủ</span>
+        </a>
+    </div>
+
+    <div class="w-full max-w-sm bg-white rounded-[36px] p-8 sm:p-10 border border-black/[0.06] shadow-[0_12px_40px_rgba(0,0,0,0.04)] space-y-6">
         <!-- Logo & Title -->
-        <div class="text-center space-y-2">
-            <div class="w-12 h-12 rounded-xl gradient-bg flex items-center justify-center text-white mx-auto shadow-lg shadow-sky-500/20 text-xl font-bold">
-                <i class="fa-solid fa-right-to-bracket"></i>
+        <div class="text-center space-y-2.5">
+            <div class="w-14 h-14 rounded-full bg-[#1d1d1f] text-white flex items-center justify-center mx-auto shadow-sm">
+                <i data-lucide="graduation-cap" class="w-6 h-6 stroke-[1.75]"></i>
             </div>
-            <h2 class="text-2xl font-bold gradient-text">Đăng nhập EduManager</h2>
-            <p class="text-xs text-slate-400">Nhập thông tin tài khoản của bạn để tiếp tục</p>
+            <h2 class="text-2xl font-semibold tracking-tight text-[#1d1d1f]">EduManager</h2>
+            <p class="text-xs text-[#86868b]">Nhập tài khoản để tiếp tục vào Bảng điều khiển</p>
         </div>
 
         <!-- Form -->
         <form class="space-y-4" onsubmit="return false;">
-            <div>
-                <label for="email" class="block text-xs font-semibold text-slate-300 mb-1.5">Địa chỉ Email</label>
-                <div class="relative">
-                    <span class="absolute inset-y-0 left-0 pl-3.5 flex items-center text-slate-500 text-sm">
-                        <i class="fa-solid fa-envelope"></i>
-                    </span>
-                    <input type="email" id="email" name="email" required placeholder="yourname@example.com" class="w-full pl-10 pr-4 py-2.5 bg-slate-900 border border-slate-700 rounded-xl text-slate-200 text-sm focus:outline-none focus:border-sky-500 transition">
-                </div>
+            <div class="space-y-1.5">
+                <label for="email" class="block text-xs font-medium text-[#86868b] pl-2">Địa chỉ Email</label>
+                <input type="email" id="email" name="email" required placeholder="name@example.com" class="w-full px-5 py-2.5 bg-[#f5f5f7] border border-[#d2d2d7] rounded-full text-[#1d1d1f] text-sm placeholder-[#aeaeb2] focus:outline-none focus:border-[#0071e3] focus:bg-white focus:ring-2 focus:ring-[#0071e3]/20 transition duration-150">
             </div>
 
-            <div>
-                <label for="password" class="block text-xs font-semibold text-slate-300 mb-1.5">Mật khẩu</label>
-                <div class="relative">
-                    <span class="absolute inset-y-0 left-0 pl-3.5 flex items-center text-slate-500 text-sm">
-                        <i class="fa-solid fa-lock"></i>
-                    </span>
-                    <input type="password" id="password" name="password" required minlength="8" placeholder="Tối thiểu 8 ký tự" class="w-full pl-10 pr-4 py-2.5 bg-slate-900 border border-slate-700 rounded-xl text-slate-200 text-sm focus:outline-none focus:border-sky-500 transition">
+            <div class="space-y-1.5">
+                <div class="flex items-center justify-between pl-2">
+                    <label for="password" class="block text-xs font-medium text-[#86868b]">Mật khẩu</label>
                 </div>
+                <input type="password" id="password" name="password" required minlength="8" placeholder="Tối thiểu 8 ký tự" class="w-full px-5 py-2.5 bg-[#f5f5f7] border border-[#d2d2d7] rounded-full text-[#1d1d1f] text-sm placeholder-[#aeaeb2] focus:outline-none focus:border-[#0071e3] focus:bg-white focus:ring-2 focus:ring-[#0071e3]/20 transition duration-150">
             </div>
 
             <!-- Status Text Message -->
-            <div class="text-center pt-1">
-                <span id="status-text" class="text-xs font-semibold text-amber-400"></span>
+            <div class="text-center pt-1 min-h-[20px]">
+                <span id="status-text" class="text-xs font-medium text-[#ff9500]"></span>
             </div>
 
-            <button id="submit-btn" type="submit" class="w-full py-3 gradient-bg hover:opacity-90 text-white font-semibold rounded-xl text-sm transition shadow-lg shadow-sky-600/30 flex items-center justify-center space-x-2">
+            <button id="submit-btn" type="submit" class="w-full py-2.5 px-5 bg-[#0071e3] hover:bg-[#0077ed] active:scale-[0.98] text-white font-medium rounded-full text-sm transition-all duration-150 shadow-sm flex items-center justify-center space-x-2">
                 <span>Đăng nhập</span>
-                <i class="fa-solid fa-arrow-right"></i>
+                <i data-lucide="arrow-right" class="w-4 h-4"></i>
             </button>
         </form>
 
         <!-- Footer link -->
-        <div class="text-center pt-4 border-t border-slate-800 text-xs text-slate-400">
+        <div class="text-center pt-4 border-t border-black/[0.06] text-xs text-[#86868b]">
             Chưa có tài khoản?
-            <a href="/signup" class="text-sky-400 hover:text-sky-300 font-semibold ml-1 transition">Đăng ký ngay</a>
+            <a href="/signup" class="text-[#0071e3] hover:underline font-medium ml-1">Đăng ký ngay</a>
         </div>
     </div>
 
     <script src="/public/login.js" type="module"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            if (window.lucide) window.lucide.createIcons();
+        });
+    </script>
 </body>
 
 </html>

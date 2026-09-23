@@ -12,6 +12,9 @@ import {
     secureInviteMember
 } from './writePermissionLayer.js';
 import {
+    deleteClass,
+    deleteStudent,
+    addStudentToClass,
     deleteAcademicYear,
     removeOrganizationMember,
     getClasses,
@@ -125,16 +128,17 @@ const SERVER_REVERSAL_HANDLERS = {
 };
 
 /**
- * Call Google Gemini API to parse intent into structured actions
+ * Call Google Gemini API to parse intent into structured actions with Agent Thought Process & Execution Feedback
  */
-async function callGeminiApi(prompt, context = {}, fileData = null) {
+async function callGeminiApi(prompt, context = {}, fileData = null, executionFeedback = null) {
     const apiKey = process.env.GEMINI_API_KEY;
     if (!apiKey) return null;
 
     try {
         const ai = new GoogleGenAI({ apiKey });
-        const systemInstruction = `Bạn là trợ lý AI thông minh quản lý ứng dụng EduManager cho Tổ chức.
-Nhiệm vụ của bạn là đọc yêu cầu của người dùng và tạo ra mã JavaScript (async code) tối ưu để thực thi trực tiếp trên Server trong V8 Isolate Sandbox (isolated-vm).
+        const systemInstruction = `Bạn là trợ lý AI thông minh kiêm Agent quản lý ứng dụng EduManager cho Tổ chức.
+Nhiệm vụ của bạn là đọc yêu cầu của người dùng, SUY NGHĨ (THOUGHT) phân tích dữ liệu kỹ lưỡng, và tạo ra mã JavaScript (async code) tối ưu để thực thi trực tiếp trên Server trong V8 Isolate Sandbox (isolated-vm).
+Nếu nhận được kết quả thực thi lệnh trước đó (Execution Feedback), bạn PHẢI phân tích kết quả đó để tiếp tục suy nghĩ và hoàn thành mục tiêu.
 
 QUY TẮC PHẠM VI DỮ LIỆU & QUYỀN HẠN (CRITICAL CONTEXT CONSTRAINTS):
 1. ƯU TIÊN VÀ CHỈ TÁC ĐỘNG LÊN MÀN HÌNH HIỆN TẠI NẾU KHÔNG CÓ YÊU CẦU KHÁC:
@@ -146,6 +150,7 @@ QUY TẮC PHẠM VI DỮ LIỆU & QUYỀN HẠN (CRITICAL CONTEXT CONSTRAINTS):
    - Sử dụng vòng lặp (for, for...of, forEach) khi thao tác hàng loạt.
    - Kiểm tra điều kiện (if/else) trước khi gọi hàm.
    - Luôn sử dụng đúng ID học sinh (studentId) và ID lớp (classId) dựa vào danh sách currentStudents và classes có trong Context.
+   - Có thể dùng console.log() để ghi lại thông tin tiến trình thực thi, hoặc dùng lệnh return để trả về kết quả cho Agent nhận diện.
 
 DANH SÁCH KIỂU DỮ LIỆU (TYPES & INTERFACES):
 - StudentInput: {
@@ -198,7 +203,11 @@ DANH SÁCH HÀM API SERVER & CÚ PHÁP (SERVER API SIGNATURES):
    -> Mời thành viên mới vào tổ chức qua email. Ví dụ: await inviteMember("user@example.com", "read")
 
 9. await addStudent(classId: number, studentData: StudentInput): Promise<{ id: number, name: string, classId: number }>
-   -> Thêm học sinh mới vào lớp. Ví dụ: await addStudent(1, { name: "Nguyễn Văn A", conductScore: 100 })
+   -> Thêm học sinh mới vào lớp. Ví dụ: await addStudent(currentClass?.id || 1, { name: "Nguyễn Văn A", conductScore: 100 })
+   QUY TẮC BẮT BUỘC VỀ classId:
+   - Nếu đang ở màn hình lớp học (currentClass tồn tại): LUÔN sử dụng currentClass.id (ví dụ: await addStudent(currentClass.id, { name: "Nguyễn Văn A" })).
+   - Nếu ở Dashboard: tìm ID lớp tương ứng trong danh sách classes theo tên lớp (ví dụ: const target = classes.find(c => c.name.toLowerCase() === "10a1".toLowerCase()); if (target) await addStudent(target.id, { name: "Nguyễn Văn A" });).
+   - TUYỆT ĐỐI KHÔNG truyền undefined hoặc null cho classId.
 
 10. await updateStudent(studentId: number, updateData: StudentUpdateInput): Promise<{ id: number, name: string }>
     -> Cập nhật thông tin học sinh theo studentId. Ví dụ: await updateStudent(10, { conductScore: 95 })
@@ -209,10 +218,11 @@ DANH SÁCH HÀM API SERVER & CÚ PHÁP (SERVER API SIGNATURES):
 12. await deductConductScore(studentId: number, points: number, reason: string): Promise<{ id: number, name: string, conductScore: number }>
     -> Trừ điểm hạnh kiểm của học sinh kèm lý do. Ví dụ: await deductConductScore(10, 5, "Đi học muộn")
 
-Yêu cầu trả về kết quả định dạng JSON gồm:
-1. "reply": Phản hồi trò chuyện bằng tiếng Việt thân thiện, giải thích rõ ràng thao tác sẽ thực hiện.
-2. "summary": Tóm tắt ngắn gọn mục tiêu của đoạn mã JS.
-3. "code": Đoạn mã JavaScript hợp lệ (thuần mã JS, KHÔNG chứa markdown block \`\`\`js) xử lý logic, có thể trống nếu không thực hiện bất kì mã nào.
+YÊU CẦU ĐỊNH DẠNG JSON TRẢ VỀ (JSON OUTPUT SCHEMA):
+1. "thought": Luồng tư duy / suy nghĩ của Agent: Phân tích kỹ yêu cầu của người dùng, phân tích dữ liệu trong context, suy nghĩ về kết quả thực thi lệnh trước đó (nếu có), logic lựa chọn hàm API, các bước dự kiến và cách xử lý trường hợp đặc biệt.
+2. "summary": Tóm tắt ngắn gọn 1 câu mục tiêu hoặc kết quả của thao tác.
+3. "reply": Phản hồi trò chuyện bằng tiếng Việt thân thiện, giải thích rõ ràng thao tác sẽ thực hiện hoặc tổng kết kết quả.
+4. "code": Đoạn mã JavaScript hợp lệ (thuần mã JS, KHÔNG chứa markdown block \`\`\`js) xử lý logic, có thể trống ("") nếu đã hoàn thành và không cần thực thi thêm mã nào.
 `;
 
         const parts = [{ text: `Câu lệnh người dùng: "${prompt}"\nBối cảnh dữ liệu hiện tại: ${JSON.stringify(context)}` }];
@@ -225,8 +235,20 @@ Yêu cầu trả về kết quả định dạng JSON gồm:
             });
         }
 
+        if (executionFeedback) {
+            parts.push({
+                text: `KẾT QUẢ THỰC THI LỆNH TRÊN SERVER (V8 Sandbox):\n` +
+                      `- Trạng thái: ${executionFeedback.success ? 'THÀNH CÔNG' : 'THẤT BẠI'}\n` +
+                      `- Logs (console.log): ${JSON.stringify(executionFeedback.logs || [])}\n` +
+                      `- Giá trị trả về (Result): ${JSON.stringify(executionFeedback.result !== undefined ? executionFeedback.result : null)}\n` +
+                      `- Các thay đổi Database đã ghi nhận: ${JSON.stringify(executionFeedback.executedBatch || [])}\n` +
+                      (executionFeedback.error ? `- Lỗi: ${executionFeedback.error}\n` : '') +
+                      `Hãy suy nghĩ (thought) và đánh giá kết quả thực thi này so với yêu cầu ban đầu của người dùng.`
+            });
+        }
+
         const response = await ai.models.generateContent({
-            model: 'gemini-3.6-flash',
+            model: 'gemini-2.5-flash',
             contents: [
                 { role: 'user', parts: parts }
             ],
@@ -244,6 +266,71 @@ Yêu cầu trả về kết quả định dạng JSON gồm:
         console.error('[Gemini API Call Exception]', err.message);
     }
     return null;
+}
+
+/**
+ * Agent Post-Execution Reflection:
+ * Feeds actual execution outputs (logs, returned values, database modifications, errors)
+ * back to Gemini so the Agent can think and evaluate the results of its commands.
+ */
+export async function generateAgentExecutionFeedback(prompt, code, executionOutput, context = {}) {
+    const apiKey = process.env.GEMINI_API_KEY;
+    if (!apiKey) {
+        return {
+            thought: `Đã hoàn tất thực thi ${executionOutput.executedBatch?.length || 0} tác vụ trên hệ thống.`,
+            reply: executionOutput.success
+                ? `Đã thực thi thành công ${executionOutput.executedBatch?.length || 0} thao tác.`
+                : `Thực thi gặp lỗi: ${executionOutput.error || 'Lỗi không xác định'}`
+        };
+    }
+
+    try {
+        const ai = new GoogleGenAI({ apiKey });
+        const systemInstruction = `Bạn là trợ lý AI thông minh kiêm Agent quản lý ứng dụng EduManager.
+Bạn vừa nhận được kết quả thực thi lệnh thực tế trên Server (V8 sandbox).
+Nhiệm vụ của bạn là đọc kết quả thực tế này, SUY NGHĨ (THOUGHT) đánh giá xem các thao tác đã hoàn thành như thế nào so với yêu cầu ban đầu của người dùng, và đưa ra phản hồi tổng kết ngắn gọn, chính xác bằng tiếng Việt (reply).
+
+YÊU CẦU ĐỊNH DẠNG JSON TRẢ VỀ:
+{
+  "thought": "Luồng suy nghĩ của Agent khi nhận kết quả: phân tích xem mục tiêu ban đầu đã hoàn thành chưa, đánh giá các bản ghi đã tạo/sửa/xóa và các log output ghi nhận được...",
+  "reply": "Phản hồi kết quả cụ thể, rõ ràng cho người dùng (ví dụ: đã tạo học sinh ID bao nhiêu, lớp nào, có điểm gì cần chú ý...)"
+}`;
+
+        const promptText = `Yêu cầu ban đầu của người dùng: "${prompt || 'Thực thi kịch bản'}"
+Mã JS đã chạy:
+${code || '(Thực thi từ danh sách thao tác)'}
+
+KẾT QUẢ THỰC THI TRÊN SERVER:
+- Trạng thái: ${executionOutput.success ? 'THÀNH CÔNG' : 'THẤT BẠI'}
+- Logs (console.log): ${JSON.stringify(executionOutput.logs || [])}
+- Giá trị trả về (Result): ${JSON.stringify(executionOutput.result !== undefined ? executionOutput.result : null)}
+- Các bản ghi thay đổi trong CSDL: ${JSON.stringify(executionOutput.executedBatch || [])}
+${executionOutput.error ? `- Lỗi phát sinh: ${executionOutput.error}` : ''}
+`;
+
+        const response = await ai.models.generateContent({
+            model: 'gemini-2.5-flash',
+            contents: [{ role: 'user', parts: [{ text: promptText }] }],
+            config: {
+                systemInstruction,
+                responseMimeType: 'application/json'
+            }
+        });
+
+        if (response && response.text) {
+            const parsed = JSON.parse(response.text);
+            return parsed;
+        }
+    } catch (err) {
+        console.error('[Gemini Feedback Exception]', err.message);
+    }
+
+    return {
+        thought: `Đã hoàn tất xử lý ${executionOutput.executedBatch?.length || 0} thao tác trên server.`,
+        reply: executionOutput.success
+            ? `Thực thi thành công ${executionOutput.executedBatch?.length || 0} thao tác.`
+            : `Thực thi gặp lỗi: ${executionOutput.error || 'Lỗi không xác định'}`
+    };
 }
 
 /**
@@ -309,7 +396,12 @@ function parseIntentFallback(prompt) {
         }
     }
 
+    const thought = plan.length > 0
+        ? `Đã phân tích yêu cầu dựa trên quy tắc từ khóa (Fallback Mode). Dự kiến thực hiện ${plan.length} thao tác.`
+        : `Chưa nhận diện được hành động cụ thể từ câu lệnh. Đang ở chế độ hướng dẫn người dùng.`;
+
     return {
+        thought,
         reply: plan.length > 0
             ? `Tôi đã nhận lệnh và phân tích kế hoạch gồm ${plan.length} thao tác.`
             : `Xin chào! Tôi là AI Assistant của EduManager. Bạn có thể yêu cầu tôi tạo lớp học, niên khóa hoặc mời thành viên.`,
@@ -331,11 +423,13 @@ export async function parseAiPromptOnServer(orgId, prompt, context = {}, fileDat
     // Try Gemini API first
     let geminiRes = await callGeminiApi(prompt, context, fileData);
     let reply = '';
+    let thought = '';
     let summary = '';
     let code = '';
     let rawPlan = [];
 
     if (geminiRes) {
+        thought = geminiRes.thought || 'Đã phân tích logic câu lệnh dựa trên bối cảnh hiện tại.';
         reply = geminiRes.reply || 'Đã tạo đoạn mã JavaScript thực thi.';
         summary = geminiRes.summary || 'Kịch bản thực thi JS do AI tạo';
         code = geminiRes.code || '';
@@ -351,6 +445,7 @@ export async function parseAiPromptOnServer(orgId, prompt, context = {}, fileDat
     } else {
         // Fallback to Rule-based Parser if Gemini API key is missing or errored
         const fallbackRes = parseIntentFallback(prompt);
+        thought = fallbackRes.thought;
         reply = fallbackRes.reply;
         summary = fallbackRes.summary;
         rawPlan = fallbackRes.plan;
@@ -372,6 +467,7 @@ export async function parseAiPromptOnServer(orgId, prompt, context = {}, fileDat
     const safePlan = rawPlan.filter(item => WHITELISTED_SERVER_ACTIONS[item.action]);
 
     return {
+        thought,
         reply,
         summary,
         code,
@@ -383,10 +479,13 @@ export async function parseAiPromptOnServer(orgId, prompt, context = {}, fileDat
 /**
  * 2. Execute Approved JavaScript Code or Plan directly on Server in a Whitelisted Context
  */
-export async function executeAiPlanOnServer(actorUser, orgId, planActions, codeScript = null, screenContext = {}) {
+export async function executeAiPlanOnServer(actorUser, orgId, planActions, codeScript = null, screenContext = {}, userPrompt = null) {
     const history = getOrgHistory(orgId);
     const redoStack = getOrgRedo(orgId);
     const executedBatch = [];
+    const executionLogs = [];
+    let executionResult = undefined;
+    const safeContext = (screenContext && typeof screenContext === 'object') ? screenContext : {};
 
     // If JavaScript code script is provided, execute JS script on server with bound Whitelisted server APIs
     if (codeScript && typeof codeScript === 'string' && codeScript.trim()) {
@@ -401,8 +500,27 @@ export async function executeAiPlanOnServer(actorUser, orgId, planActions, codeS
         const v8Context = await isolate.createContext();
         const jail = v8Context.global;
 
+        await jail.set('context', new ivm.ExternalCopy(safeContext).copyInto());
+        await jail.set('currentClass', new ivm.ExternalCopy(safeContext.currentClass || null).copyInto());
+        await jail.set('currentStudents', new ivm.ExternalCopy(safeContext.currentStudents || []).copyInto());
+        await jail.set('classes', new ivm.ExternalCopy(safeContext.classes || []).copyInto());
+        await jail.set('academicYears', new ivm.ExternalCopy(safeContext.academicYears || []).copyInto());
+
+        // Safe wrapper for host APIs crossing isolated-vm boundary:
+        // Catches any host errors and returns { ok: false, error: err.message }, preventing unhandled promise rejections on the host.
+        const wrapSafeApi = (fn) => {
+            return new ivm.Reference(async (...args) => {
+                try {
+                    const res = await fn(...args);
+                    return new ivm.ExternalCopy({ ok: true, data: res }).copyInto();
+                } catch (err) {
+                    return new ivm.ExternalCopy({ ok: false, error: err.message || String(err) }).copyInto();
+                }
+            });
+        };
+
         // Bind ReferenceFunctions for Whitelisted APIs
-        await jail.set('_createClass', new ivm.Reference(async (name, academicYearIdOrName) => {
+        await jail.set('_createClass', wrapSafeApi(async (name, academicYearIdOrName) => {
             let yearId = null;
             let yearName = null;
             if (typeof academicYearIdOrName === 'number') yearId = academicYearIdOrName;
@@ -410,93 +528,198 @@ export async function executeAiPlanOnServer(actorUser, orgId, planActions, codeS
 
             const res = await WHITELISTED_SERVER_ACTIONS['create_class'](actorUser, orgId, { name, academicYearId: yearId, academicYear: yearName });
             executedBatch.push({ action: 'create_class', params: { name, academicYearId: yearId, academicYear: yearName }, result: res });
-            return new ivm.ExternalCopy(res).copyInto();
+            return res;
         }));
 
-        await jail.set('_deleteClass', new ivm.Reference(async (classId) => {
-            const params = { classId: Number(classId) };
+        await jail.set('_deleteClass', wrapSafeApi(async (classIdOrName) => {
+            let targetClassId = classIdOrName;
+            if (typeof classIdOrName === 'object' && classIdOrName !== null) {
+                targetClassId = classIdOrName.id || classIdOrName.classId;
+            }
+            if (typeof targetClassId === 'string' && isNaN(Number(targetClassId))) {
+                const found = (safeContext.classes || []).find(c => c.name && c.name.toLowerCase() === targetClassId.trim().toLowerCase());
+                if (found) targetClassId = found.id;
+            }
+            const resolvedClassId = Number(targetClassId);
+            if (isNaN(resolvedClassId) || !resolvedClassId) {
+                throw new Error("Không xác định được ID lớp học để xóa.");
+            }
+            const params = { classId: resolvedClassId };
             const res = await WHITELISTED_SERVER_ACTIONS['delete_class'](actorUser, orgId, params);
             executedBatch.push({ action: 'delete_class', params, result: res });
-            return new ivm.ExternalCopy(res).copyInto();
+            return res;
         }));
 
-        await jail.set('_getClasses', new ivm.Reference(async () => {
+        await jail.set('_getClasses', wrapSafeApi(async () => {
             const res = await WHITELISTED_SERVER_ACTIONS['get_classes'](actorUser, orgId);
-            return new ivm.ExternalCopy(res).copyInto();
+            return res;
         }));
 
-        await jail.set('_getStudents', new ivm.Reference(async (classId) => {
-            const params = classId ? { classId: Number(classId) } : {};
+        await jail.set('_getStudents', wrapSafeApi(async (classIdOrName) => {
+            let targetClassId = classIdOrName;
+            if (typeof classIdOrName === 'object' && classIdOrName !== null) {
+                targetClassId = classIdOrName.id || classIdOrName.classId;
+            }
+            if (typeof targetClassId === 'string' && isNaN(Number(targetClassId))) {
+                const found = (safeContext.classes || []).find(c => c.name && c.name.toLowerCase() === targetClassId.trim().toLowerCase());
+                if (found) targetClassId = found.id;
+            }
+            const resolvedClassId = Number(targetClassId);
+            const params = (!isNaN(resolvedClassId) && resolvedClassId) ? { classId: resolvedClassId } : {};
             const res = await WHITELISTED_SERVER_ACTIONS['get_students'](actorUser, orgId, params);
-            return new ivm.ExternalCopy(res).copyInto();
+            return res;
         }));
 
-        await jail.set('_getAcademicYears', new ivm.Reference(async () => {
+        await jail.set('_getAcademicYears', wrapSafeApi(async () => {
             const res = await WHITELISTED_SERVER_ACTIONS['get_academic_years'](actorUser, orgId);
-            return new ivm.ExternalCopy(res).copyInto();
+            return res;
         }));
 
-        await jail.set('_createAcademicYear', new ivm.Reference(async (name, startDate, endDate) => {
+        await jail.set('_createAcademicYear', wrapSafeApi(async (name, startDate, endDate) => {
             const res = await WHITELISTED_SERVER_ACTIONS['create_academic_year'](actorUser, orgId, { name, startDate, endDate });
             executedBatch.push({ action: 'create_academic_year', params: { name }, result: res });
-            return new ivm.ExternalCopy(res).copyInto();
+            return res;
         }));
 
-        await jail.set('_deleteAcademicYear', new ivm.Reference(async (academicYearId) => {
-            const params = { academicYearId: Number(academicYearId) };
+        await jail.set('_deleteAcademicYear', wrapSafeApi(async (academicYearId) => {
+            let targetYearId = academicYearId;
+            if (typeof academicYearId === 'object' && academicYearId !== null) {
+                targetYearId = academicYearId.id || academicYearId.academicYearId;
+            }
+            const resolvedYearId = Number(targetYearId);
+            if (isNaN(resolvedYearId) || !resolvedYearId) {
+                throw new Error("Không xác định được ID niên khóa để xóa.");
+            }
+            const params = { academicYearId: resolvedYearId };
             const res = await WHITELISTED_SERVER_ACTIONS['delete_academic_year'](actorUser, orgId, params);
             executedBatch.push({ action: 'delete_academic_year', params, result: res });
-            return new ivm.ExternalCopy(res).copyInto();
+            return res;
         }));
 
-        await jail.set('_inviteMember', new ivm.Reference(async (email, permission = 'read') => {
+        await jail.set('_inviteMember', wrapSafeApi(async (email, permission = 'read') => {
             const res = await WHITELISTED_SERVER_ACTIONS['invite_member'](actorUser, orgId, { email, permission });
             executedBatch.push({ action: 'invite_member', params: { email, permission }, result: res });
-            return new ivm.ExternalCopy(res).copyInto();
+            return res;
         }));
 
-        await jail.set('_addStudent', new ivm.Reference(async (classId, studentObj) => {
-            const params = { classId: Number(classId), ...(studentObj || {}) };
+        await jail.set('_addStudent', wrapSafeApi(async (classIdOrObj, studentObj) => {
+            let targetClassId = classIdOrObj;
+            let studentData = studentObj;
+
+            // Handle single-argument call: addStudent({ name: "...", classId: 1 })
+            if (typeof classIdOrObj === 'object' && classIdOrObj !== null) {
+                studentData = classIdOrObj;
+                targetClassId = studentData.classId;
+            }
+
+            // If targetClassId is class name string like "10A1", resolve by name from safeContext.classes
+            if (typeof targetClassId === 'string' && isNaN(Number(targetClassId))) {
+                const found = (safeContext.classes || []).find(c => c.name && c.name.toLowerCase() === targetClassId.trim().toLowerCase());
+                if (found) targetClassId = found.id;
+            }
+
+            let resolvedClassId = Number(targetClassId);
+            if (isNaN(resolvedClassId) || !resolvedClassId) {
+                if (studentData && studentData.classId && !isNaN(Number(studentData.classId))) {
+                    resolvedClassId = Number(studentData.classId);
+                } else if (safeContext.currentClass && safeContext.currentClass.id && !isNaN(Number(safeContext.currentClass.id))) {
+                    resolvedClassId = Number(safeContext.currentClass.id);
+                } else if (Array.isArray(safeContext.classes) && safeContext.classes.length === 1) {
+                    resolvedClassId = Number(safeContext.classes[0].id);
+                }
+            }
+
+            if (isNaN(resolvedClassId) || !resolvedClassId) {
+                throw new Error("Không xác định được ID lớp học để thêm học sinh. Vui lòng chọn lớp học hoặc cung cấp classId hợp lệ.");
+            }
+
+            const params = { ...(studentData || {}), classId: resolvedClassId };
             const res = await WHITELISTED_SERVER_ACTIONS['add_student'](actorUser, orgId, params);
             executedBatch.push({ action: 'add_student', params, result: res });
-            return new ivm.ExternalCopy(res).copyInto();
+            return res;
         }));
 
-        await jail.set('_updateStudent', new ivm.Reference(async (studentId, studentObj) => {
-            const params = { studentId: Number(studentId), ...(studentObj || {}) };
+        await jail.set('_updateStudent', wrapSafeApi(async (studentIdOrObj, studentObj) => {
+            let targetStudentId = studentIdOrObj;
+            let studentData = studentObj;
+
+            if (typeof studentIdOrObj === 'object' && studentIdOrObj !== null) {
+                studentData = studentIdOrObj;
+                targetStudentId = studentData.id || studentData.studentId;
+            }
+            if (typeof targetStudentId === 'string' && isNaN(Number(targetStudentId))) {
+                const found = (safeContext.currentStudents || []).find(s => s.name && s.name.toLowerCase() === targetStudentId.trim().toLowerCase());
+                if (found) targetStudentId = found.id;
+            }
+            const resolvedStudentId = Number(targetStudentId);
+            if (isNaN(resolvedStudentId) || !resolvedStudentId) {
+                throw new Error("Không xác định được ID học sinh để cập nhật.");
+            }
+            const params = { ...(studentData || {}), studentId: resolvedStudentId };
             const res = await WHITELISTED_SERVER_ACTIONS['update_student'](actorUser, orgId, params);
             executedBatch.push({ action: 'update_student', params, result: res });
-            return new ivm.ExternalCopy(res).copyInto();
+            return res;
         }));
 
-        await jail.set('_deleteStudent', new ivm.Reference(async (studentId) => {
-            const params = { studentId: Number(studentId) };
+        await jail.set('_deleteStudent', wrapSafeApi(async (studentIdOrObj) => {
+            let targetStudentId = studentIdOrObj;
+            if (typeof studentIdOrObj === 'object' && studentIdOrObj !== null) {
+                targetStudentId = studentIdOrObj.id || studentIdOrObj.studentId;
+            }
+            if (typeof targetStudentId === 'string' && isNaN(Number(targetStudentId))) {
+                const found = (safeContext.currentStudents || []).find(s => s.name && s.name.toLowerCase() === targetStudentId.trim().toLowerCase());
+                if (found) targetStudentId = found.id;
+            }
+            const resolvedStudentId = Number(targetStudentId);
+            if (isNaN(resolvedStudentId) || !resolvedStudentId) {
+                throw new Error("Không xác định được ID học sinh để xóa.");
+            }
+            const params = { studentId: resolvedStudentId };
             const res = await WHITELISTED_SERVER_ACTIONS['delete_student'](actorUser, orgId, params);
             executedBatch.push({ action: 'delete_student', params, result: res });
-            return new ivm.ExternalCopy(res).copyInto();
+            return res;
         }));
 
-        await jail.set('_deductConductScore', new ivm.Reference(async (studentId, points, reason) => {
-            const params = { studentId: Number(studentId), points: Number(points), reason };
+        await jail.set('_deductConductScore', wrapSafeApi(async (studentIdOrObj, points, reason) => {
+            let targetStudentId = studentIdOrObj;
+            let pts = points;
+            let rsn = reason;
+
+            if (typeof studentIdOrObj === 'object' && studentIdOrObj !== null) {
+                targetStudentId = studentIdOrObj.studentId || studentIdOrObj.id;
+                pts = points !== undefined ? points : studentIdOrObj.points;
+                rsn = reason || studentIdOrObj.reason;
+            }
+            if (typeof targetStudentId === 'string' && isNaN(Number(targetStudentId))) {
+                const found = (safeContext.currentStudents || []).find(s => s.name && s.name.toLowerCase() === targetStudentId.trim().toLowerCase());
+                if (found) targetStudentId = found.id;
+            }
+            const resolvedStudentId = Number(targetStudentId);
+            if (isNaN(resolvedStudentId) || !resolvedStudentId) {
+                throw new Error("Không xác định được ID học sinh để trừ điểm hạnh kiểm.");
+            }
+            const params = { studentId: resolvedStudentId, points: Number(pts) || 0, reason: String(rsn || '') };
             const res = await WHITELISTED_SERVER_ACTIONS['deduct_conduct_score'](actorUser, orgId, params);
             executedBatch.push({ action: 'deduct_conduct_score', params, result: res });
-            return new ivm.ExternalCopy(res).copyInto();
+            return res;
         }));
 
-        await jail.set('_log', new ivm.Reference((...args) => {
-            console.log('[isolated-vm AI Execution Log]:', ...args);
+        // Log capture function that collects logs into executionLogs array and outputs to host console
+        await jail.set('_log', new ivm.Reference((msg) => {
+            const str = typeof msg === 'string' ? msg : JSON.stringify(msg);
+            executionLogs.push(str);
+            console.log('[isolated-vm AI Execution Log]:', str);
         }));
-
-        const safeContext = (screenContext && typeof screenContext === 'object') ? screenContext : {};
-        await jail.set('context', new ivm.ExternalCopy(safeContext).copyInto());
-        await jail.set('currentClass', new ivm.ExternalCopy(safeContext.currentClass || null).copyInto());
-        await jail.set('currentStudents', new ivm.ExternalCopy(safeContext.currentStudents || []).copyInto());
-        await jail.set('classes', new ivm.ExternalCopy(safeContext.classes || []).copyInto());
-        await jail.set('academicYears', new ivm.ExternalCopy(safeContext.academicYears || []).copyInto());
 
         // Script bootstrap inside isolated V8 context
         const bootstrapScript = `
-            const callHost = (fnRef, ...args) => fnRef.apply(undefined, args, { arguments: { copy: true }, result: { promise: true, copy: true } });
+            const callHost = async (fnRef, ...args) => {
+                const res = await fnRef.apply(undefined, args, { arguments: { copy: true }, result: { promise: true, copy: true } });
+                if (res && !res.ok) {
+                    throw new Error(res.error || 'Lỗi không xác định khi thực thi trên Server');
+                }
+                return res ? res.data : undefined;
+            };
             const callHostSync = (fnRef, ...args) => fnRef.applySync(undefined, args, { arguments: { copy: true } });
 
             const createClass = (...args) => callHost(_createClass, ...args);
@@ -511,18 +734,48 @@ export async function executeAiPlanOnServer(actorUser, orgId, planActions, codeS
             const updateStudent = (...args) => callHost(_updateStudent, ...args);
             const deleteStudent = (...args) => callHost(_deleteStudent, ...args);
             const deductConductScore = (...args) => callHost(_deductConductScore, ...args);
-            const console = { log: (...args) => callHostSync(_log, ...args) };
+            const console = {
+                log: (...args) => {
+                    const str = args.map(a => {
+                        try {
+                            return typeof a === 'object' ? JSON.stringify(a) : String(a);
+                        } catch(e) {
+                            return String(a);
+                        }
+                    }).join(' ');
+                    callHostSync(_log, str);
+                }
+            };
 
             (async function __runUserCode() {
                 ${cleanScript}
-            })();
+            })().then(val => {
+                if (val !== undefined) {
+                    try {
+                        return typeof val === 'object' ? JSON.stringify(val) : String(val);
+                    } catch(e) {
+                        return String(val);
+                    }
+                }
+                return undefined;
+            });
         `;
 
         try {
             const script = await isolate.compileScript(bootstrapScript);
             const promiseRef = await script.run(v8Context, { timeout: 10000, promise: true });
+            let rawVal = promiseRef;
             if (promiseRef && typeof promiseRef.then === 'function') {
-                await promiseRef;
+                rawVal = await promiseRef;
+            }
+            if (typeof rawVal === 'string') {
+                try {
+                    executionResult = JSON.parse(rawVal);
+                } catch (e) {
+                    executionResult = rawVal;
+                }
+            } else {
+                executionResult = rawVal;
             }
         } catch (err) {
             console.error('[isolated-vm Sandbox Execution Error]:', err);
@@ -558,11 +811,121 @@ export async function executeAiPlanOnServer(actorUser, orgId, planActions, codeS
         redoStack.length = 0; // Reset redo stack
     }
 
+    // Call Agent Post-Execution Reflection so Agent receives execution results and reasons/thinks
+    let feedback = null;
+    if (userPrompt || codeScript) {
+        feedback = await generateAgentExecutionFeedback(
+            userPrompt || 'Thực thi kịch bản',
+            codeScript,
+            { success: true, logs: executionLogs, result: executionResult, executedBatch },
+            safeContext
+        );
+    }
+
     return {
         success: true,
         executedCount: executedBatch.length,
         canUndo: history.length > 0,
-        canRedo: redoStack.length > 0
+        canRedo: redoStack.length > 0,
+        logs: executionLogs,
+        result: executionResult,
+        executedBatch,
+        agentThought: feedback?.thought || null,
+        agentReply: feedback?.reply || null
+    };
+}
+
+/**
+ * Autonomous Multi-turn Agent Execution Loop (ReAct: Think -> Execute -> Observe -> Think)
+ * Runs up to maxTurns iterations allowing the Agent to reason, run commands, receive outputs, and continue reasoning.
+ */
+export async function runAgentLoopOnServer(actorUser, orgId, prompt, screenContext = {}, fileData = null, maxTurns = 3) {
+    let currentContext = { ...(screenContext || {}) };
+    const turns = [];
+    let lastFeedback = null;
+    let finalThought = '';
+    let finalReply = '';
+    const allExecutedBatches = [];
+
+    for (let i = 0; i < maxTurns; i++) {
+        // Step 1: Agent reasons and outputs thought + code (incorporating previous execution feedback if any)
+        const geminiRes = await callGeminiApi(prompt, currentContext, (i === 0 ? fileData : null), lastFeedback);
+        if (!geminiRes) {
+            break;
+        }
+
+        finalThought = geminiRes.thought || '';
+        finalReply = geminiRes.reply || '';
+        const code = geminiRes.code ? geminiRes.code.trim() : '';
+
+        // If no code to execute, Agent has concluded its thinking and response
+        if (!code) {
+            turns.push({
+                turn: i + 1,
+                thought: finalThought,
+                code: null,
+                logs: [],
+                result: null,
+                executedBatch: []
+            });
+            break;
+        }
+
+        // Step 2: Execute command/code on server in isolated-vm
+        let execResult;
+        try {
+            execResult = await executeAiPlanOnServer(actorUser, orgId, null, code, currentContext, null);
+        } catch (err) {
+            execResult = {
+                success: false,
+                logs: [],
+                result: null,
+                executedBatch: [],
+                error: err.message
+            };
+        }
+
+        turns.push({
+            turn: i + 1,
+            thought: finalThought,
+            code,
+            logs: execResult.logs || [],
+            result: execResult.result,
+            executedBatch: execResult.executedBatch || [],
+            success: execResult.success !== false,
+            error: execResult.error || null
+        });
+
+        if (execResult.executedBatch && execResult.executedBatch.length) {
+            allExecutedBatches.push(...execResult.executedBatch);
+        }
+
+        // Feed execution result back to the Agent for the next turn
+        lastFeedback = {
+            success: execResult.success !== false,
+            logs: execResult.logs || [],
+            result: execResult.result,
+            executedBatch: execResult.executedBatch || [],
+            error: execResult.error || null
+        };
+    }
+
+    // Synthesize final thought & reply from the Agent based on the completed execution
+    if (lastFeedback) {
+        const finalReview = await generateAgentExecutionFeedback(prompt, '', lastFeedback, currentContext);
+        if (finalReview) {
+            finalThought = finalReview.thought || finalThought;
+            finalReply = finalReview.reply || finalReply;
+        }
+    }
+
+    return {
+        success: true,
+        prompt,
+        thought: finalThought,
+        reply: finalReply,
+        turns,
+        allExecutedBatches
     };
 }
 

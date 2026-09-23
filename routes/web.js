@@ -20,16 +20,19 @@ import {
     secureAddStudent,
     secureUpdateStudent,
     secureDeleteStudent,
+    secureBatchSaveStudents,
     secureDeductConductScore,
     secureInviteMember,
     secureSetMemberClassPermissions,
     secureRemoveMember,
     getAuditLogs
 } from "../core/writePermissionLayer.js";
+import { syncBroker } from "../core/syncBroker.js";
 
 import {
     parseAiPromptOnServer,
     executeAiPlanOnServer,
+    runAgentLoopOnServer,
     undoAiActionOnServer,
     redoAiActionOnServer,
     getAiBridgeState
@@ -47,6 +50,11 @@ async function genJwtToken(fastify, user) {
 // Authentication helper
 async function authenticate(request, reply) {
     try {
+        if (request.query && request.query.token) {
+            const decoded = request.server.jwt.verify(request.query.token);
+            request.user = decoded;
+            return decoded;
+        }
         await request.jwtVerify();
         return request.user;
     } catch {
@@ -90,11 +98,16 @@ export default async function (fastify) {
         return reply.view('dashboard.ejs');
     });
 
+    // Bắt buộc phải có classId sau /class-management/:classId
     fastify.get('/class-management', async (request, reply) => {
-        return reply.view('class-management.ejs');
+        return reply.redirect('/dashboard');
     });
 
     fastify.get('/class-management/:classId', async (request, reply) => {
+        const { classId } = request.params;
+        if (!classId || isNaN(Number(classId))) {
+            return reply.redirect('/dashboard');
+        }
         return reply.view('class-management.ejs');
     });
 
@@ -344,6 +357,34 @@ export default async function (fastify) {
         });
     });
 
+    // Atomic Batch Save Students: All-or-Nothing transaction for creates, updates, deletes
+    fastify.post('/api/organization/classes/:classId/students/batch', async (request, reply) => {
+        const authUser = await authenticate(request, reply);
+        if (!authUser) return;
+
+        const { classId } = request.params;
+        const { creates = [], updates = [], deletes = [] } = request.body || {};
+
+        try {
+            const result = await secureBatchSaveStudents(authUser, classId, { creates, updates, deletes }, "USER");
+            return reply.send({
+                message: `Lưu đồng bộ thành công ${result.createdCount + result.updatedCount + result.deletedCount} học sinh`,
+                result
+            });
+        } catch (err) {
+            return reply.status(403).send({ error: 'Forbidden', message: err.message });
+        }
+    });
+
+    // Real-time Multi-user SSE synchronization event stream
+    fastify.get('/api/organization/sync-events', async (request, reply) => {
+        const authUser = await authenticate(request, reply);
+        if (!authUser) return;
+
+        const { classId, orgId } = request.query || {};
+        syncBroker.registerClient(request, reply, authUser, { classId, orgId });
+    });
+
     fastify.post('/api/organization/students', async (request, reply) => {
         const authUser = await authenticate(request, reply);
         if (!authUser) return;
@@ -555,7 +596,7 @@ export default async function (fastify) {
         const authUser = await authenticate(request, reply);
         if (!authUser) return;
 
-        const { planActions, code, classId } = request.body;
+        const { planActions, code, classId, prompt } = request.body || {};
         if (!Array.isArray(planActions) && (!code || typeof code !== 'string')) {
             return reply.status(400).send({ error: 'Bad Request', message: 'Mã kịch bản JavaScript hoặc danh sách thao tác không hợp lệ' });
         }
@@ -577,11 +618,63 @@ export default async function (fastify) {
                 academicYears: yearList.map(y => ({ id: y.id, name: y.name }))
             };
 
-            // Execute AI script strictly under caller's permission & writePermissionLayer
-            const res = await executeAiPlanOnServer(authUser, targetOrgId, planActions, code, context);
+            // Execute AI script strictly under caller's permission & writePermissionLayer, reflecting execution results to Agent
+            const res = await executeAiPlanOnServer(authUser, targetOrgId, planActions, code, context, prompt);
+            
+            syncBroker.broadcastSyncEvent({
+                orgId: targetOrgId,
+                classId: classId ? Number(classId) : null,
+                type: 'AI_MUTATION',
+                senderUserId: authUser.id,
+                message: 'AI Agent vừa thực thi thay đổi trên hệ thống.'
+            });
+
             return reply.send(res);
         } catch (err) {
             return reply.status(400).send({ error: 'Server Permission Error', message: err.message });
+        }
+    });
+
+    // 2.1. Autonomous ReAct Agent Loop: Agent reasons, runs commands, receives results, and reflects
+    fastify.post('/api/ai/agent-loop', async (request, reply) => {
+        const authUser = await authenticate(request, reply);
+        if (!authUser) return;
+
+        const { prompt, classId, fileData, maxTurns } = request.body || {};
+        if (!prompt || !prompt.trim()) {
+            return reply.status(400).send({ error: 'Bad Request', message: 'Vui lòng nhập câu lệnh cho Agent' });
+        }
+
+        try {
+            const { targetOrgId } = await resolveTargetOrgForAi(authUser, classId);
+            const [classList, yearList, studentList] = await Promise.all([
+                getClasses(targetOrgId),
+                getAcademicYears(targetOrgId),
+                classId ? getStudentsByClass(targetOrgId, Number(classId)) : Promise.resolve([])
+            ]);
+
+            const currentClassObj = classId ? classList.find(c => Number(c.id) === Number(classId)) : null;
+
+            const context = {
+                currentClass: currentClassObj ? { id: currentClassObj.id, name: currentClassObj.name, academicYearId: currentClassObj.academicYearId } : null,
+                currentStudents: (studentList || []).map(s => ({ id: s.id, studentCode: s.studentCode, name: s.name, conductScore: s.conductScore })),
+                classes: classList.map(c => ({ id: c.id, name: c.name, academicYearId: c.academicYearId })),
+                academicYears: yearList.map(y => ({ id: y.id, name: y.name }))
+            };
+
+            const res = await runAgentLoopOnServer(authUser, targetOrgId, prompt, context, fileData, maxTurns || 3);
+
+            syncBroker.broadcastSyncEvent({
+                orgId: targetOrgId,
+                classId: classId ? Number(classId) : null,
+                type: 'AI_MUTATION',
+                senderUserId: authUser.id,
+                message: 'AI Agent vừa thực thi thay đổi trên hệ thống.'
+            });
+
+            return reply.send(res);
+        } catch (err) {
+            return reply.status(400).send({ error: 'Agent Execution Error', message: err.message });
         }
     });
 
@@ -594,6 +687,15 @@ export default async function (fastify) {
         try {
             const { targetOrgId } = await resolveTargetOrgForAi(authUser, classId);
             const res = await undoAiActionOnServer(targetOrgId);
+
+            syncBroker.broadcastSyncEvent({
+                orgId: targetOrgId,
+                classId: classId ? Number(classId) : null,
+                type: 'AI_MUTATION',
+                senderUserId: authUser.id,
+                message: 'Thao tác AI vừa được hoàn tác.'
+            });
+
             return reply.send(res);
         } catch (err) {
             return reply.status(400).send({ error: 'Undo Error', message: err.message });
@@ -609,6 +711,15 @@ export default async function (fastify) {
         try {
             const { targetOrgId } = await resolveTargetOrgForAi(authUser, classId);
             const res = await redoAiActionOnServer(targetOrgId);
+
+            syncBroker.broadcastSyncEvent({
+                orgId: targetOrgId,
+                classId: classId ? Number(classId) : null,
+                type: 'AI_MUTATION',
+                senderUserId: authUser.id,
+                message: 'Thao tác AI vừa được làm lại.'
+            });
+
             return reply.send(res);
         } catch (err) {
             return reply.status(400).send({ error: 'Redo Error', message: err.message });

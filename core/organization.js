@@ -232,6 +232,11 @@ export async function removeOrganizationMember(organizationId, memberRecordId) {
 
 // Update Class Name & Academic Year
 export async function updateClass(organizationId, classId, name, academicYearId = null) {
+    const numClassId = Number(classId);
+    if (!numClassId || isNaN(numClassId)) {
+        throw new Error("ID lớp học không hợp lệ để cập nhật");
+    }
+
     const updated = await db
         .update(classesTable)
         .set({
@@ -240,7 +245,7 @@ export async function updateClass(organizationId, classId, name, academicYearId 
         })
         .where(
             and(
-                eq(classesTable.id, Number(classId)),
+                eq(classesTable.id, numClassId),
                 eq(classesTable.organizationId, organizationId)
             )
         )
@@ -254,6 +259,11 @@ export async function updateClass(organizationId, classId, name, academicYearId 
 
 // Update Student Info
 export async function updateStudent(organizationId, studentId, studentData) {
+    const numStudentId = Number(studentId);
+    if (!numStudentId || isNaN(numStudentId)) {
+        throw new Error("ID học sinh không hợp lệ để cập nhật");
+    }
+
     const { studentCode, name, dateOfBirth, phone, email, parentPhone, parentEmail, conductScore, conductDeductionReason } = studentData;
 
     // Verify student belongs to an org class
@@ -263,7 +273,7 @@ export async function updateStudent(organizationId, studentId, studentData) {
         .innerJoin(classesTable, eq(studentsTable.classId, classesTable.id))
         .where(
             and(
-                eq(studentsTable.id, Number(studentId)),
+                eq(studentsTable.id, numStudentId),
                 eq(classesTable.organizationId, organizationId)
             )
         )
@@ -286,7 +296,7 @@ export async function updateStudent(organizationId, studentId, studentData) {
             conductScore: conductScore !== undefined ? Number(conductScore) : undefined,
             conductDeductionReason: conductDeductionReason !== undefined ? (conductDeductionReason ? conductDeductionReason.trim() : null) : undefined
         })
-        .where(eq(studentsTable.id, Number(studentId)))
+        .where(eq(studentsTable.id, numStudentId))
         .returning();
 
     return updated[0];
@@ -294,14 +304,19 @@ export async function updateStudent(organizationId, studentId, studentData) {
 
 // Delete Class (Used for Undo/Revert)
 export async function deleteClass(organizationId, classId) {
+    const numClassId = Number(classId);
+    if (!numClassId || isNaN(numClassId)) {
+        throw new Error("ID lớp học không hợp lệ để xóa");
+    }
+
     // Delete students in class first
-    await db.delete(studentsTable).where(eq(studentsTable.classId, Number(classId)));
+    await db.delete(studentsTable).where(eq(studentsTable.classId, numClassId));
 
     const deleted = await db
         .delete(classesTable)
         .where(
             and(
-                eq(classesTable.id, Number(classId)),
+                eq(classesTable.id, numClassId),
                 eq(classesTable.organizationId, organizationId)
             )
         )
@@ -311,13 +326,18 @@ export async function deleteClass(organizationId, classId) {
 
 // Delete Academic Year (Unlinks classes first)
 export async function deleteAcademicYear(organizationId, academicYearId) {
+    const numYearId = Number(academicYearId);
+    if (!numYearId || isNaN(numYearId)) {
+        throw new Error("ID niên khóa không hợp lệ để xóa");
+    }
+
     // Unlink classes referencing this academic year
     await db
         .update(classesTable)
         .set({ academicYearId: null })
         .where(
             and(
-                eq(classesTable.academicYearId, Number(academicYearId)),
+                eq(classesTable.academicYearId, numYearId),
                 eq(classesTable.organizationId, organizationId)
             )
         );
@@ -326,7 +346,7 @@ export async function deleteAcademicYear(organizationId, academicYearId) {
         .delete(academicYearsTable)
         .where(
             and(
-                eq(academicYearsTable.id, Number(academicYearId)),
+                eq(academicYearsTable.id, numYearId),
                 eq(academicYearsTable.organizationId, organizationId)
             )
         )
@@ -338,13 +358,18 @@ export async function deleteAcademicYear(organizationId, academicYearId) {
 export async function addStudentToClass(organizationId, studentData) {
     const { classId, studentCode, name, dateOfBirth, phone, email, parentPhone, parentEmail, conductScore, conductDeductionReason } = studentData;
 
+    const numClassId = Number(classId);
+    if (!numClassId || isNaN(numClassId)) {
+        throw new Error("ID lớp học không hợp lệ để thêm học sinh");
+    }
+
     // Verify class belongs to organization
     const cls = await db
         .select()
         .from(classesTable)
         .where(
             and(
-                eq(classesTable.id, Number(classId)),
+                eq(classesTable.id, numClassId),
                 eq(classesTable.organizationId, organizationId)
             )
         )
@@ -359,7 +384,7 @@ export async function addStudentToClass(organizationId, studentData) {
         .values({
             studentCode: studentCode || `HS${Date.now().toString().slice(-6)}`,
             name,
-            classId: Number(classId),
+            classId: numClassId,
             dateOfBirth: dateOfBirth || null,
             phone: phone || null,
             email: email || null,
@@ -375,13 +400,18 @@ export async function addStudentToClass(organizationId, studentData) {
 
 // Get Students for a Class
 export async function getStudentsByClass(organizationId, classId) {
+    const numClassId = Number(classId);
+    if (!numClassId || isNaN(numClassId)) {
+        return [];
+    }
+
     // Verify class ownership
     const cls = await db
         .select()
         .from(classesTable)
         .where(
             and(
-                eq(classesTable.id, Number(classId)),
+                eq(classesTable.id, numClassId),
                 eq(classesTable.organizationId, organizationId)
             )
         )
@@ -394,11 +424,16 @@ export async function getStudentsByClass(organizationId, classId) {
     return await db
         .select()
         .from(studentsTable)
-        .where(eq(studentsTable.classId, Number(classId)));
+        .where(eq(studentsTable.classId, numClassId));
 }
 
 // Delete Student from Class
 export async function deleteStudent(organizationId, studentId) {
+    const numStudentId = Number(studentId);
+    if (!numStudentId || isNaN(numStudentId)) {
+        throw new Error("ID học sinh không hợp lệ để xóa");
+    }
+
     const student = await db
         .select({
             id: studentsTable.id,
@@ -408,7 +443,7 @@ export async function deleteStudent(organizationId, studentId) {
         .innerJoin(classesTable, eq(studentsTable.classId, classesTable.id))
         .where(
             and(
-                eq(studentsTable.id, Number(studentId)),
+                eq(studentsTable.id, numStudentId),
                 eq(classesTable.organizationId, organizationId)
             )
         )
@@ -420,7 +455,7 @@ export async function deleteStudent(organizationId, studentId) {
 
     const deleted = await db
         .delete(studentsTable)
-        .where(eq(studentsTable.id, Number(studentId)))
+        .where(eq(studentsTable.id, numStudentId))
         .returning();
 
     return deleted[0] || null;
@@ -519,6 +554,9 @@ export async function getAccessibleAcademicYearsForUser(user) {
 // Check Class Access Permission for a User
 export async function checkUserClassAccess(userId, classId) {
     const numClassId = Number(classId);
+    if (!numClassId || isNaN(numClassId)) {
+        return { canRead: false, canWrite: false, organizationId: null, isOwner: false, class: null };
+    }
     const cls = await db
         .select()
         .from(classesTable)
@@ -579,10 +617,15 @@ export async function checkUserClassAccess(userId, classId) {
 
 // Check Student Access Permission for a User
 export async function checkUserStudentAccess(userId, studentId) {
+    const numStudentId = Number(studentId);
+    if (!numStudentId || isNaN(numStudentId)) {
+        return { canRead: false, canWrite: false, organizationId: null, isOwner: false, student: null };
+    }
+
     const student = await db
         .select({ id: studentsTable.id, classId: studentsTable.classId })
         .from(studentsTable)
-        .where(eq(studentsTable.id, Number(studentId)))
+        .where(eq(studentsTable.id, numStudentId))
         .limit(1);
 
     if (student.length === 0) {

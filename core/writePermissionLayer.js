@@ -1,6 +1,7 @@
 import { db } from './db.js';
 import { auditLogsTable, studentsTable, classesTable, academicYearsTable, userTable } from './schema.js';
 import { eq, and, desc } from 'drizzle-orm';
+import { syncBroker } from './syncBroker.js';
 import {
     checkUserClassAccess,
     checkUserStudentAccess,
@@ -81,6 +82,13 @@ export async function secureCreateClass(actorUser, { name, academicYearId, acade
         source
     });
 
+    syncBroker.broadcastSyncEvent({
+        orgId: dbUser.id,
+        type: 'CLASS_MUTATED',
+        senderUserId: dbUser.id,
+        message: `Đã tạo lớp học mới "${created.name}".`
+    });
+
     return created;
 }
 
@@ -107,6 +115,14 @@ export async function secureUpdateClass(actorUser, classId, { name, academicYear
         source
     });
 
+    syncBroker.broadcastSyncEvent({
+        orgId: access.organizationId,
+        classId: Number(classId),
+        type: 'CLASS_MUTATED',
+        senderUserId: actorUser.id,
+        message: `Đã cập nhật thông tin lớp học "${updated.name}".`
+    });
+
     return updated;
 }
 
@@ -131,6 +147,14 @@ export async function secureDeleteClass(actorUser, classId, source = 'USER') {
         beforeState: beforeCls,
         afterState: null,
         source
+    });
+
+    syncBroker.broadcastSyncEvent({
+        orgId: access.organizationId,
+        classId: Number(classId),
+        type: 'CLASS_MUTATED',
+        senderUserId: actorUser.id,
+        message: `Đã xóa lớp học "${beforeCls.name}".`
     });
 
     return deleted;
@@ -210,6 +234,15 @@ export async function secureAddStudent(actorUser, studentData, source = 'USER') 
         source
     });
 
+    syncBroker.broadcastSyncEvent({
+        orgId: access.organizationId,
+        classId: Number(classId),
+        type: 'STUDENTS_UPDATED',
+        senderUserId: actorUser.id,
+        data: { studentId: created.id },
+        message: `Đã thêm học sinh mới "${created.name}".`
+    });
+
     return created;
 }
 
@@ -250,6 +283,15 @@ export async function secureUpdateStudent(actorUser, studentId, studentData, sou
         beforeState,
         afterState: updated,
         source
+    });
+
+    syncBroker.broadcastSyncEvent({
+        orgId: access.organizationId,
+        classId: updated.classId,
+        type: 'STUDENTS_UPDATED',
+        senderUserId: actorUser.id,
+        data: { studentId: updated.id },
+        message: `Đã cập nhật thông tin học sinh "${updated.name}".`
     });
 
     return updated;
@@ -295,6 +337,15 @@ export async function secureDeductConductScore(actorUser, studentId, points, rea
         source
     });
 
+    syncBroker.broadcastSyncEvent({
+        orgId: access.organizationId,
+        classId: updated.classId,
+        type: 'STUDENTS_UPDATED',
+        senderUserId: actorUser.id,
+        data: { studentId: updated.id, newScore },
+        message: `Trừ ${pts} điểm hạnh kiểm của ${updated.name}`
+    });
+
     return updated;
 }
 
@@ -327,7 +378,201 @@ export async function secureDeleteStudent(actorUser, studentId, source = 'USER')
         source
     });
 
+    syncBroker.broadcastSyncEvent({
+        orgId: access.organizationId,
+        classId: beforeState ? beforeState.classId : null,
+        type: 'STUDENTS_UPDATED',
+        senderUserId: actorUser.id,
+        data: { deletedStudentId: studentId },
+        message: `Đã xóa học sinh khỏi lớp.`
+    });
+
     return deleted;
+}
+
+// 7b. Secure Batch Save Students (Atomic Transaction with Single Permission Check & Multi-client Event Sync)
+export async function secureBatchSaveStudents(actorUser, classId, { creates = [], updates = [], deletes = [] } = {}, source = 'USER') {
+    const numClassId = Number(classId);
+    if (!numClassId || isNaN(numClassId)) {
+        throw new Error('ID lớp học không hợp lệ');
+    }
+
+    const access = await checkUserClassAccess(actorUser.id, numClassId);
+    if (!access.canWrite) {
+        throw new Error('KHÔNG_CÓ_QUYỀN_GHI: Bạn không có quyền chỉnh sửa học sinh trong lớp học này.');
+    }
+
+    // Non-owner restriction
+    if (!access.isOwner) {
+        if (creates && creates.length > 0) {
+            throw new Error('KHÔNG_CÓ_QUYỀN: Chỉ người sở hữu Tổ chức mới được phép thêm học sinh mới.');
+        }
+        if (deletes && deletes.length > 0) {
+            throw new Error('KHÔNG_CÓ_QUYỀN: Chỉ người sở hữu Tổ chức mới được phép xóa học sinh.');
+        }
+        const restrictedFields = ['name', 'studentCode', 'dateOfBirth', 'phone', 'email', 'parentPhone', 'parentEmail'];
+        for (const upd of (updates || [])) {
+            const isAttemptingRestrictedEdit = restrictedFields.some(field => upd[field] !== undefined);
+            if (isAttemptingRestrictedEdit) {
+                throw new Error('KHÔNG_CÓ_QUYỀN: Chỉ người sở hữu Tổ chức mới có quyền sửa thông tin cá nhân của học sinh. Thành viên chỉ được quyền chỉnh sửa điểm hạnh kiểm.');
+            }
+        }
+    }
+
+    // Execute atomically inside database transaction
+    const result = await db.transaction(async (tx) => {
+        const createdResults = [];
+        const updatedResults = [];
+        const deletedResults = [];
+        const auditEntries = [];
+
+        // 1. Process deletes
+        if (Array.isArray(deletes)) {
+            for (const studentId of deletes) {
+                const numId = Number(studentId);
+                if (!numId) continue;
+                const existing = await tx.select().from(studentsTable)
+                    .where(and(eq(studentsTable.id, numId), eq(studentsTable.classId, numClassId)))
+                    .limit(1);
+                if (existing.length > 0) {
+                    const beforeState = existing[0];
+                    await tx.delete(studentsTable).where(eq(studentsTable.id, numId));
+                    deletedResults.push(numId);
+                    auditEntries.push({
+                        action: 'DELETE_STUDENT',
+                        entityType: 'student',
+                        entityId: numId,
+                        classId: numClassId,
+                        description: `Xóa học sinh "${beforeState.name}" (${beforeState.studentCode}) [Batch Save]`,
+                        beforeState,
+                        afterState: null
+                    });
+                }
+            }
+        }
+
+        // 2. Process updates
+        if (Array.isArray(updates)) {
+            for (const upd of updates) {
+                const numId = Number(upd.id);
+                if (!numId) continue;
+                const existing = await tx.select().from(studentsTable)
+                    .where(and(eq(studentsTable.id, numId), eq(studentsTable.classId, numClassId)))
+                    .limit(1);
+                if (existing.length === 0) continue;
+                const beforeState = existing[0];
+
+                const updateData = {};
+                if (access.isOwner) {
+                    if (upd.name !== undefined) updateData.name = upd.name ? upd.name.trim() : beforeState.name;
+                    if (upd.studentCode !== undefined) updateData.studentCode = upd.studentCode ? upd.studentCode.trim() : beforeState.studentCode;
+                    if (upd.dateOfBirth !== undefined) updateData.dateOfBirth = upd.dateOfBirth || null;
+                    if (upd.phone !== undefined) updateData.phone = upd.phone || null;
+                    if (upd.email !== undefined) updateData.email = upd.email || null;
+                    if (upd.parentPhone !== undefined) updateData.parentPhone = upd.parentPhone || null;
+                    if (upd.parentEmail !== undefined) updateData.parentEmail = upd.parentEmail || null;
+                }
+                if (upd.conductScore !== undefined) updateData.conductScore = Number(upd.conductScore);
+                if (upd.conductDeductionReason !== undefined) {
+                    updateData.conductDeductionReason = upd.conductDeductionReason ? upd.conductDeductionReason.trim() : null;
+                }
+
+                const updated = await tx.update(studentsTable)
+                    .set(updateData)
+                    .where(eq(studentsTable.id, numId))
+                    .returning();
+
+                if (updated && updated[0]) {
+                    updatedResults.push(updated[0]);
+                    auditEntries.push({
+                        action: 'UPDATE_STUDENT',
+                        entityType: 'student',
+                        entityId: numId,
+                        classId: numClassId,
+                        description: `Cập nhật học sinh "${updated[0].name}" (${updated[0].studentCode}) [Batch Save]`,
+                        beforeState,
+                        afterState: updated[0]
+                    });
+                }
+            }
+        }
+
+        // 3. Process creates
+        if (Array.isArray(creates)) {
+            for (const item of creates) {
+                if (!item.name || !item.name.trim()) continue;
+                const created = await tx.insert(studentsTable).values({
+                    studentCode: item.studentCode ? item.studentCode.trim() : `HS${Date.now().toString().slice(-6)}${Math.floor(Math.random() * 1000)}`,
+                    name: item.name.trim(),
+                    classId: numClassId,
+                    dateOfBirth: item.dateOfBirth || null,
+                    phone: item.phone || null,
+                    email: item.email || null,
+                    parentPhone: item.parentPhone || null,
+                    parentEmail: item.parentEmail || null,
+                    conductScore: item.conductScore !== undefined ? Number(item.conductScore) : 100,
+                    conductDeductionReason: item.conductDeductionReason ? item.conductDeductionReason.trim() : null
+                }).returning();
+
+                if (created && created[0]) {
+                    createdResults.push(created[0]);
+                    auditEntries.push({
+                        action: 'ADD_STUDENT',
+                        entityType: 'student',
+                        entityId: created[0].id,
+                        classId: numClassId,
+                        description: `Thêm học sinh mới "${created[0].name}" (${created[0].studentCode}) [Batch Save]`,
+                        beforeState: null,
+                        afterState: created[0]
+                    });
+                }
+            }
+        }
+
+        // 4. Batch insert audit logs
+        for (const audit of auditEntries) {
+            await tx.insert(auditLogsTable).values({
+                organizationId: Number(access.organizationId),
+                userId: Number(actorUser.id),
+                userName: actorUser.name || actorUser.username || actorUser.email,
+                userEmail: actorUser.email,
+                action: audit.action,
+                entityType: audit.entityType,
+                entityId: audit.entityId ? Number(audit.entityId) : null,
+                classId: audit.classId ? Number(audit.classId) : null,
+                description: audit.description,
+                beforeState: audit.beforeState ? JSON.stringify(audit.beforeState) : null,
+                afterState: audit.afterState ? JSON.stringify(audit.afterState) : null,
+                source,
+                createdAt: new Date().toISOString()
+            });
+        }
+
+        return {
+            createdCount: createdResults.length,
+            updatedCount: updatedResults.length,
+            deletedCount: deletedResults.length,
+            creates: createdResults,
+            updates: updatedResults,
+            deletes: deletedResults
+        };
+    });
+
+    // Broadcast Real-time sync event
+    syncBroker.broadcastSyncEvent({
+        orgId: access.organizationId,
+        classId: numClassId,
+        type: 'STUDENTS_UPDATED',
+        senderUserId: actorUser.id,
+        data: {
+            createdCount: result.createdCount,
+            updatedCount: result.updatedCount,
+            deletedCount: result.deletedCount
+        },
+        message: `Đã lưu đồng bộ ${result.createdCount + result.updatedCount + result.deletedCount} thay đổi học sinh.`
+    });
+
+    return result;
 }
 
 // 8. Secure Invite Member

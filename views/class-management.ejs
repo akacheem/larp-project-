@@ -1,101 +1,138 @@
 <!DOCTYPE html>
-<html lang="vi">
+<html lang="vi" class="scroll-smooth">
 
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Quản lý Học sinh Excel - EduManager</title>
-    <!-- FontAwesome 6 -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <title>Quản lý Học sinh Bảng tính — EduManager</title>
+    <!-- Lucide Icons CDN -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <script src="/public/lucide-safe.js"></script>
     <!-- Google Fonts Inter & JetBrains Mono -->
-    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+    <!-- App Styles -->
+    <link rel="stylesheet" href="/public/style.css">
     <!-- TailwindCSS CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
-    <!-- Custom CSS -->
-    <link rel="stylesheet" href="/public/style.css">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        apple: {
+                            canvas: '#f5f5f7',
+                            surface: '#ffffff',
+                            text: '#1d1d1f',
+                            muted: '#86868b',
+                            tertiary: '#aeaeb2',
+                            blue: '#0071e3',
+                            blueHover: '#0077ed',
+                            green: '#34c759',
+                            orange: '#ff9500',
+                            red: '#ff3b30',
+                            border: 'rgba(0, 0, 0, 0.08)'
+                        }
+                    },
+                    fontFamily: {
+                        sans: ['-apple-system', 'BlinkMacSystemFont', '"SF Pro Text"', '"SF Pro Display"', '"SF Pro"', 'Inter', 'sans-serif'],
+                        mono: ['"JetBrains Mono"', 'monospace']
+                    }
+                }
+            }
+        }
+    </script>
     <!-- Vue 3 CDN -->
     <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
 
     <style>
-        /* Excel Sheet Custom Styling */
+        /* Apple Numbers Inspired Spreadsheet Styling */
         .excel-table-container {
             user-select: none;
         }
 
         .excel-th {
-            background-color: #f1f5f9;
-            border: 1px solid #cbd5e1;
-            color: #334155;
+            background-color: #fafafc;
+            border-right: 1px solid rgba(0, 0, 0, 0.06);
+            border-bottom: 1px solid rgba(0, 0, 0, 0.08);
+            color: #1d1d1f;
             font-size: 11px;
-            font-weight: 700;
-            text-transform: uppercase;
-            letter-spacing: 0.05em;
+            font-weight: 600;
             padding: 8px 12px;
             position: sticky;
             top: 0;
             z-index: 10;
+            letter-spacing: -0.01em;
         }
 
         .excel-col-header {
-            background-color: #e2e8f0;
-            color: #475569;
+            background-color: #f5f5f7;
+            color: #86868b;
             font-family: 'JetBrains Mono', monospace;
-            font-size: 11px;
+            font-size: 10px;
+            font-weight: 600;
             text-align: center;
-            border: 1px solid #cbd5e1;
+            border-right: 1px solid rgba(0, 0, 0, 0.06);
+            border-bottom: 1px solid rgba(0, 0, 0, 0.06);
             padding: 4px 8px;
         }
 
         .excel-row-num {
-            background-color: #e2e8f0;
-            color: #475569;
+            background-color: #f5f5f7;
+            color: #86868b;
             font-family: 'JetBrains Mono', monospace;
-            font-size: 11px;
+            font-size: 10px;
             text-align: center;
-            border: 1px solid #cbd5e1;
-            width: 40px;
-            min-width: 40px;
+            border-right: 1px solid rgba(0, 0, 0, 0.06);
+            border-bottom: 1px solid rgba(0, 0, 0, 0.06);
+            width: 44px;
+            min-width: 44px;
         }
 
         .excel-cell {
-            border: 1px solid #cbd5e1;
+            border-right: 1px solid rgba(0, 0, 0, 0.05);
+            border-bottom: 1px solid rgba(0, 0, 0, 0.05);
             padding: 0;
             background-color: #ffffff;
-            transition: all 0.15s ease;
+            transition: background-color 0.15s ease;
         }
 
         .excel-cell input {
             width: 100%;
             height: 100%;
-            padding: 8px 12px;
+            padding: 7px 11px;
             background: transparent;
-            color: #0f172a;
-            font-size: 13px;
+            color: #1d1d1f;
+            font-size: 12px;
             outline: none;
             border: 2px solid transparent;
             transition: all 0.15s ease;
+            font-family: inherit;
         }
 
         .excel-cell input:focus {
             background-color: #ffffff;
-            border-color: #3b82f6;
-            box-shadow: inset 0 0 0 2px rgba(59, 130, 246, 0.2);
+            border-color: #0071e3;
+            border-radius: 4px;
+            box-shadow: 0 0 0 2px rgba(0, 113, 227, 0.2);
             z-index: 5;
+            position: relative;
         }
 
         .excel-cell-modified input {
-            color: #0284c7;
+            color: #0071e3;
             font-weight: 600;
         }
 
         .excel-toolbar-btn {
-            padding: 6px 12px;
-            background-color: #ffffff;
-            border: 1px solid #cbd5e1;
-            border-radius: 8px;
-            color: #334155;
-            font-size: 12px;
-            font-weight: 600;
+            padding: 5px 12px;
+            background-color: rgba(0, 0, 0, 0.03);
+            border: 1px solid rgba(0, 0, 0, 0.06);
+            border-radius: 9999px;
+            color: #1d1d1f;
+            font-size: 11px;
+            font-weight: 500;
             display: flex;
             align-items: center;
             gap: 6px;
@@ -103,114 +140,153 @@
         }
 
         .excel-toolbar-btn:hover {
-            background-color: #334155;
-            color: #ffffff;
-            border-color: #475569;
+            background-color: rgba(0, 0, 0, 0.07);
+            color: #1d1d1f;
+        }
+
+        .excel-toolbar-btn:active {
+            transform: scale(0.98);
         }
     </style>
 </head>
 
-<body class="bg-slate-50 text-slate-800 font-sans antialiased min-h-screen flex flex-col">
+<body class="bg-[#f5f5f7] text-[#1d1d1f] font-sans antialiased min-h-screen flex flex-col selection:bg-[#0071e3] selection:text-white">
     <div id="app" class="relative min-h-screen flex flex-col flex-1">
-        <!-- Excel Navigation & Ribbon Toolbar Header -->
-        <header class="border-b border-slate-200 bg-white sticky top-0 z-40 shadow-xl">
+        <!-- Apple Numbers Navigation & Ribbon Toolbar Header -->
+        <header class="border-b border-black/[0.06] bg-white/90 backdrop-blur-xl sticky top-0 z-40 shadow-sm">
             <!-- Top App Bar -->
-            <div class="px-6 py-3 flex items-center justify-between border-b border-slate-200/80">
-                <div class="flex items-center space-x-4">
-                    <a href="/dashboard" class="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-lg text-xs font-semibold transition border border-slate-300 flex items-center space-x-1.5">
-                        <i class="fa-solid fa-arrow-left"></i>
-                        <span>Về Bảng điều khiển</span>
+            <div class="px-6 py-2.5 flex items-center justify-between border-b border-black/[0.05]">
+                <div class="flex items-center space-x-3">
+                    <a href="/dashboard" class="px-3.5 py-1.5 bg-black/[0.04] hover:bg-black/[0.08] text-[#1d1d1f] rounded-full text-xs font-medium transition border border-black/[0.06] flex items-center space-x-1.5 active:scale-[0.98]">
+                        <i data-lucide="arrow-left" class="w-3.5 h-3.5 text-[#86868b]"></i>
+                        <span>Bảng điều khiển</span>
                     </a>
-                    <span class="text-slate-700">|</span>
+                    <span class="text-black/20">|</span>
                     <div class="flex items-center space-x-2.5">
-                        <div class="w-8 h-8 rounded-lg bg-emerald-600 flex items-center justify-center text-white text-sm shadow-lg shadow-emerald-600/30 font-extrabold">
-                            <i class="fa-solid fa-file-excel"></i>
+                        <div class="w-8 h-8 rounded-full bg-[#34c759] flex items-center justify-center text-white text-xs shadow-sm font-bold">
+                            <i data-lucide="table-2" class="w-4 h-4"></i>
                         </div>
                         <div>
-                            <h1 class="text-sm font-bold text-slate-800 flex items-center gap-2">
-                                <span>EduManager Excel Sheet</span>
-                                <span v-if="!userPermission.canWrite" class="px-2 py-0.5 text-[10px] font-extrabold bg-amber-500/20 text-amber-300 border border-amber-500/30 rounded uppercase flex items-center">
-                                    <i class="fa-solid fa-lock mr-1 text-[9px]"></i>Chế độ Chỉ xem
+                            <h1 class="text-xs font-semibold text-[#1d1d1f] flex items-center gap-2">
+                                <span>Bảng tính Học sinh</span>
+                                <span v-if="!userPermission.canWrite" class="px-2 py-0.2 text-[10px] font-medium bg-[#ff9500]/10 text-[#d97706] border border-[#ff9500]/20 rounded-full flex items-center">
+                                    <i data-lucide="lock" class="w-2.5 h-2.5 mr-1 text-[#d97706] inline"></i>Chỉ xem
                                 </span>
-                                <span v-else class="px-2 py-0.5 text-[10px] font-extrabold bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 rounded uppercase flex items-center">
-                                    <i class="fa-solid fa-pen mr-1 text-[9px]"></i>Lớp {{ currentClass?.name }}
+                                <span v-else class="px-2 py-0.2 text-[10px] font-medium bg-[#34c759]/10 text-[#15803d] border border-[#34c759]/20 rounded-full flex items-center">
+                                    <i data-lucide="pencil" class="w-2.5 h-2.5 mr-1 text-[#15803d] inline"></i>Lớp {{ currentClass?.name }}
                                 </span>
                             </h1>
-                            <p class="text-[10px] text-slate-500">Trình quản lý Học sinh trực tiếp dạng Bảng tính Spreadsheet</p>
+                            <p class="text-[10px] text-[#86868b]">Quản lý dữ liệu học sinh dạng bảng tính trực quan</p>
                         </div>
                     </div>
                 </div>
 
-                <div class="flex items-center space-x-3">
-                    <div :class="debugMode ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/40' : 'bg-slate-100/60 text-slate-500 border-slate-300'" class="px-3 py-1.5 text-xs font-bold rounded-lg border flex items-center space-x-1.5 shadow-md">
-                        <i class="fa-solid" :class="debugMode ? 'fa-bug text-emerald-400' : 'fa-bug-slash'"></i>
-                        <span>Debug Mode: {{ debugMode ? 'Bật (.env)' : 'Tắt (.env)' }}</span>
+                <div class="flex items-center space-x-2.5">
+                    <!-- Real-time SSE Live Indicator -->
+                    <div :class="sseConnected ? 'bg-[#34c759]/10 text-[#15803d] border-[#34c759]/30' : 'bg-black/[0.03] text-[#86868b] border-black/[0.06]'" class="px-2.5 py-1 text-xs font-medium rounded-full border flex items-center space-x-1.5" :title="sseConnected ? 'Đồng bộ thời gian thực (SSE) đang hoạt động' : 'Chưa kết nối đồng bộ trực tiếp'">
+                        <span class="w-2 h-2 rounded-full" :class="sseConnected ? 'bg-[#34c759] animate-pulse' : 'bg-[#86868b]'"></span>
+                        <span class="text-[11px]">{{ sseConnected ? 'Trực tiếp' : 'Ngoại tuyến' }}</span>
                     </div>
-                    <button @click="saveAllChanges" :disabled="saving || !userPermission.canWrite" :class="!userPermission.canWrite ? 'bg-slate-100 text-slate-500 border border-slate-300 cursor-not-allowed' : 'bg-emerald-600 hover:bg-emerald-500 text-white shadow-lg shadow-emerald-600/30'" class="px-4 py-1.5 font-bold text-xs rounded-lg transition flex items-center space-x-1.5">
-                        <i v-if="saving" class="fa-solid fa-circle-notch fa-spin"></i>
-                        <i v-else-if="!userPermission.canWrite" class="fa-solid fa-lock"></i>
-                        <i v-else class="fa-solid fa-floppy-disk"></i>
-                        <span>Lưu tất cả thay đổi</span>
+
+                    <!-- Auto-saved draft status -->
+                    <span v-if="lastDraftSavedTime" class="text-[10px] text-[#86868b] hidden sm:inline">
+                        Nháp: {{ lastDraftSavedTime }}
+                    </span>
+
+                    <div :class="debugMode ? 'bg-[#34c759]/10 text-[#15803d] border-[#34c759]/30' : 'bg-black/[0.03] text-[#86868b] border-black/[0.06]'" class="px-3 py-1 text-xs font-medium rounded-full border flex items-center space-x-1.5">
+                        <i v-if="debugMode" data-lucide="bug" class="w-3.5 h-3.5 text-[#34c759]"></i>
+                        <i v-else data-lucide="bug-off" class="w-3.5 h-3.5 text-[#86868b]"></i>
+                        <span>Debug: {{ debugMode ? 'Bật' : 'Tắt' }}</span>
+                    </div>
+                    <button @click="saveAllChanges" :disabled="saving || !userPermission.canWrite || modifiedCount === 0" :class="!userPermission.canWrite || modifiedCount === 0 ? 'bg-black/[0.03] text-[#86868b] border border-black/[0.06] cursor-not-allowed' : 'bg-[#0071e3] hover:bg-[#0077ed] text-white shadow-sm active:scale-[0.98]'" class="px-4 py-1.5 font-medium text-xs rounded-full transition flex items-center space-x-1.5">
+                        <i v-if="saving" data-lucide="loader-2" class="w-3.5 h-3.5 animate-spin"></i>
+                        <i v-else-if="!userPermission.canWrite" data-lucide="lock" class="w-3.5 h-3.5"></i>
+                        <i v-else data-lucide="save" class="w-3.5 h-3.5"></i>
+                        <span>Lưu thay đổi ({{ modifiedCount }})</span>
                     </button>
                 </div>
             </div>
 
-            <!-- Excel Ribbon Toolbar -->
-            <div class="px-6 py-2 bg-slate-50/60 flex items-center justify-between gap-4 overflow-x-auto text-xs">
+            <!-- Apple Numbers Ribbon Toolbar -->
+            <div class="px-6 py-2 bg-white/50 flex items-center justify-between gap-4 overflow-x-auto text-xs">
                 <div class="flex items-center space-x-2">
-                    <button @click="addNewRow" :disabled="!userPermission.isOwner" :class="!userPermission.isOwner ? 'opacity-50 cursor-not-allowed text-slate-500 border-slate-200 bg-white' : 'text-emerald-400 border-emerald-500/40 bg-emerald-500/10 hover:bg-emerald-500/20'" class="excel-toolbar-btn" :title="!userPermission.isOwner ? 'Chỉ Người sở hữu Tổ chức mới được phép thêm học sinh' : ''">
-                        <i class="fa-solid fa-plus"></i>
-                        <span>Thêm hàng mới (Add Row)</span>
+                    <button @click="addNewRow" :disabled="!userPermission.isOwner" :class="!userPermission.isOwner ? 'opacity-40 cursor-not-allowed text-[#86868b] border-black/[0.04] bg-white' : 'text-[#15803d] border-[#34c759]/30 bg-[#34c759]/10 hover:bg-[#34c759]/20'" class="excel-toolbar-btn" :title="!userPermission.isOwner ? 'Chỉ Người sở hữu Tổ chức mới được phép thêm học sinh' : ''">
+                        <i data-lucide="plus" class="w-3.5 h-3.5"></i>
+                        <span>Thêm hàng</span>
                     </button>
                     <button @click="fetchStudents" class="excel-toolbar-btn">
-                        <i class="fa-solid fa-rotate"></i>
+                        <i data-lucide="refresh-cw" class="w-3.5 h-3.5 text-[#86868b]"></i>
                         <span>Tải lại</span>
                     </button>
                     <button @click="exportCsv" class="excel-toolbar-btn">
-                        <i class="fa-solid fa-file-csv"></i>
+                        <i data-lucide="file-spreadsheet" class="w-3.5 h-3.5 text-[#86868b]"></i>
                         <span>Xuất CSV</span>
                     </button>
-                    <button @click="openAuditLogsModal" class="excel-toolbar-btn text-indigo-400 border-indigo-500/40 bg-indigo-500/10 hover:bg-indigo-500/20">
-                        <i class="fa-solid fa-clock-rotate-left"></i>
+                    <button @click="openAuditLogsModal" class="excel-toolbar-btn text-[#0071e3] border-[#0071e3]/20 bg-[#0071e3]/5 hover:bg-[#0071e3]/10">
+                        <i data-lucide="history" class="w-3.5 h-3.5"></i>
                         <span>Lịch sử Phiên bản</span>
                     </button>
                     <div class="relative ml-2">
-                        <i class="fa-solid fa-magnifying-glass absolute left-3 top-2.5 text-slate-500"></i>
-                        <input v-model="searchQuery" type="text" placeholder="Tìm tên, mã HS, SĐT..." class="pl-8 pr-3 py-1.5 bg-white border border-slate-300 rounded-lg text-slate-700 text-xs focus:outline-none focus:border-emerald-500 transition w-56">
+                        <i data-lucide="search" class="w-3.5 h-3.5 absolute left-3 top-2.5 text-[#86868b]"></i>
+                        <input v-model="searchQuery" type="text" placeholder="Tìm kiếm học sinh..." class="pl-8 pr-3 py-1 bg-[#f5f5f7] border border-black/[0.08] rounded-full text-[#1d1d1f] text-xs focus:bg-white focus:border-[#0071e3] transition w-52 outline-none">
                     </div>
                 </div>
 
-                <div class="flex items-center space-x-3 text-xs text-slate-500">
-                    <button @click="showAiDrawer = !showAiDrawer" class="px-3 py-1.5 gradient-bg hover:opacity-90 text-white rounded-lg transition font-semibold flex items-center space-x-1.5 shadow-md">
-                        <i class="fa-solid fa-sparkles text-amber-300"></i>
+                <div class="flex items-center space-x-3 text-xs text-[#86868b]">
+                    <button @click="showAiDrawer = !showAiDrawer" class="px-3.5 py-1 bg-[#1d1d1f] hover:bg-black text-white rounded-full transition font-medium flex items-center space-x-1.5 shadow-sm text-xs active:scale-[0.98]">
+                        <i data-lucide="sparkles" class="w-3.5 h-3.5 text-[#ff9500]"></i>
                         <span>Trợ lý Gemini AI</span>
                     </button>
-                    <span>|</span>
-                    <span class="flex items-center gap-1.5"><i class="fa-solid fa-layer-group text-sky-400"></i>Tổng hàng: <strong class="text-slate-700">{{ students.length }}</strong></span>
-                    <span>|</span>
-                    <span class="flex items-center gap-1.5"><i class="fa-solid fa-pen text-amber-400"></i>Đang sửa: <strong class="text-amber-400">{{ modifiedCount }}</strong></span>
+                    <span class="text-black/10">|</span>
+                    <span class="flex items-center gap-1.5">Tổng số: <strong class="text-[#1d1d1f] font-mono">{{ students.length }}</strong></span>
+                    <span class="text-black/10">|</span>
+                    <span class="flex items-center gap-1.5">Đang sửa: <strong class="text-[#0071e3] font-mono">{{ modifiedCount }}</strong></span>
+                </div>
+            </div>
+
+            <!-- Real-time Conflict / Remote Update Alert Banner -->
+            <div v-if="remoteUpdateDetected" class="px-6 py-2.5 bg-[#ff9500]/10 border-t border-black/[0.04] flex items-center justify-between text-xs text-[#b45309] transition-all">
+                <div class="flex items-center space-x-2">
+                    <i data-lucide="alert-circle" class="w-4 h-4 text-[#ff9500]"></i>
+                    <span><strong>Đồng bộ Máy chủ:</strong> {{ remoteUpdateMessage || 'Một người dùng khác vừa cập nhật dữ liệu lớp học này.' }}</span>
+                </div>
+                <div class="flex items-center space-x-2">
+                    <button @click="dismissRemoteBanner" class="px-3 py-1 bg-black/[0.05] hover:bg-black/[0.1] rounded-full text-black/70 transition">Để sau</button>
+                    <button @click="forceSyncWithServer" class="px-3 py-1 bg-[#ff9500] hover:bg-[#d97706] text-white rounded-full font-medium shadow-sm transition active:scale-[0.98]">Đồng bộ dữ liệu mới</button>
+                </div>
+            </div>
+
+            <!-- Local Draft Recovery Prompt Banner -->
+            <div v-if="showDraftRecoveryPrompt" class="px-6 py-2.5 bg-[#0071e3]/10 border-t border-black/[0.04] flex items-center justify-between text-xs text-[#0071e3] transition-all">
+                <div class="flex items-center space-x-2">
+                    <i data-lucide="sparkles" class="w-4 h-4 text-[#0071e3]"></i>
+                    <span><strong>Phát hiện bản nháp chưa lưu:</strong> Bạn có {{ draftItemCount }} thay đổi từ phiên làm việc trước chưa lưu lên máy chủ.</span>
+                </div>
+                <div class="flex items-center space-x-2">
+                    <button @click="discardDraft" class="px-3 py-1 bg-black/[0.05] hover:bg-black/[0.1] text-black/70 rounded-full transition">Bỏ qua</button>
+                    <button @click="restoreDraft" class="px-3 py-1 bg-[#0071e3] hover:bg-[#0077ed] text-white rounded-full font-medium shadow-sm transition active:scale-[0.98]">Khôi phục bản nháp</button>
                 </div>
             </div>
         </header>
 
         <!-- Main Excel Spreadsheet Work Area -->
-        <main class="flex-1 flex flex-col overflow-hidden p-4 bg-slate-50">
+        <main class="flex-1 flex flex-col overflow-hidden p-5 bg-[#f5f5f7]">
             <!-- Read-Only Banner for Members with Read Permission -->
-            <div v-if="!userPermission.canWrite" class="mb-3 p-3 bg-amber-500/10 border border-amber-500/30 rounded-xl text-amber-300 text-xs flex items-center justify-between shadow-lg">
+            <div v-if="!userPermission.canWrite" class="mb-3 p-3 bg-[#ff9500]/10 border border-[#ff9500]/25 rounded-3xl text-[#d97706] text-xs flex items-center justify-between shadow-sm">
                 <span class="flex items-center gap-2">
-                    <i class="fa-solid fa-lock text-amber-400 text-sm"></i>
-                    <span><strong>Chế độ Chỉ xem (Read-Only):</strong> Tài khoản của bạn được cấp quyền xem dữ liệu ở lớp học này. Thao tác chỉnh sửa, thêm và xóa học sinh đã bị khóa.</span>
+                    <i data-lucide="lock" class="w-4 h-4"></i>
+                    <span><strong>Chế độ Chỉ xem (Read-Only):</strong> Bạn được phân quyền xem dữ liệu tại lớp này. Thao tác chỉnh sửa, thêm và xóa học sinh đã bị khóa.</span>
                 </span>
             </div>
 
             <!-- Loading Indicator -->
             <div v-if="loading" class="flex-1 flex flex-col items-center justify-center space-y-3">
-                <i class="fa-solid fa-circle-notch fa-spin text-4xl text-emerald-500"></i>
-                <p class="text-xs text-slate-500 font-medium">Đang tải bảng tính Excel...</p>
+                <i data-lucide="loader-2" class="w-8 h-8 animate-spin text-[#0071e3]"></i>
+                <p class="text-xs text-[#86868b] font-medium">Đang tải bảng tính...</p>
             </div>
 
             <!-- Spreadsheet Grid Container -->
-            <div v-else class="flex-1 glass-card rounded-xl border border-slate-200 overflow-auto flex flex-col excel-table-container shadow-2xl">
+            <div v-else class="flex-1 bg-white rounded-3xl border border-black/[0.08] overflow-auto flex flex-col excel-table-container shadow-[0_4px_24px_rgba(0,0,0,0.03)]">
                 <table class="w-full text-left border-collapse min-w-[1100px]">
                     <thead>
                         <!-- Column Header Letters (A, B, C, D...) -->
@@ -241,7 +317,7 @@
                         </tr>
                     </thead>
                     <tbody>
-                        <tr v-for="(row, index) in filteredStudents" :key="row.tempId || row.id" :class="{'bg-sky-500/5': row.isModified, 'bg-emerald-500/10': row.isNew}">
+                        <tr v-for="(row, index) in filteredStudents" :key="row.tempId || row.id" :class="{'bg-[#0071e3]/5': row.isModified, 'bg-[#34c759]/5': row.isNew}">
                             <!-- Row Index Number -->
                             <td class="excel-row-num">{{ index + 1 }}</td>
 
@@ -252,7 +328,7 @@
 
                             <!-- Cell B: Name (Chỉ Owner chỉnh sửa) -->
                             <td class="excel-cell" :class="{'excel-cell-modified': row.isModified}">
-                                <input v-model="row.name" @input="markModified(row)" :readonly="!userPermission.isOwner" type="text" placeholder="Nguyễn Văn A" class="font-semibold text-slate-800" :title="!userPermission.isOwner ? 'Chỉ Người sở hữu Tổ chức mới được sửa thông tin cá nhân' : ''">
+                                <input v-model="row.name" @input="markModified(row)" :readonly="!userPermission.isOwner" type="text" placeholder="Nguyễn Văn A" class="font-medium text-[#1d1d1f]" :title="!userPermission.isOwner ? 'Chỉ Người sở hữu Tổ chức mới được sửa thông tin cá nhân' : ''">
                             </td>
 
                             <!-- Cell C: DOB (Chỉ Owner chỉnh sửa) -->
@@ -282,57 +358,58 @@
 
                             <!-- Cell H: Conduct Score & Deduction Trigger Button with Hover History Tooltip (Thành viên có quyền ghi được phép) -->
                             <td class="excel-cell relative group" :class="{'excel-cell-modified': row.isModified}">
-                                <div class="flex items-center justify-between px-1.5 h-full space-x-1.5">
+                                <div class="flex items-center justify-between px-2 h-full space-x-1.5">
                                     <div class="flex flex-col text-left leading-tight py-1 cursor-help">
-                                        <span class="font-extrabold text-emerald-400 text-sm font-mono flex items-center gap-1">
+                                        <span class="font-semibold text-[#15803d] text-xs font-mono flex items-center gap-1">
                                             <span>{{ row.conductScore ?? 100 }}</span>
-                                            <i v-if="getStudentDeductionHistory(row.id).length > 0" class="fa-solid fa-clock-rotate-left text-[10px] text-amber-400"></i>
+                                            <i v-if="getStudentDeductionHistory(row.id).length > 0" data-lucide="history" class="w-2.5 h-2.5 text-[#ff9500] inline"></i>
                                         </span>
-                                        <span v-if="row.conductDeductionReason" class="text-[10px] text-amber-300 truncate max-w-[120px]" :title="row.conductDeductionReason">
-                                            <i class="fa-solid fa-triangle-exclamation text-[9px] mr-0.5"></i>{{ row.conductDeductionReason }}
+                                        <span v-if="row.conductDeductionReason" class="text-[10px] text-[#ff9500] truncate max-w-[120px] flex items-center" :title="row.conductDeductionReason">
+                                            <i data-lucide="alert-triangle" class="w-2.5 h-2.5 mr-0.5 inline"></i>{{ row.conductDeductionReason }}
                                         </span>
                                     </div>
-                                    <button v-if="userPermission.canWrite" @click="openDeductModal(row)" type="button" class="px-2 py-1 bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 border border-amber-500/40 rounded text-[11px] font-bold transition flex items-center space-x-1 whitespace-nowrap shadow-sm" title="Trừ điểm hạnh kiểm & Nhập lý do">
-                                        <i class="fa-solid fa-minus-circle text-amber-400"></i>
+                                    <button v-if="userPermission.canWrite" @click="openDeductModal(row)" type="button" class="px-2.5 py-0.5 bg-[#ff9500]/10 hover:bg-[#ff9500]/20 text-[#d97706] border border-[#ff9500]/30 rounded-full text-[10px] font-medium transition flex items-center space-x-1 whitespace-nowrap active:scale-[0.98]" title="Trừ điểm hạnh kiểm & Nhập lý do">
+                                        <i data-lucide="minus-circle" class="w-3 h-3"></i>
                                         <span>Trừ điểm</span>
                                     </button>
                                 </div>
 
                                 <!-- Hover Tooltip: Show Deduction History & Who Deducted -->
-                                <div class="hidden group-hover:block absolute left-0 bottom-full mb-2 w-72 p-3 bg-white border border-amber-500/40 rounded-xl shadow-2xl z-50 pointer-events-none text-left backdrop-blur-md">
-                                    <div class="flex items-center justify-between border-b border-slate-200 pb-1.5 mb-2">
-                                        <span class="text-xs font-bold text-amber-300 flex items-center gap-1.5">
-                                            <i class="fa-solid fa-clock-rotate-left text-amber-400"></i>
+                                <div class="hidden group-hover:block absolute left-0 bottom-full mb-2 w-72 p-3.5 bg-white/95 border border-black/[0.08] rounded-3xl shadow-[0_12px_40px_rgba(0,0,0,0.12)] z-50 pointer-events-none text-left backdrop-blur-xl">
+                                    <div class="flex items-center justify-between border-b border-black/[0.06] pb-1.5 mb-2">
+                                        <span class="text-xs font-semibold text-[#1d1d1f] flex items-center gap-1.5">
+                                            <i data-lucide="history" class="w-3.5 h-3.5 text-[#ff9500]"></i>
                                             <span>Lịch sử trừ điểm: {{ row.name }}</span>
                                         </span>
-                                        <span class="text-[10px] font-mono text-slate-500">ID: {{ row.id }}</span>
+                                        <span class="text-[10px] font-mono text-[#86868b]">#{{ row.id }}</span>
                                     </div>
 
-                                    <div v-if="getStudentDeductionHistory(row.id).length === 0" class="text-[11px] text-slate-500 italic py-1">
+                                    <div v-if="getStudentDeductionHistory(row.id).length === 0" class="text-[11px] text-[#86868b] italic py-1">
                                         Chưa có lịch sử trừ điểm nào được ghi nhận.
                                     </div>
 
                                     <div v-else class="space-y-2 max-h-48 overflow-y-auto pr-1">
-                                        <div v-for="h in getStudentDeductionHistory(row.id)" :key="h.id" class="p-2 bg-slate-50/80 rounded-lg border border-slate-200 text-[11px] space-y-1">
-                                            <div class="flex items-center justify-between text-slate-600">
-                                                <span :class="h.source === 'AGENT' ? 'text-amber-300 font-bold' : 'text-emerald-300 font-bold'" class="flex items-center gap-1">
-                                                    <i :class="h.source === 'AGENT' ? 'fa-robot' : 'fa-user'" class="fa-solid text-[10px]"></i>
+                                        <div v-for="h in getStudentDeductionHistory(row.id)" :key="h.id" class="p-2.5 bg-[#f5f5f7] rounded-2xl border border-black/[0.04] text-[11px] space-y-1">
+                                            <div class="flex items-center justify-between text-[#1d1d1f]">
+                                                <span :class="h.source === 'AGENT' ? 'text-[#d97706] font-semibold' : 'text-[#0071e3] font-semibold'" class="flex items-center gap-1">
+                                                    <i v-if="h.source === 'AGENT'" data-lucide="bot" class="w-3 h-3"></i>
+                                                    <i v-else data-lucide="user" class="w-3 h-3"></i>
                                                     <span>{{ h.userName || h.userEmail || 'Ẩn danh' }}</span>
                                                 </span>
-                                                <span class="text-[10px] text-slate-500 font-mono">{{ formatDate(h.createdAt) }}</span>
+                                                <span class="text-[10px] text-[#86868b] font-mono">{{ formatDate(h.createdAt) }}</span>
                                             </div>
-                                            <p class="text-slate-700 font-medium text-[10px] leading-snug">{{ h.description }}</p>
+                                            <p class="text-[#1d1d1f] text-[10px] leading-snug">{{ h.description }}</p>
                                         </div>
                                     </div>
                                 </div>
                             </td>
 
                             <!-- Action Column: Delete Row (Chỉ Owner mới có quyền xóa) -->
-                            <td class="excel-cell text-center align-middle bg-white/60">
-                                <button v-if="userPermission.isOwner" @click="deleteRow(index, row)" class="p-2 text-slate-500 hover:text-red-400 transition" title="Xóa hàng này (Chỉ Người sở hữu Tổ chức)">
-                                    <i class="fa-solid fa-trash-can"></i>
+                            <td class="excel-cell text-center align-middle bg-white">
+                                <button v-if="userPermission.isOwner" @click="deleteRow(index, row)" class="w-7 h-7 rounded-full hover:bg-[#ff3b30]/10 text-[#86868b] hover:text-[#ff3b30] transition flex items-center justify-center mx-auto" title="Xóa hàng này">
+                                    <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
                                 </button>
-                                <span v-else class="text-slate-600 text-xs" title="Chỉ Người sở hữu Tổ chức mới có quyền xóa học sinh"><i class="fa-solid fa-lock"></i></span>
+                                <span v-else class="text-[#aeaeb2] text-xs flex justify-center" title="Chỉ Người sở hữu Tổ chức mới có quyền xóa học sinh"><i data-lucide="lock" class="w-3.5 h-3.5"></i></span>
                             </td>
                         </tr>
                     </tbody>
@@ -341,195 +418,227 @@
         </main>
 
         <!-- Status Footer Bar -->
-        <footer class="bg-white border-t border-slate-200 px-6 py-2 flex items-center justify-between text-xs text-slate-500">
+        <footer class="bg-white/80 backdrop-blur-md border-t border-black/[0.06] px-6 py-2 flex items-center justify-between text-xs text-[#86868b]">
             <div class="flex items-center space-x-2">
-                <span class="w-2 h-2 rounded-full bg-emerald-500"></span>
-                <span>Bảng tính đã sẵn sàng</span>
+                <span class="w-2 h-2 rounded-full bg-[#34c759]"></span>
+                <span class="text-[11px]">Bảng tính đã sẵn sàng</span>
             </div>
             <div>
-                <span>Trạng thái: <strong>{{ saving ? 'Đang lưu...' : (modifiedCount > 0 ? 'Có thay đổi chưa lưu' : 'Đã đồng bộ với Server') }}</strong></span>
+                <span class="text-[11px]">Trạng thái: <strong class="text-[#1d1d1f]">{{ saving ? 'Đang lưu...' : (modifiedCount > 0 ? 'Có thay đổi chưa lưu' : 'Đã đồng bộ với Server') }}</strong></span>
             </div>
+        </footer>
+
         <!-- GEMINI AI CHATBOT DRAWER & PREVIEW MODAL -->
         <!-- Floating Gemini AI Trigger Button -->
-        <button @click="showAiDrawer = !showAiDrawer" class="fixed bottom-6 right-6 w-14 h-14 gradient-bg text-white rounded-full shadow-2xl flex items-center justify-center text-xl z-40 hover:scale-105 transition border border-white/20">
-            <i class="fa-solid fa-sparkles text-amber-300"></i>
+        <button @click="showAiDrawer = !showAiDrawer" class="fixed bottom-6 right-6 w-14 h-14 bg-[#1d1d1f] hover:bg-black text-white rounded-full shadow-[0_8px_30px_rgba(0,0,0,0.2)] flex items-center justify-center text-lg z-40 hover:scale-105 active:scale-95 transition-all border border-white/20" title="Trợ lý Gemini AI">
+            <i data-lucide="sparkles" class="w-6 h-6 text-[#ff9500]"></i>
         </button>
 
         <!-- Gemini AI Chatbot Drawer Panel -->
-        <div v-if="showAiDrawer" class="fixed bottom-24 right-6 w-96 glass-card rounded-2xl border border-sky-500/30 shadow-2xl z-40 flex flex-col bg-slate-50/95 overflow-hidden h-[480px]">
-            <div class="px-4 py-3 border-b border-slate-200 flex justify-between items-center bg-white/90">
+        <div v-if="showAiDrawer" class="fixed bottom-20 right-6 w-96 rounded-[32px] border border-black/[0.08] shadow-[0_16px_50px_rgba(0,0,0,0.12)] z-40 flex flex-col bg-white/95 backdrop-blur-2xl overflow-hidden h-[490px]">
+            <div class="px-5 py-3.5 border-b border-black/[0.06] flex justify-between items-center bg-white/80 backdrop-blur-md">
                 <div class="flex items-center space-x-2.5">
-                    <div class="w-8 h-8 rounded-lg gradient-bg flex items-center justify-center text-white text-sm shadow-md">
-                        <i class="fa-solid fa-sparkles text-amber-300"></i>
+                    <div class="w-8 h-8 rounded-full bg-[#1d1d1f] flex items-center justify-center text-white text-xs shadow-sm">
+                        <i data-lucide="sparkles" class="w-4 h-4 text-[#ff9500]"></i>
                     </div>
                     <div>
-                        <h3 class="font-bold text-slate-800 text-sm flex items-center gap-1.5">
-                            <span>Gemini AI Chatbot</span>
-                            <span v-if="isGeminiPowered" class="px-1.5 py-0.5 text-[9px] bg-amber-500/20 text-amber-300 border border-amber-500/30 rounded font-bold">API Active</span>
+                        <h3 class="font-semibold text-[#1d1d1f] text-xs flex items-center gap-1.5">
+                            <span>Gemini AI Assistant</span>
+                            <span v-if="isGeminiPowered" class="px-2 py-0.2 text-[9px] bg-[#34c759]/10 text-[#15803d] border border-[#34c759]/20 rounded-full font-semibold">Active</span>
                         </h3>
-                        <p class="text-[10px] text-slate-500">Trợ lý AI quản lý Lớp học & Bảng tính</p>
+                        <p class="text-[10px] text-[#86868b]">Trợ lý AI quản lý Lớp học & Bảng tính</p>
                     </div>
                 </div>
-                <button @click="showAiDrawer = false" class="text-slate-500 hover:text-slate-700">
-                    <i class="fa-solid fa-xmark text-sm"></i>
+                <button @click="showAiDrawer = false" class="w-7 h-7 rounded-full hover:bg-black/[0.05] text-[#86868b] hover:text-[#1d1d1f] flex items-center justify-center transition">
+                    <i data-lucide="x" class="w-4 h-4"></i>
                 </button>
             </div>
 
             <div class="flex-1 p-4 overflow-y-auto space-y-3 text-xs">
                 <div v-for="(msg, idx) in chatMessages" :key="idx" :class="msg.role === 'user' ? 'justify-end' : 'justify-start'" class="flex items-start gap-2">
-                    <div v-if="msg.role === 'assistant'" class="w-6 h-6 rounded-full bg-sky-500/20 text-sky-400 flex items-center justify-center text-[10px] flex-shrink-0 mt-0.5">
-                        <i class="fa-solid fa-robot"></i>
+                    <div v-if="msg.role === 'assistant'" class="w-7 h-7 rounded-full bg-black/[0.05] text-[#1d1d1f] flex items-center justify-center text-[10px] flex-shrink-0 mt-0.5">
+                        <i data-lucide="bot" class="w-3.5 h-3.5"></i>
                     </div>
-                    <div :class="msg.role === 'user' ? 'bg-sky-600 text-white rounded-2xl rounded-tr-none' : 'bg-white border border-slate-200 text-slate-700 rounded-2xl rounded-tl-none'" class="p-3 max-w-[80%] leading-relaxed space-y-2">
-                        <div v-if="msg.fileName" class="flex items-center space-x-2 bg-sky-700/50 p-2 rounded text-xs mb-2">
-                            <i class="fa-solid fa-paperclip text-sky-200"></i>
+                    <div :class="msg.role === 'user' ? 'bg-[#0071e3] text-white rounded-[22px] rounded-br-sm' : 'bg-[#f2f2f7] border border-black/[0.04] text-[#1d1d1f] rounded-[22px] rounded-bl-sm'" class="p-3 max-w-[82%] leading-relaxed space-y-2">
+                        <div v-if="msg.fileName" class="flex items-center space-x-1.5 bg-black/[0.08] px-2.5 py-1 rounded-full text-[11px] mb-1.5">
+                            <i data-lucide="paperclip" class="w-3 h-3"></i>
                             <span class="truncate">{{ msg.fileName }}</span>
                         </div>
+
+                        <!-- Agent Thought Process / Luồng suy nghĩ của Agent -->
+                        <div v-if="msg.thought" class="p-2.5 bg-black/[0.03] rounded-2xl border border-black/[0.04] text-[11px] text-[#424245] space-y-1">
+                            <div class="flex items-center space-x-1.5 font-medium text-[#0071e3]">
+                                <i data-lucide="brain" class="w-3.5 h-3.5 flex-shrink-0"></i>
+                                <span>Suy nghĩ của Agent:</span>
+                            </div>
+                            <p class="whitespace-pre-wrap font-sans text-[#515154] leading-relaxed">{{ msg.thought }}</p>
+                        </div>
+
                         <p>{{ msg.text }}</p>
-                        <div v-if="msg.hasActions" class="pt-1 border-t border-slate-200/80 flex items-center justify-between text-[11px]">
-                            <span class="text-amber-400 font-semibold"><i class="fa-solid fa-list-check mr-1"></i>Có {{ msg.actionsCount }} thao tác đề xuất</span>
-                            <button @click="openPreviewFromChat(msg)" class="px-2 py-1 bg-sky-500/20 hover:bg-sky-500/30 text-sky-300 rounded font-bold transition border border-sky-500/30">
+
+                        <!-- Sandbox Output Logs / Kết quả thực thi lệnh -->
+                        <div v-if="msg.executionLogs && msg.executionLogs.length" class="p-2.5 bg-[#1d1d1f] text-emerald-400 rounded-2xl border border-black/10 text-[10px] font-mono space-y-1 overflow-x-auto">
+                            <div class="flex items-center space-x-1 text-[#86868b] text-[9px] uppercase font-sans font-semibold">
+                                <i data-lucide="terminal" class="w-3 h-3 flex-shrink-0"></i>
+                                <span>Output Sandbox:</span>
+                            </div>
+                            <div v-for="(log, lIdx) in msg.executionLogs" :key="lIdx" class="whitespace-pre-wrap leading-tight">{{ log }}</div>
+                        </div>
+
+                        <div v-if="msg.hasActions" class="pt-1.5 border-t border-black/[0.06] flex items-center justify-between text-[11px]">
+                            <span class="text-[#ff9500] font-medium"><i data-lucide="list-checks" class="w-3 h-3 mr-1 inline"></i>{{ msg.actionsCount }} thao tác</span>
+                            <button @click="openPreviewFromChat(msg)" class="px-3 py-1 bg-[#0071e3] hover:bg-[#0077ed] text-white rounded-full font-medium transition text-[10px] shadow-sm">
                                 Xem & Thực thi
                             </button>
                         </div>
                     </div>
                 </div>
-                <div v-if="parsingAi" class="flex items-center space-x-2 text-slate-500 italic text-xs py-2">
-                    <i class="fa-solid fa-circle-notch fa-spin text-sky-400"></i>
+                <div v-if="parsingAi" class="flex items-center space-x-2 text-[#86868b] italic text-xs py-2">
+                    <i data-lucide="loader-2" class="w-4 h-4 animate-spin text-[#0071e3]"></i>
                     <span>Gemini AI đang suy nghĩ...</span>
                 </div>
             </div>
 
-            <div class="p-3 border-t border-slate-200 bg-white/90 relative">
+            <div class="p-3 border-t border-black/[0.06] bg-white/90 backdrop-blur-md relative">
                 <!-- File Preview Chip -->
-                <div v-if="aiAttachedFile" class="absolute bottom-[60px] left-3 right-3 flex items-center justify-between bg-slate-100 border border-slate-300 px-3 py-2 rounded-lg z-10 shadow-lg">
+                <div v-if="aiAttachedFile" class="absolute bottom-[58px] left-3 right-3 flex items-center justify-between bg-white border border-black/[0.08] px-3.5 py-1.5 rounded-full z-10 shadow-lg">
                     <div class="flex items-center space-x-2 overflow-hidden">
-                        <i class="fa-solid fa-file-lines text-sky-400"></i>
-                        <span class="text-xs text-slate-700 truncate">{{ aiAttachedFile.name }}</span>
-                        <span class="text-[10px] text-slate-500">({{ (aiAttachedFile.size / 1024).toFixed(1) }} KB)</span>
+                        <i data-lucide="file-text" class="w-3.5 h-3.5 text-[#0071e3]"></i>
+                        <span class="text-xs text-[#1d1d1f] truncate">{{ aiAttachedFile.name }}</span>
+                        <span class="text-[10px] text-[#86868b]">({{ (aiAttachedFile.size / 1024).toFixed(1) }} KB)</span>
                     </div>
-                    <button @click="removeAiFile" type="button" class="text-slate-500 hover:text-red-400 transition">
-                        <i class="fa-solid fa-xmark"></i>
+                    <button @click="removeAiFile" type="button" class="text-[#86868b] hover:text-[#ff3b30] transition">
+                        <i data-lucide="x" class="w-3.5 h-3.5"></i>
                     </button>
                 </div>
 
                 <form @submit.prevent="sendChatMessage" class="flex items-center space-x-2">
-                    <button type="button" @click="$refs.aiFileInput.click()" :disabled="parsingAi" class="px-3 py-2 bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-xl text-xs transition shadow-md border border-slate-300">
-                        <i class="fa-solid fa-paperclip"></i>
+                    <button type="button" @click="$refs.aiFileInput.click()" :disabled="parsingAi" class="w-8 h-8 rounded-full bg-[#f5f5f7] hover:bg-black/[0.08] text-[#1d1d1f] flex items-center justify-center text-xs transition border border-black/[0.06]" title="Đính kèm file">
+                        <i data-lucide="paperclip" class="w-3.5 h-3.5"></i>
                     </button>
                     <input type="file" ref="aiFileInput" @change="onAiFileSelected" accept=".pdf,.doc,.docx,.csv,image/*" class="hidden">
                     
-                    <input v-model="aiPrompt" type="text" placeholder="Thêm học sinh hoặc đính kèm file..." :disabled="parsingAi" class="flex-1 px-3.5 py-2 bg-slate-50 border border-slate-300 rounded-xl text-slate-700 text-xs focus:outline-none focus:border-sky-500 transition">
-                    <button type="submit" :disabled="parsingAi || (!aiPrompt.trim() && !aiAttachedFile)" class="px-3.5 py-2 gradient-bg hover:opacity-90 text-white rounded-xl text-xs transition font-semibold shadow-md flex items-center justify-center">
-                        <i class="fa-solid fa-paper-plane"></i>
+                    <input v-model="aiPrompt" type="text" placeholder="Thêm học sinh hoặc đính kèm file..." :disabled="parsingAi" class="flex-1 px-4 py-2 bg-[#f5f5f7] border border-black/[0.08] rounded-full text-[#1d1d1f] text-xs focus:bg-white focus:border-[#0071e3] transition outline-none">
+                    <button type="submit" :disabled="parsingAi || (!aiPrompt.trim() && !aiAttachedFile)" class="w-8 h-8 rounded-full bg-[#0071e3] hover:bg-[#0077ed] disabled:opacity-40 text-white flex items-center justify-center text-xs transition shadow-sm active:scale-95">
+                        <i data-lucide="send" class="w-3.5 h-3.5"></i>
                     </button>
                 </form>
             </div>
         </div>
 
-        <div v-if="showAiPreviewModal" class="fixed inset-0 bg-slate-50/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-            <div class="glass-card max-w-lg w-full rounded-2xl p-6 border border-sky-500/40 space-y-5 bg-white shadow-2xl">
-                <div class="flex items-center space-x-3 border-b border-slate-200 pb-3">
-                    <div class="w-10 h-10 rounded-xl bg-sky-500/20 text-sky-400 flex items-center justify-center text-lg">
-                        <i class="fa-solid fa-eye"></i>
+        <!-- Server AI Preview Modal -->
+        <div v-if="showAiPreviewModal" class="fixed inset-0 bg-black/40 backdrop-blur-md z-50 flex items-center justify-center p-4">
+            <div class="bg-white max-w-lg w-full rounded-[36px] p-6 border border-black/[0.08] space-y-4 shadow-[0_24px_70px_rgba(0,0,0,0.18)]">
+                <div class="flex items-center space-x-3 border-b border-black/[0.06] pb-3">
+                    <div class="w-10 h-10 rounded-full bg-[#0071e3]/10 text-[#0071e3] flex items-center justify-center text-base font-bold">
+                        <i data-lucide="eye" class="w-5 h-5"></i>
                     </div>
                     <div>
-                        <h3 class="font-bold text-slate-800 text-base">Xem trước Kế hoạch Gemini AI (Server Preview)</h3>
-                        <p class="text-xs text-slate-500">Các hàm Node.js được phép gọi trực tiếp tại Server.</p>
+                        <h3 class="font-semibold text-[#1d1d1f] text-sm">Kế hoạch Gemini AI (Server Preview)</h3>
+                        <p class="text-xs text-[#86868b]">Các thao tác được xác thực an toàn trước khi thực thi.</p>
                     </div>
                 </div>
 
                 <div class="space-y-3">
-                    <div class="p-3 bg-sky-500/10 border border-sky-500/20 rounded-xl text-xs text-sky-300">
-                        <i class="fa-solid fa-info-circle mr-1"></i>{{ proposedPlan.summary }}
+                    <div class="p-3.5 bg-[#0071e3]/5 border border-[#0071e3]/15 rounded-2xl text-xs text-[#1d1d1f]">
+                        <i data-lucide="info" class="w-3.5 h-3.5 mr-1 text-[#0071e3] inline"></i>{{ proposedPlan.summary }}
+                    </div>
+
+                    <!-- Agent Thought in Preview Modal -->
+                    <div v-if="proposedPlan.thought" class="p-3 bg-black/[0.02] border border-black/[0.05] rounded-2xl text-xs text-[#424245] space-y-1">
+                        <div class="flex items-center space-x-1.5 font-medium text-[#0071e3] text-[11px]">
+                            <i data-lucide="brain" class="w-3.5 h-3.5 flex-shrink-0"></i>
+                            <span>Suy nghĩ của Agent:</span>
+                        </div>
+                        <p class="whitespace-pre-wrap leading-relaxed text-[#515154] text-[11px]">{{ proposedPlan.thought }}</p>
                     </div>
 
                     <div v-if="debugMode && proposedPlan.code" class="space-y-1.5">
-                        <label class="text-[11px] font-semibold text-emerald-400 uppercase tracking-wider flex items-center justify-between">
-                            <span><i class="fa-solid fa-bug mr-1"></i>Mã JavaScript (Debug Mode):</span>
-                            <span class="text-sky-400 font-mono text-[10px]"><i class="fa-brands fa-js mr-1"></i>Node.js Sandbox</span>
+                        <label class="text-[11px] font-semibold text-[#15803d] uppercase tracking-wider flex items-center justify-between">
+                            <span><i data-lucide="bug" class="w-3.5 h-3.5 mr-1 inline"></i>Mã JavaScript (Debug Mode):</span>
+                            <span class="text-[#0071e3] font-mono text-[10px]">Node.js Sandbox</span>
                         </label>
-                        <pre class="p-3 bg-slate-50 rounded-xl border border-slate-200 text-xs font-mono text-emerald-400 overflow-x-auto whitespace-pre-wrap max-h-48"><code>{{ proposedPlan.code }}</code></pre>
+                        <pre class="p-3 bg-[#1d1d1f] text-emerald-400 rounded-2xl border border-black/10 text-xs font-mono overflow-x-auto whitespace-pre-wrap max-h-44"><code>{{ proposedPlan.code }}</code></pre>
                     </div>
 
-                    <div v-if="proposedPlan.actions && proposedPlan.actions.length" class="space-y-2 max-h-48 overflow-y-auto">
-                        <div v-for="(item, idx) in proposedPlan.actions" :key="idx" class="p-3 bg-slate-50 rounded-xl border border-slate-200 flex items-center justify-between text-xs">
+                    <div v-if="proposedPlan.actions && proposedPlan.actions.length" class="space-y-2 max-h-44 overflow-y-auto">
+                        <div v-for="(item, idx) in proposedPlan.actions" :key="idx" class="p-3 bg-[#f5f5f7] rounded-2xl border border-black/[0.05] flex items-center justify-between text-xs">
                             <div class="flex items-center space-x-2">
-                                <span class="w-5 h-5 bg-slate-100 rounded-full flex items-center justify-center font-bold text-[10px] text-slate-600">{{ idx + 1 }}</span>
-                                <span class="font-medium text-slate-700">{{ item.description || item.action }}</span>
+                                <span class="w-5 h-5 bg-black/[0.05] rounded-full flex items-center justify-center font-bold text-[10px] text-[#1d1d1f]">{{ idx + 1 }}</span>
+                                <span class="font-medium text-[#1d1d1f]">{{ item.description || item.action }}</span>
                             </div>
-                            <span class="px-2 py-0.5 text-[10px] font-bold rounded bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
-                                Server Whitelist API
+                            <span class="px-2.5 py-0.5 text-[9px] font-semibold rounded-full bg-[#34c759]/10 text-[#15803d] border border-[#34c759]/20">
+                                Server API
                             </span>
                         </div>
                     </div>
                 </div>
 
-                <div class="flex justify-end space-x-3 pt-2 border-t border-slate-200">
-                    <button @click="showAiPreviewModal = false" class="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-600 text-xs font-semibold rounded-xl transition">
+                <div class="flex justify-end space-x-2 pt-2 border-t border-black/[0.06]">
+                    <button @click="showAiPreviewModal = false" class="px-4 py-2 bg-black/[0.04] hover:bg-black/[0.08] text-[#1d1d1f] text-xs font-medium rounded-full transition">
                         Hủy bỏ
                     </button>
-                    <button @click="confirmExecuteServerPlan" :disabled="executingAi" class="px-5 py-2 bg-sky-600 hover:bg-sky-500 text-white text-xs font-bold rounded-xl transition flex items-center space-x-2 shadow-lg shadow-sky-600/30">
-                        <i v-if="executingAi" class="fa-solid fa-spinner fa-spin"></i>
-                        <i v-else class="fa-solid fa-check"></i>
-                        <span>Chấp nhận & Thực thi trên Server</span>
+                    <button @click="confirmExecuteServerPlan" :disabled="executingAi" class="px-5 py-2 bg-[#0071e3] hover:bg-[#0077ed] text-white text-xs font-medium rounded-full transition flex items-center space-x-2 shadow-sm active:scale-[0.98]">
+                        <i v-if="executingAi" data-lucide="loader-2" class="w-3.5 h-3.5 animate-spin"></i>
+                        <i v-else data-lucide="check" class="w-3.5 h-3.5"></i>
+                        <span>Chấp nhận & Thực thi</span>
                     </button>
                 </div>
             </div>
         </div>
 
         <!-- Conduct Deduction Popup Modal -->
-        <div v-if="showDeductModal" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-50/80 backdrop-blur-md">
-            <div class="bg-white border border-slate-300/80 rounded-2xl max-w-md w-full p-6 shadow-2xl space-y-4">
-                <div class="flex items-center justify-between pb-3 border-b border-slate-200">
+        <div v-if="showDeductModal" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-md">
+            <div class="bg-white border border-black/[0.08] rounded-[36px] max-w-md w-full p-6 shadow-[0_24px_70px_rgba(0,0,0,0.18)] space-y-4">
+                <div class="flex items-center justify-between pb-3 border-b border-black/[0.06]">
                     <div class="flex items-center space-x-2.5">
-                        <div class="w-9 h-9 rounded-xl bg-amber-500/20 text-amber-400 border border-amber-500/30 flex items-center justify-center font-bold">
-                            <i class="fa-solid fa-minus-circle"></i>
+                        <div class="w-10 h-10 rounded-full bg-[#ff9500]/10 text-[#ff9500] border border-[#ff9500]/20 flex items-center justify-center font-bold">
+                            <i data-lucide="minus-circle" class="w-5 h-5"></i>
                         </div>
                         <div>
-                            <h3 class="text-sm font-bold text-slate-800">Trừ Điểm Hạnh Kiểm</h3>
-                            <p class="text-xs text-slate-500">Học sinh: <strong class="text-amber-300">{{ targetDeductStudent?.name }}</strong> ({{ targetDeductStudent?.studentCode }})</p>
+                            <h3 class="text-sm font-semibold text-[#1d1d1f]">Trừ Điểm Hạnh Kiểm</h3>
+                            <p class="text-xs text-[#86868b]">Học sinh: <strong class="text-[#1d1d1f]">{{ targetDeductStudent?.name }}</strong> ({{ targetDeductStudent?.studentCode }})</p>
                         </div>
                     </div>
-                    <button @click="showDeductModal = false" class="text-slate-500 hover:text-slate-700">
-                        <i class="fa-solid fa-xmark"></i>
+                    <button @click="showDeductModal = false" class="w-7 h-7 rounded-full hover:bg-black/[0.05] text-[#86868b] hover:text-[#1d1d1f] flex items-center justify-center transition">
+                        <i data-lucide="x" class="w-4 h-4"></i>
                     </button>
                 </div>
 
                 <div class="space-y-3 text-xs">
                     <div>
-                        <label class="block text-slate-500 font-semibold mb-1">Điểm hiện tại:</label>
-                        <input :value="targetDeductStudent?.conductScore ?? 100" readonly type="text" class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-slate-600 font-bold">
+                        <label class="block text-[#86868b] font-medium mb-1">Điểm hiện tại:</label>
+                        <input :value="targetDeductStudent?.conductScore ?? 100" readonly type="text" class="w-full px-4 py-2 bg-[#f5f5f7] border border-black/[0.06] rounded-full text-[#1d1d1f] font-semibold font-mono outline-none">
                     </div>
 
                     <div>
-                        <label class="block text-amber-400 font-semibold mb-1">Số điểm muốn trừ (*):</label>
-                        <input v-model.number="deductPoints" type="number" min="1" max="100" placeholder="Ví dụ: 5" class="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-lg text-slate-800 font-bold focus:border-amber-500 outline-none">
+                        <label class="block text-[#ff9500] font-medium mb-1">Số điểm muốn trừ (*):</label>
+                        <input v-model.number="deductPoints" type="number" min="1" max="100" placeholder="Ví dụ: 5" class="w-full px-4 py-2 bg-[#f5f5f7] border border-black/[0.08] rounded-full text-[#1d1d1f] font-semibold focus:bg-white focus:border-[#ff9500] outline-none transition">
                     </div>
 
                     <div>
-                        <label class="block text-slate-600 font-semibold mb-1">Lý do vi phạm / trừ điểm (*):</label>
-                        <textarea v-model="deductReason" rows="3" placeholder="Nhập lý do chi tiết (Ví dụ: Đóng tiền muộn, đi học trễ, không mặc đồng phục...)" class="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-lg text-slate-700 focus:border-amber-500 outline-none"></textarea>
+                        <label class="block text-[#1d1d1f] font-medium mb-1">Lý do vi phạm / trừ điểm (*):</label>
+                        <textarea v-model="deductReason" rows="3" placeholder="Nhập lý do chi tiết (Ví dụ: Đóng tiền muộn, đi học trễ, không mặc đồng phục...)" class="w-full p-3 bg-[#f5f5f7] border border-black/[0.08] rounded-2xl text-[#1d1d1f] focus:bg-white focus:border-[#0071e3] outline-none transition"></textarea>
                     </div>
 
                     <!-- Common preset reasons -->
                     <div>
-                        <label class="block text-[11px] text-slate-500 mb-1">Gợi ý nhanh lý do vi phạm:</label>
+                        <label class="block text-[11px] text-[#86868b] mb-1.5">Gợi ý nhanh lý do vi phạm:</label>
                         <div class="flex flex-wrap gap-1.5">
-                            <button @click="deductReason = 'Đi học muộn/Đi trễ'" type="button" class="px-2 py-1 bg-slate-100 hover:bg-slate-200 text-slate-600 rounded text-[10px]">Đi học muộn</button>
-                            <button @click="deductReason = 'Không mặc đúng đồng phục'" type="button" class="px-2 py-1 bg-slate-100 hover:bg-slate-200 text-slate-600 rounded text-[10px]">Không đồng phục</button>
-                            <button @click="deductReason = 'Không làm bài tập về nhà'" type="button" class="px-2 py-1 bg-slate-100 hover:bg-slate-200 text-slate-600 rounded text-[10px]">Thiếu BT về nhà</button>
-                            <button @click="deductReason = 'Mất trật tự trong giờ học'" type="button" class="px-2 py-1 bg-slate-100 hover:bg-slate-200 text-slate-600 rounded text-[10px]">Mất trật tự</button>
+                            <button @click="deductReason = 'Đi học muộn/Đi trễ'" type="button" class="px-3 py-1 bg-black/[0.04] hover:bg-black/[0.08] text-[#1d1d1f] rounded-full text-[10px] font-medium transition active:scale-95">Đi học muộn</button>
+                            <button @click="deductReason = 'Không mặc đúng đồng phục'" type="button" class="px-3 py-1 bg-black/[0.04] hover:bg-black/[0.08] text-[#1d1d1f] rounded-full text-[10px] font-medium transition active:scale-95">Không đồng phục</button>
+                            <button @click="deductReason = 'Không làm bài tập về nhà'" type="button" class="px-3 py-1 bg-black/[0.04] hover:bg-black/[0.08] text-[#1d1d1f] rounded-full text-[10px] font-medium transition active:scale-95">Thiếu BT về nhà</button>
+                            <button @click="deductReason = 'Mất trật tự trong giờ học'" type="button" class="px-3 py-1 bg-black/[0.04] hover:bg-black/[0.08] text-[#1d1d1f] rounded-full text-[10px] font-medium transition active:scale-95">Mất trật tự</button>
                         </div>
                     </div>
                 </div>
 
-                <div class="flex justify-end space-x-2 pt-3 border-t border-slate-200">
-                    <button @click="showDeductModal = false" class="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-600 text-xs font-semibold rounded-xl transition">
+                <div class="flex justify-end space-x-2 pt-3 border-t border-black/[0.06]">
+                    <button @click="showDeductModal = false" class="px-4 py-2 bg-black/[0.04] hover:bg-black/[0.08] text-[#1d1d1f] text-xs font-medium rounded-full transition">
                         Hủy
                     </button>
-                    <button @click="confirmDeduction" class="px-5 py-2 bg-amber-600 hover:bg-amber-500 text-white text-xs font-bold rounded-xl transition flex items-center space-x-1.5 shadow-lg shadow-amber-600/30">
-                        <i class="fa-solid fa-check"></i>
+                    <button @click="confirmDeduction" class="px-5 py-2 bg-[#ff9500] hover:bg-[#e08500] text-white text-xs font-medium rounded-full transition flex items-center space-x-1.5 shadow-sm active:scale-[0.98]">
+                        <i data-lucide="check" class="w-3.5 h-3.5"></i>
                         <span>Xác nhận Trừ điểm</span>
                     </button>
                 </div>
@@ -537,72 +646,73 @@
         </div>
 
         <!-- Google Sheets Style Version History Modal -->
-        <div v-if="showAuditLogsModal" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-50/80 backdrop-blur-md">
-            <div class="bg-white border border-slate-300/80 rounded-2xl max-w-4xl w-full p-6 shadow-2xl flex flex-col max-h-[85vh]">
-                <div class="flex items-center justify-between pb-4 border-b border-slate-200">
+        <div v-if="showAuditLogsModal" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-md">
+            <div class="bg-white border border-black/[0.08] rounded-[36px] max-w-4xl w-full p-6 shadow-[0_24px_70px_rgba(0,0,0,0.18)] flex flex-col max-h-[85vh]">
+                <div class="flex items-center justify-between pb-4 border-b border-black/[0.06]">
                     <div class="flex items-center space-x-3">
-                        <div class="w-9 h-9 rounded-xl bg-indigo-600/20 text-indigo-400 border border-indigo-500/30 flex items-center justify-center font-bold">
-                            <i class="fa-solid fa-clock-rotate-left"></i>
+                        <div class="w-10 h-10 rounded-full bg-[#0071e3]/10 text-[#0071e3] border border-[#0071e3]/20 flex items-center justify-center font-bold">
+                            <i data-lucide="history" class="w-5 h-5"></i>
                         </div>
                         <div>
-                            <h3 class="text-base font-bold text-slate-800 flex items-center gap-2">
+                            <h3 class="text-sm font-semibold text-[#1d1d1f] flex items-center gap-2">
                                 <span>Lịch sử Phiên bản & Nhật ký Thay đổi</span>
-                                <span class="px-2 py-0.5 text-[10px] bg-slate-100 text-slate-500 rounded border border-slate-300">Google Sheets Diff Style</span>
+                                <span class="px-2.5 py-0.5 text-[10px] bg-black/[0.04] text-[#86868b] rounded-full border border-black/[0.06]">Google Sheets Style</span>
                             </h3>
-                            <p class="text-xs text-slate-500">Theo dõi toàn bộ lịch sử chỉnh sửa dữ liệu, phân biệt giữa Người dùng và AI Agent</p>
+                            <p class="text-xs text-[#86868b]">Lịch sử chỉnh sửa dữ liệu, phân biệt giữa Người dùng và AI Agent</p>
                         </div>
                     </div>
-                    <button @click="showAuditLogsModal = false" class="text-slate-500 hover:text-slate-700 transition">
-                        <i class="fa-solid fa-xmark text-lg"></i>
+                    <button @click="showAuditLogsModal = false" class="w-7 h-7 rounded-full hover:bg-black/[0.05] text-[#86868b] hover:text-[#1d1d1f] flex items-center justify-center transition">
+                        <i data-lucide="x" class="w-4 h-4"></i>
                     </button>
                 </div>
 
                 <div class="flex-1 overflow-y-auto py-4 space-y-3">
-                    <div v-if="loadingAuditLogs" class="text-center py-12 text-slate-500">
-                        <i class="fa-solid fa-circle-notch fa-spin text-2xl mb-2 text-indigo-400"></i>
+                    <div v-if="loadingAuditLogs" class="text-center py-12 text-[#86868b]">
+                        <i data-lucide="loader-2" class="w-6 h-6 animate-spin mb-2 text-[#0071e3] mx-auto"></i>
                         <p class="text-xs">Đang tải lịch sử phiên bản...</p>
                     </div>
 
-                    <div v-else-if="auditLogs.length === 0" class="text-center py-12 text-slate-500">
-                        <i class="fa-solid fa-clock text-3xl mb-2"></i>
+                    <div v-else-if="auditLogs.length === 0" class="text-center py-12 text-[#86868b]">
+                        <i data-lucide="clock" class="w-6 h-6 mb-2 text-[#86868b] mx-auto"></i>
                         <p class="text-xs">Chưa có nhật ký thay đổi nào cho lớp học này</p>
                     </div>
 
-                    <div v-else v-for="log in auditLogs" :key="log.id" class="p-4 bg-slate-50/60 rounded-xl border border-slate-200/80 hover:border-slate-300 transition">
-                        <div class="flex items-center justify-between gap-4 mb-2">
-                            <div class="flex items-center space-x-2.5">
-                                <span :class="log.source === 'AGENT' ? 'bg-amber-500/20 text-amber-300 border-amber-500/30' : 'bg-emerald-500/20 text-emerald-300 border-emerald-500/30'" class="px-2.5 py-0.5 text-[11px] font-bold rounded-md border flex items-center gap-1.5">
-                                    <i :class="log.source === 'AGENT' ? 'fa-robot text-amber-400' : 'fa-user text-emerald-400'" class="fa-solid"></i>
+                    <div v-else v-for="log in auditLogs" :key="log.id" class="p-4 bg-white rounded-3xl border border-black/[0.06] shadow-[0_2px_8px_rgba(0,0,0,0.02)] space-y-2.5">
+                        <div class="flex items-center justify-between gap-4 mb-1">
+                            <div class="flex items-center space-x-2">
+                                <span :class="log.source === 'AGENT' ? 'bg-[#ff9500]/10 text-[#d97706] border-[#ff9500]/20' : 'bg-[#0071e3]/10 text-[#0071e3] border-[#0071e3]/20'" class="px-2.5 py-0.5 text-[10px] font-semibold rounded-full border flex items-center gap-1">
+                                    <i v-if="log.source === 'AGENT'" data-lucide="bot" class="w-3 h-3"></i>
+                                    <i v-else data-lucide="user" class="w-3 h-3"></i>
                                     <span>{{ log.source === 'AGENT' ? 'AI Agent' : 'Người dùng' }}</span>
                                 </span>
-                                <span class="font-semibold text-slate-700 text-xs">{{ log.userName || log.userEmail || 'Ẩn danh' }}</span>
-                                <span class="text-slate-500 text-xs">({{ log.action }})</span>
+                                <span class="font-medium text-[#1d1d1f] text-xs">{{ log.userName || log.userEmail || 'Ẩn danh' }}</span>
+                                <span class="text-[#86868b] text-xs">({{ log.action }})</span>
                             </div>
-                            <span class="text-[11px] text-slate-500 font-mono">{{ formatDate(log.createdAt) }}</span>
+                            <span class="text-[11px] text-[#86868b] font-mono">{{ formatDate(log.createdAt) }}</span>
                         </div>
 
-                        <p class="text-xs text-slate-600 font-medium mb-2">{{ log.description }}</p>
+                        <p class="text-xs text-[#1d1d1f] font-medium">{{ log.description }}</p>
 
                         <!-- Google Sheets Diff View -->
-                        <div v-if="log.diffs && log.diffs.length > 0" class="mt-2 space-y-1.5 bg-white/90 p-3 rounded-lg border border-slate-200">
-                            <div class="text-[11px] font-semibold text-slate-500 mb-1 flex items-center gap-1">
-                                <i class="fa-solid fa-code-compare text-indigo-400"></i>
+                        <div v-if="log.diffs && log.diffs.length > 0" class="mt-2 space-y-1.5 bg-[#f5f5f7] p-3 rounded-2xl border border-black/[0.05]">
+                            <div class="text-[10px] font-semibold text-[#86868b] uppercase tracking-wider mb-1 flex items-center gap-1">
+                                <i data-lucide="git-compare" class="w-3.5 h-3.5 text-[#0071e3]"></i>
                                 <span>Chi tiết các trường thay đổi:</span>
                             </div>
-                            <div v-for="d in log.diffs" :key="d.field" class="flex items-start justify-between text-xs py-1 px-2 rounded bg-slate-50/50 border border-slate-200/50">
-                                <span class="text-slate-500 font-medium w-1/4">{{ d.field }}:</span>
+                            <div v-for="d in log.diffs" :key="d.field" class="flex items-center justify-between text-xs py-1 px-2.5 rounded-xl bg-white border border-black/[0.05]">
+                                <span class="text-[#86868b] font-medium w-1/4 text-[11px]">{{ d.field }}:</span>
                                 <div class="w-3/4 flex items-center gap-2 font-mono text-[11px]">
-                                    <span class="text-red-400 line-through bg-red-950/40 px-1.5 py-0.5 rounded border border-red-900/40 truncate max-w-[45%]">{{ d.oldValue }}</span>
-                                    <i class="fa-solid fa-arrow-right text-slate-500 text-[10px]"></i>
-                                    <span class="text-emerald-400 font-semibold bg-emerald-950/40 px-1.5 py-0.5 rounded border border-emerald-900/40 truncate max-w-[45%]">{{ d.newValue }}</span>
+                                    <span class="text-[#ff3b30] line-through bg-[#ff3b30]/10 px-1.5 py-0.2 rounded-full border border-[#ff3b30]/20 truncate max-w-[45%] text-[10px]">{{ d.oldValue }}</span>
+                                    <i data-lucide="arrow-right" class="w-3 h-3 text-[#86868b]"></i>
+                                    <span class="text-[#15803d] font-medium bg-[#34c759]/10 px-1.5 py-0.2 rounded-full border border-[#34c759]/20 truncate max-w-[45%] text-[10px]">{{ d.newValue }}</span>
                                 </div>
                             </div>
                         </div>
                     </div>
                 </div>
 
-                <div class="flex justify-end pt-3 border-t border-slate-200">
-                    <button @click="showAuditLogsModal = false" class="px-5 py-2 bg-slate-100 hover:bg-slate-200 text-slate-600 text-xs font-semibold rounded-xl transition">
+                <div class="flex justify-end pt-3 border-t border-black/[0.06]">
+                    <button @click="showAuditLogsModal = false" class="px-5 py-2 bg-black/[0.04] hover:bg-black/[0.08] text-[#1d1d1f] text-xs font-medium rounded-full transition">
                         Đóng
                     </button>
                 </div>
@@ -610,16 +720,17 @@
         </div>
 
         <!-- Toast Feedback Notification -->
-        <div v-if="toast.show" :class="toast.type === 'error' ? 'bg-red-950 border-red-500 text-red-200' : 'bg-emerald-950 border-emerald-500 text-emerald-200'" class="fixed bottom-6 left-6 px-5 py-3.5 rounded-xl border shadow-xl text-sm flex items-center space-x-3 z-50 transition-all transform duration-300">
-            <i :class="toast.type === 'error' ? 'fa-circle-xmark text-red-400' : 'fa-circle-check text-emerald-400'" class="fa-solid text-lg"></i>
-            <span class="font-medium">{{ toast.message }}</span>
+        <div v-if="toast.show" :class="toast.type === 'error' ? 'bg-white text-[#1d1d1f] border-[#ff3b30]/30 shadow-[0_8px_30px_rgba(255,59,48,0.15)]' : 'bg-white text-[#1d1d1f] border-[#34c759]/30 shadow-[0_8px_30px_rgba(52,199,89,0.15)]'" class="fixed bottom-6 left-6 px-4 py-2.5 rounded-full border text-xs font-medium flex items-center space-x-2.5 z-50 backdrop-blur-xl transition-all">
+            <i v-if="toast.type === 'error'" data-lucide="alert-circle" class="w-4 h-4 text-[#ff3b30]"></i>
+            <i v-else data-lucide="check-circle-2" class="w-4 h-4 text-[#34c759]"></i>
+            <span>{{ toast.message }}</span>
         </div>
     </div>
 
     <script type="module">
         import { getAuthToken, clientLogout } from "/public/clientAuth.js";
 
-        const { createApp, ref, computed, onMounted } = Vue;
+        const { createApp, ref, computed, onMounted, onUnmounted, onUpdated, nextTick, watch } = Vue;
 
         createApp({
             setup() {
@@ -629,6 +740,16 @@
                 const currentClass = ref(null);
                 const students = ref([]);
                 const searchQuery = ref('');
+
+                // Real-time SSE & Local Draft State
+                const sseConnected = ref(false);
+                const remoteUpdateDetected = ref(false);
+                const remoteUpdateMessage = ref('');
+                const showDraftRecoveryPrompt = ref(false);
+                const draftItemCount = ref(0);
+                const lastDraftSavedTime = ref('');
+                let sseEventSource = null;
+                let draftDebounceTimer = null;
 
                 // Gemini AI Chatbot & Debug State
                 const debugMode = ref(false);
@@ -770,16 +891,21 @@
                 });
 
                 function getClassIdFromUrl() {
-                    const parts = window.location.pathname.split('/');
+                    const parts = window.location.pathname.split('/').filter(Boolean);
                     const id = parts[parts.length - 1];
-                    return (id && !isNaN(Number(id))) ? Number(id) : 1;
+                    if (id && !isNaN(Number(id))) {
+                        return Number(id);
+                    }
+                    window.location.href = '/dashboard';
+                    return null;
                 }
 
                 const classAuditLogs = ref([]);
 
                 async function fetchStudents() {
-                    loading.value = true;
                     const classId = getClassIdFromUrl();
+                    if (!classId) return;
+                    loading.value = true;
                     try {
                         const headers = getTokenHeader();
                         const [dashRes, stdRes, auditRes] = await Promise.all([
@@ -805,6 +931,7 @@
                             if (stdData.userPermission) {
                                 userPermission.value = stdData.userPermission;
                             }
+                            checkLocalDraft();
                         }
 
                         if (auditRes.ok) {
@@ -812,15 +939,161 @@
                             classAuditLogs.value = auditData.auditLogs || [];
                         }
                     } catch (e) {
-                        showToast('Lỗi tải bảng tính Excel', 'error');
+                        showToast('Lỗi tải dữ liệu lớp học', 'error');
                     } finally {
                         loading.value = false;
+                        nextTick(() => { refreshIcons(); });
                     }
+                }
+
+                // --- LOCAL DRAFT AUTO-SAVE & RECOVERY ---
+                function scheduleDraftSave() {
+                    clearTimeout(draftDebounceTimer);
+                    draftDebounceTimer = setTimeout(() => {
+                        saveDraftToStorage();
+                    }, 600);
+                }
+
+                function saveDraftToStorage() {
+                    const classId = getClassIdFromUrl();
+                    if (!classId) return;
+                    const dirtyRows = students.value.filter(s => s.isModified || s.isNew);
+                    if (dirtyRows.length > 0) {
+                        try {
+                            localStorage.setItem('draft_class_' + classId, JSON.stringify({
+                                timestamp: Date.now(),
+                                rows: dirtyRows
+                            }));
+                            const now = new Date();
+                            lastDraftSavedTime.value = `${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}:${now.getSeconds().toString().padStart(2, '0')}`;
+                        } catch {}
+                    } else {
+                        localStorage.removeItem('draft_class_' + classId);
+                        lastDraftSavedTime.value = '';
+                    }
+                }
+
+                function checkLocalDraft() {
+                    const classId = getClassIdFromUrl();
+                    if (!classId) return;
+                    try {
+                        const raw = localStorage.getItem('draft_class_' + classId);
+                        if (!raw) return;
+                        const parsed = JSON.parse(raw);
+                        if (parsed && Array.isArray(parsed.rows) && parsed.rows.length > 0) {
+                            draftItemCount.value = parsed.rows.length;
+                            showDraftRecoveryPrompt.value = true;
+                        }
+                    } catch {}
+                }
+
+                function restoreDraft() {
+                    const classId = getClassIdFromUrl();
+                    try {
+                        const raw = localStorage.getItem('draft_class_' + classId);
+                        if (!raw) return;
+                        const parsed = JSON.parse(raw);
+                        const draftRows = parsed.rows || [];
+
+                        for (const d of draftRows) {
+                            if (d.isNew) {
+                                students.value.push({ ...d, isModified: true, isNew: true });
+                            } else {
+                                const idx = students.value.findIndex(s => s.id === d.id);
+                                if (idx !== -1) {
+                                    students.value[idx] = { ...students.value[idx], ...d, isModified: true };
+                                }
+                            }
+                        }
+                        showDraftRecoveryPrompt.value = false;
+                        showToast(`Đã khôi phục ${draftRows.length} thay đổi từ bản nháp!`);
+                        nextTick(() => { refreshIcons(); });
+                    } catch {
+                        showToast('Không thể khôi phục bản nháp', 'error');
+                    }
+                }
+
+                function discardDraft() {
+                    const classId = getClassIdFromUrl();
+                    localStorage.removeItem('draft_class_' + classId);
+                    showDraftRecoveryPrompt.value = false;
+                    showToast('Đã xóa bỏ bản nháp tạm.');
+                }
+
+                const handleBeforeUnload = (e) => {
+                    if (modifiedCount.value > 0) {
+                        e.preventDefault();
+                        e.returnValue = 'Bạn có thay đổi chưa lưu trên bảng tính. Bạn có chắc muốn rời đi?';
+                        return e.returnValue;
+                    }
+                };
+
+                // Watch students deeply to trigger auto-draft
+                watch(students, () => {
+                    scheduleDraftSave();
+                }, { deep: true });
+
+                // --- REAL-TIME SSE SYNCHRONIZATION ---
+                function initRealtimeSync() {
+                    const classId = getClassIdFromUrl();
+                    if (!classId) return;
+
+                    let token = '';
+                    try { token = getAuthToken(); } catch {}
+                    if (!token) return;
+
+                    if (sseEventSource) {
+                        sseEventSource.close();
+                    }
+
+                    const sseUrl = `/api/organization/sync-events?classId=${classId}&token=${encodeURIComponent(token)}`;
+                    sseEventSource = new EventSource(sseUrl);
+
+                    sseEventSource.addEventListener('connected', () => {
+                        sseConnected.value = true;
+                    });
+
+                    sseEventSource.addEventListener('sync', async (event) => {
+                        try {
+                            const ev = JSON.parse(event.data);
+                            if (user.value && ev.senderUserId && ev.senderUserId === user.value.id) {
+                                return;
+                            }
+                            if (ev.classId && Number(ev.classId) !== Number(classId)) {
+                                return;
+                            }
+
+                            if (modifiedCount.value === 0) {
+                                await fetchStudents();
+                                showToast(ev.message || 'Dữ liệu vừa được cập nhật thời gian thực');
+                            } else {
+                                remoteUpdateDetected.value = true;
+                                remoteUpdateMessage.value = ev.message || 'Một người dùng khác vừa cập nhật dữ liệu lớp học này trên máy chủ.';
+                            }
+                        } catch (err) {
+                            console.error('[SSE Event Error]', err);
+                        }
+                    });
+
+                    sseEventSource.onerror = () => {
+                        sseConnected.value = false;
+                    };
+                }
+
+                function dismissRemoteBanner() {
+                    remoteUpdateDetected.value = false;
+                }
+
+                async function forceSyncWithServer() {
+                    remoteUpdateDetected.value = false;
+                    await fetchStudents();
+                    showToast('Đã đồng bộ dữ liệu mới nhất từ máy chủ');
                 }
 
                 function markModified(row) {
                     if (!userPermission.value.canWrite) return;
                     row.isModified = true;
+                    scheduleDraftSave();
                 }
 
                 function addNewRow() {
@@ -843,6 +1116,7 @@
                         isModified: true,
                         isNew: true
                     });
+                    scheduleDraftSave();
                 }
 
                 async function deleteRow(index, row) {
@@ -853,6 +1127,7 @@
 
                     if (row.isNew) {
                         students.value.splice(index, 1);
+                        scheduleDraftSave();
                         return;
                     }
 
@@ -867,6 +1142,7 @@
 
                         if (res.ok) {
                             students.value.splice(index, 1);
+                            scheduleDraftSave();
                             showToast('Đã xóa học sinh khỏi bảng tính');
                         } else {
                             showToast('Không thể xóa học sinh', 'error');
@@ -899,18 +1175,26 @@
 
                     try {
                         const headers = { ...getTokenHeader(), 'Content-Type': 'application/json' };
-                        let successCount = 0;
+                        const creates = [];
+                        const updates = [];
 
                         for (const row of modifiedRows) {
-                            if (!row.name || !row.name.trim()) continue;
-
                             if (row.isNew) {
-                                // Create new student
-                                const res = await fetch('/api/organization/students', {
-                                    method: 'POST',
-                                    headers,
-                                    body: JSON.stringify({
-                                        classId,
+                                creates.push({
+                                    studentCode: row.studentCode,
+                                    name: row.name,
+                                    dateOfBirth: row.dateOfBirth,
+                                    phone: row.phone,
+                                    email: row.email,
+                                    parentPhone: row.parentPhone,
+                                    parentEmail: row.parentEmail,
+                                    conductScore: row.conductScore,
+                                    conductDeductionReason: row.conductDeductionReason
+                                });
+                            } else {
+                                const payload = userPermission.value.isOwner
+                                    ? {
+                                        id: row.id,
                                         studentCode: row.studentCode,
                                         name: row.name,
                                         dateOfBirth: row.dateOfBirth,
@@ -920,28 +1204,37 @@
                                         parentEmail: row.parentEmail,
                                         conductScore: row.conductScore,
                                         conductDeductionReason: row.conductDeductionReason
-                                    })
-                                });
-                                if (res.ok) successCount++;
-                            } else {
-                                // Update existing student: If non-owner, send only conductScore & conductDeductionReason to avoid 403
-                                const payload = userPermission.value.isOwner
-                                    ? row
-                                    : { conductScore: row.conductScore, conductDeductionReason: row.conductDeductionReason };
-
-                                const res = await fetch(`/api/organization/students/${row.id}`, {
-                                    method: 'PUT',
-                                    headers,
-                                    body: JSON.stringify(payload)
-                                });
-                                if (res.ok) successCount++;
+                                    }
+                                    : {
+                                        id: row.id,
+                                        conductScore: row.conductScore,
+                                        conductDeductionReason: row.conductDeductionReason
+                                    };
+                                updates.push(payload);
                             }
                         }
 
-                        showToast(`Đã lưu thành công ${successCount} học sinh!`);
+                        // Atomic Batch Save in 1 transaction
+                        const res = await fetch(`/api/organization/classes/${classId}/students/batch`, {
+                            method: 'POST',
+                            headers,
+                            body: JSON.stringify({ creates, updates, deletes: [] })
+                        });
+
+                        const data = await res.json();
+                        if (!res.ok) {
+                            throw new Error(data.message || 'Lỗi khi lưu dữ liệu lên máy chủ');
+                        }
+
+                        // Clear draft on successful batch save
+                        localStorage.removeItem('draft_class_' + classId);
+                        lastDraftSavedTime.value = '';
+                        remoteUpdateDetected.value = false;
+
+                        showToast(`Đã lưu đồng bộ ${creates.length + updates.length} học sinh thành công!`);
                         await fetchStudents();
                     } catch (e) {
-                        showToast('Lỗi khi lưu dữ liệu lên máy chủ', 'error');
+                        showToast(e.message || 'Lỗi khi lưu dữ liệu lên máy chủ', 'error');
                     } finally {
                         saving.value = false;
                     }
@@ -1045,13 +1338,14 @@
                             chatMessages.value.push({
                                 role: 'assistant',
                                 text: data.reply || data.summary || 'Đã phân tích yêu cầu của bạn.',
+                                thought: data.thought || null,
                                 hasActions,
                                 actionsCount: (data.actions && data.actions.length) || (hasCode ? 1 : 0),
-                                plan: data
+                                plan: { ...data, prompt: promptText }
                             });
 
                             if (hasActions) {
-                                proposedPlan.value = data;
+                                proposedPlan.value = { ...data, prompt: promptText };
                                 showAiPreviewModal.value = true;
                             }
                         } else {
@@ -1091,6 +1385,7 @@
                             body: JSON.stringify({
                                 planActions: proposedPlan.value.actions || [],
                                 code: proposedPlan.value.code || null,
+                                prompt: proposedPlan.value.prompt || '',
                                 classId: getClassIdFromUrl()
                             })
                         });
@@ -1099,6 +1394,16 @@
                         if (res.ok) {
                             showToast('Server AI đã thực thi kịch bản thành công!');
                             showAiPreviewModal.value = false;
+
+                            // Reflect Agent feedback and sandbox execution output in chat
+                            chatMessages.value.push({
+                                role: 'assistant',
+                                text: data.agentReply || 'Đã hoàn tất thực thi kịch bản trên máy chủ.',
+                                thought: data.agentThought || null,
+                                executionLogs: data.logs && data.logs.length ? data.logs : null,
+                                hasActions: false
+                            });
+
                             await fetchStudents();
                         } else {
                             showToast(data.message || 'Server thực thi kịch bản thất bại', 'error');
@@ -1110,8 +1415,34 @@
                     }
                 }
 
+                const refreshIcons = () => {
+                    nextTick(() => {
+                        if (window.lucide && window.lucide.createIcons) {
+                            window.lucide.createIcons();
+                        }
+                    });
+                };
+
+                watch([students, searchQuery, showAiDrawer, showAiPreviewModal, showDeductModal, showAuditLogsModal, chatMessages, debugMode, toast], () => {
+                    refreshIcons();
+                }, { deep: true });
+
+                onUpdated(() => {
+                    refreshIcons();
+                });
+
                 onMounted(() => {
                     fetchStudents();
+                    initRealtimeSync();
+                    window.addEventListener('beforeunload', handleBeforeUnload);
+                    refreshIcons();
+                });
+
+                onUnmounted(() => {
+                    if (sseEventSource) {
+                        sseEventSource.close();
+                    }
+                    window.removeEventListener('beforeunload', handleBeforeUnload);
                 });
 
                 return {
@@ -1127,6 +1458,16 @@
                     displayName,
                     modifiedCount,
                     debugMode,
+                    sseConnected,
+                    remoteUpdateDetected,
+                    remoteUpdateMessage,
+                    showDraftRecoveryPrompt,
+                    draftItemCount,
+                    lastDraftSavedTime,
+                    restoreDraft,
+                    discardDraft,
+                    dismissRemoteBanner,
+                    forceSyncWithServer,
                     showAiDrawer,
                     showAiPreviewModal,
                     aiPrompt,
