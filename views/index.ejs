@@ -1,91 +1,480 @@
 <!DOCTYPE html>
-<html lang="vi">
+<html lang="vi" class="scroll-smooth">
 
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>EduManager - Trang chủ</title>
-    <!-- Tailwind CSS & Icons -->
+    <title>EduManager — Quản lý Giáo dục Đỉnh cao</title>
+    <meta name="description" content="Nền tảng quản lý trường học, lớp học và hạnh kiểm học sinh chuẩn mực với giao diện Apple Design tinh tế.">
+
+    <!-- Fonts: Inter / SF Pro System Fallbacks -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+
+    <!-- Tailwind CSS JIT CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        apple: {
+                            canvas: '#f5f5f7',
+                            surface: '#ffffff',
+                            text: '#1d1d1f',
+                            muted: '#86868b',
+                            tertiary: '#aeaeb2',
+                            blue: '#0071e3',
+                            blueHover: '#0077ed',
+                            green: '#34c759',
+                            orange: '#ff9500',
+                            red: '#ff3b30',
+                            border: 'rgba(0, 0, 0, 0.08)'
+                        }
+                    },
+                    fontFamily: {
+                        sans: ['-apple-system', 'BlinkMacSystemFont', '"SF Pro Text"', '"SF Pro Display"', '"SF Pro"', 'Inter', 'sans-serif'],
+                        mono: ['"JetBrains Mono"', 'monospace']
+                    }
+                }
+            }
+        }
+    </script>
+
+    <!-- App Styles -->
     <link rel="stylesheet" href="/public/style.css">
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <script src="/public/lucide-safe.js"></script>
 </head>
 
-<body class="min-h-screen flex flex-col justify-between">
-    <!-- Header -->
-    <header class="glass-card sticky top-0 z-50 px-6 py-4 flex items-center justify-between border-b border-slate-800">
-        <div class="flex items-center space-x-3">
-            <div class="w-10 h-10 rounded-xl gradient-bg flex items-center justify-center text-white shadow-lg shadow-sky-500/20">
-                <i class="fa-solid fa-graduation-cap text-lg"></i>
-            </div>
-            <div>
-                <h1 class="text-xl font-bold gradient-text">EduManager</h1>
-                <p class="text-xs text-slate-400">Hệ thống Quản lý Giáo dục</p>
+<body class="bg-[#f5f5f7] text-[#1d1d1f] antialiased selection:bg-[#0071e3] selection:text-white min-h-screen flex flex-col justify-between">
+
+    <!-- ========================================================================= -->
+    <!-- 1. GLOBAL / APP HEADER (<AppHeader />)                                      -->
+    <!-- ========================================================================= -->
+    <header class="sticky top-0 z-50 h-12 sm:h-14 backdrop-blur-xl bg-white/80 border-b border-black/[0.06] transition-colors duration-200">
+        <div class="max-w-6xl mx-auto h-full px-4 sm:px-8 flex items-center justify-between">
+            <!-- Left: Minimal Apple-styled Brand -->
+            <a href="/" class="flex items-center space-x-2.5 text-[#1d1d1f] hover:opacity-80 transition">
+                <div class="w-8 h-8 rounded-full bg-[#1d1d1f] text-white flex items-center justify-center text-xs shadow-sm">
+                    <i data-lucide="graduation-cap" class="w-4 h-4 stroke-[1.75]"></i>
+                </div>
+                <span class="text-sm font-semibold tracking-tight">EduManager</span>
+            </a>
+
+            <!-- Center: Subtle horizontal nav items -->
+            <nav class="hidden md:flex items-center space-x-7 text-xs font-normal text-[#86868b]">
+                <a href="#overview" class="hover:text-[#1d1d1f] transition duration-150">Tổng quan</a>
+                <a href="#bento" class="hover:text-[#1d1d1f] transition duration-150">Tính năng</a>
+                <a href="#configurator" class="hover:text-[#1d1d1f] transition duration-150">Phân quyền</a>
+                <a href="#architecture" class="hover:text-[#1d1d1f] transition duration-150">Bảo mật</a>
+            </nav>
+
+            <!-- Right: Pill CTA buttons & auth state -->
+            <div id="header-auth" class="flex items-center space-x-2.5">
+                <a href="/login" class="rounded-full px-3.5 py-1 text-xs font-medium text-[#1d1d1f] hover:bg-black/5 transition">
+                    Đăng nhập
+                </a>
+                <a href="/signup" class="rounded-full px-4 py-1.5 text-xs font-medium bg-[#0071e3] text-white hover:bg-[#0077ed] active:scale-95 transition-all shadow-sm">
+                    Bắt đầu
+                </a>
             </div>
         </div>
-
-        <nav class="flex items-center space-x-3">
-            <a href="/login" class="px-4 py-2 text-sm font-medium bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-xl transition border border-slate-700">
-                <i class="fa-solid fa-right-to-bracket mr-1.5"></i>Đăng nhập
-            </a>
-            <a href="/signup" class="px-4 py-2 text-sm font-medium gradient-bg hover:opacity-90 text-white rounded-xl transition shadow-lg shadow-sky-500/20">
-                <i class="fa-solid fa-user-plus mr-1.5"></i>Đăng ký
-            </a>
-        </nav>
     </header>
 
-    <!-- Main Content -->
-    <main class="max-w-4xl mx-auto px-6 py-12 w-full space-y-8">
-        <div class="text-center space-y-4">
-            <div class="inline-flex items-center space-x-2 px-3 py-1 bg-sky-500/10 border border-sky-500/20 rounded-full text-sky-400 text-xs font-semibold">
-                <i class="fa-solid fa-sparkles"></i>
-                <span>Nền tảng Quản lý Giáo dục Hiện đại</span>
-            </div>
-            <h2 class="text-4xl font-extrabold text-white tracking-tight">Chào mừng đến với EduManager</h2>
-            <p class="text-slate-400 max-w-xl mx-auto text-sm leading-relaxed">
-                Hệ thống hỗ trợ Tổ chức quản lý đợt niên khóa, danh sách lớp học, phân quyền thành viên và theo dõi rèn luyện của học sinh.
-            </p>
-        </div>
-
-        <!-- Dashboard Quick Access Card -->
-        <div class="glass-card rounded-2xl p-8 border border-slate-800 text-center space-y-6 max-w-xl mx-auto shadow-2xl">
-            <div class="w-16 h-16 bg-sky-500/10 rounded-2xl flex items-center justify-center text-sky-400 text-2xl mx-auto border border-sky-500/20">
-                <i class="fa-solid fa-building-columns"></i>
-            </div>
-            <div class="space-y-2">
-                <h3 class="text-xl font-bold text-slate-100">Bảng điều khiển Tổ chức</h3>
-                <p class="text-xs text-slate-400">Truy cập giao diện quản lý dành cho tài khoản Tổ chức</p>
-            </div>
+    <!-- ========================================================================= -->
+    <!-- 2. HERO SECTION (<HeroSection />)                                          -->
+    <!-- ========================================================================= -->
+    <section id="overview" class="relative pt-20 sm:pt-28 pb-16 px-4 sm:px-6 overflow-hidden text-center">
+        <div class="max-w-4xl mx-auto space-y-6">
+            <!-- Eyebrow Badge -->
             <div>
-                <a href="/dashboard" class="inline-flex items-center space-x-2 px-6 py-3 gradient-bg hover:opacity-90 text-white font-semibold rounded-xl text-sm transition shadow-lg shadow-sky-600/30">
-                    <span>Vào Dashboard Tổ chức</span>
-                    <i class="fa-solid fa-arrow-right"></i>
+                <span class="inline-flex items-center space-x-1.5 px-3 py-1 rounded-full text-xs font-medium text-[#86868b] bg-black/[0.04] border border-black/[0.04]">
+                    <span class="w-1.5 h-1.5 rounded-full bg-[#34c759]"></span>
+                    <span>EduManager Studio 2026</span>
+                </span>
+            </div>
+
+            <!-- Large Hero Display Heading -->
+            <h1 class="apple-hero-headline text-[#1d1d1f]">
+                Quản trị Giáo dục.<br class="hidden sm:inline">
+                Chính xác đến từng điểm số.
+            </h1>
+
+            <!-- Subheading -->
+            <p class="apple-subheadline max-w-2xl mx-auto">
+                Hệ thống chuyên sâu cho Tổ chức giáo dục: Quản lý niên khóa, bảng điểm điện tử, phân quyền theo lớp học và trợ lý AI trong V8 Sandbox.
+            </p>
+
+            <!-- CTA Actions -->
+            <div class="pt-2 flex flex-wrap items-center justify-center gap-3.5">
+                <a href="/signup" class="apple-btn-primary shadow-sm">
+                    <span>Đăng ký tổ chức</span>
+                </a>
+                <a href="/dashboard" class="apple-btn-secondary">
+                    <span>Mở Bảng điều khiển</span>
+                </a>
+            </div>
+
+            <!-- Text link with chevron -->
+            <div class="pt-1">
+                <a href="#bento" class="apple-link text-xs">
+                    <span>Tìm hiểu về kiến trúc bảo mật phân quyền</span>
+                    <i data-lucide="chevron-right" class="w-3.5 h-3.5 inline"></i>
                 </a>
             </div>
         </div>
 
-    </main>
+        <!-- ===================================================================== -->
+        <!-- 3. INTERACTIVE SEGMENTED CONTROL (<SegmentedControl />)                -->
+        <!-- ===================================================================== -->
+        <div class="max-w-3xl mx-auto mt-16">
+            <div class="inline-flex apple-segmented-track mb-8">
+                <button type="button" onclick="switchTab('org')" id="tab-btn-org" class="apple-segmented-thumb px-5 py-1.5 text-xs font-medium transition-all">
+                    Tổ chức Quản lý
+                </button>
+                <button type="button" onclick="switchTab('sheet')" id="tab-btn-sheet" class="px-5 py-1.5 text-xs font-medium text-[#86868b] hover:text-[#1d1d1f] transition-all">
+                    Bảng tính & Hạnh kiểm
+                </button>
+                <button type="button" onclick="switchTab('ai')" id="tab-btn-ai" class="px-5 py-1.5 text-xs font-medium text-[#86868b] hover:text-[#1d1d1f] transition-all">
+                    Trợ lý AI Sandbox
+                </button>
+            </div>
 
-    <!-- Footer -->
-    <footer class="glass-card py-6 text-center text-xs text-slate-500 border-t border-slate-800">
-        <p>&copy; 2026 EduManager. All rights reserved.</p>
+            <!-- Dynamic Tab Content Displays -->
+            <!-- Tab 1: Tổ chức -->
+            <div id="tab-content-org" class="apple-card p-8 sm:p-10 text-left transition-all">
+                <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-black/[0.06] pb-6 mb-6">
+                    <div>
+                        <span class="apple-eyebrow">Quyền chủ sở hữu</span>
+                        <h3 class="text-xl font-semibold text-[#1d1d1f] tracking-tight mt-1">Cơ cấu Đợt Niên khóa & Lớp học</h3>
+                    </div>
+                    <div class="flex items-center space-x-2">
+                        <span class="px-2.5 py-0.5 rounded-full text-[11px] font-medium bg-[#34c759]/10 text-[#34c759]">Bảo mật cao nhất</span>
+                    </div>
+                </div>
+                <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                    <div class="bg-[#f5f5f7] rounded-2xl p-4 space-y-1 border border-black/[0.04]">
+                        <div class="text-xs text-[#86868b] font-medium">Niên khóa</div>
+                        <div class="text-base font-semibold text-[#1d1d1f]">2026 — 2027</div>
+                        <p class="text-[11px] text-[#86868b]">Chỉ Tổ chức mới được tạo / xóa</p>
+                    </div>
+                    <div class="bg-[#f5f5f7] rounded-2xl p-4 space-y-1 border border-black/[0.04]">
+                        <div class="text-xs text-[#86868b] font-medium">Lớp phân công</div>
+                        <div class="text-base font-semibold text-[#1d1d1f]">10A1, 10A2, 11B1...</div>
+                        <p class="text-[11px] text-[#86868b]">Phân quyền ghi theo từng lớp</p>
+                    </div>
+                    <div class="bg-[#f5f5f7] rounded-2xl p-4 space-y-1 border border-black/[0.04]">
+                        <div class="text-xs text-[#86868b] font-medium">Nhật ký Version History</div>
+                        <div class="text-base font-semibold text-[#1d1d1f]">Google Sheets Diff</div>
+                        <p class="text-[11px] text-[#86868b]">Lưu vết từng ô dữ liệu thay đổi</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Tab 2: Bảng tính -->
+            <div id="tab-content-sheet" class="apple-card p-8 sm:p-10 text-left hidden transition-all">
+                <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-black/[0.06] pb-6 mb-6">
+                    <div>
+                        <span class="apple-eyebrow">Trải nghiệm thuần thục</span>
+                        <h3 class="text-xl font-semibold text-[#1d1d1f] tracking-tight mt-1">Giao diện Sổ điểm chuẩn Excel</h3>
+                    </div>
+                    <span class="px-2.5 py-0.5 rounded-full text-[11px] font-medium bg-[#0071e3]/10 text-[#0071e3]">Chỉnh sửa tức thì</span>
+                </div>
+                <div class="rounded-2xl border border-black/[0.06] overflow-hidden bg-white">
+                    <div class="grid grid-cols-4 bg-[#f5f5f7] text-[11px] font-semibold text-[#86868b] py-2 px-3 border-b border-black/[0.06]">
+                        <div>MÃ HS</div>
+                        <div>HỌ VÀ TÊN</div>
+                        <div>ĐIỂM HẠNH KIỂM</div>
+                        <div>LÝ DO TRỪ ĐIỂM</div>
+                    </div>
+                    <div class="grid grid-cols-4 text-xs py-2.5 px-3 border-b border-black/[0.04] items-center">
+                        <span class="font-mono text-[#86868b]">HS002481</span>
+                        <span class="font-medium text-[#1d1d1f]">Nguyễn Hải Đăng</span>
+                        <span class="font-semibold text-[#34c759]">100</span>
+                        <span class="text-[#86868b] italic">(Không vi phạm)</span>
+                    </div>
+                    <div class="grid grid-cols-4 text-xs py-2.5 px-3 items-center">
+                        <span class="font-mono text-[#86868b]">HS002482</span>
+                        <span class="font-medium text-[#1d1d1f]">Trần Thu Hà</span>
+                        <span class="font-semibold text-[#ff9500]">95</span>
+                        <span class="text-[#86868b]">Đi học muộn (-5đ)</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Tab 3: AI -->
+            <div id="tab-content-ai" class="apple-card p-8 sm:p-10 text-left hidden transition-all">
+                <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-black/[0.06] pb-6 mb-6">
+                    <div>
+                        <span class="apple-eyebrow">Google Gemini & isolated-vm</span>
+                        <h3 class="text-xl font-semibold text-[#1d1d1f] tracking-tight mt-1">Trợ lý AI trong V8 Sandbox</h3>
+                    </div>
+                    <span class="px-2.5 py-0.5 rounded-full text-[11px] font-medium bg-[#ff9500]/10 text-[#ff9500]">Cách ly tuyệt đối</span>
+                </div>
+                <div class="space-y-3 font-mono text-xs bg-[#1d1d1f] text-white p-5 rounded-2xl">
+                    <div class="text-[#86868b]">// Lệnh ngôn ngữ tự nhiên: "Trừ 5 điểm của học sinh Nguyễn Văn A vì không mang phù hiệu"</div>
+                    <div class="text-[#34c759]">await deductConductScore(12, 5, "Không mang phù hiệu");</div>
+                    <div class="text-[#aeaeb2]">// Tự động cập nhật audit log, snapshot diff và hỗ trợ Hoàn tác (Undo)</div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- ========================================================================= -->
+    <!-- 4. BENTO GRID & SHOWCASE CARDS (<BentoCard />)                            -->
+    <!-- ========================================================================= -->
+    <section id="bento" class="py-20 px-4 sm:px-8 max-w-6xl mx-auto">
+        <div class="text-center mb-16 space-y-2">
+            <span class="apple-eyebrow">Hệ thống phân tầng</span>
+            <h2 class="text-3xl sm:text-4xl font-semibold text-[#1d1d1f] tracking-tight">
+                Thiết kế cho quy mô tổ chức giáo dục.
+            </h2>
+            <p class="text-base text-[#86868b] max-w-xl mx-auto">
+                Từng chi tiết được chắt lọc với sự tiết chế tối đa theo triết lý Human Interface Guidelines.
+            </p>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-12 gap-6">
+
+            <!-- Bento Card 1: Wide Card (7 cols) -->
+            <div class="md:col-span-7 apple-card p-8 sm:p-10 flex flex-col justify-between">
+                <div>
+                    <span class="apple-eyebrow">Bảo mật đa tầng</span>
+                    <h3 class="text-2xl font-semibold text-[#1d1d1f] tracking-tight mt-1 mb-3">
+                        Lớp kiểm soát ghi Write Permission Layer
+                    </h3>
+                    <p class="text-sm text-[#86868b] leading-relaxed mb-8">
+                        Mọi tác vụ can thiệp cơ sở dữ liệu đều được thẩm định quyền hạn nghiêm ngặt ở tầng backend: Tài khoản cá nhân chỉ được thao tác trên các lớp học được phân quyền rõ ràng.
+                    </p>
+                </div>
+                <div class="bg-[#f5f5f7] rounded-2xl p-5 border border-black/[0.04] space-y-2 text-xs">
+                    <div class="flex items-center justify-between">
+                        <span class="font-medium text-[#1d1d1f]">Chủ sở hữu Tổ chức</span>
+                        <span class="text-[#34c759] font-medium">Toàn quyền Niên khóa, Lớp, Học sinh</span>
+                    </div>
+                    <div class="w-full bg-black/[0.06] h-[1px]"></div>
+                    <div class="flex items-center justify-between">
+                        <span class="font-medium text-[#1d1d1f]">Thành viên được cấp quyền</span>
+                        <span class="text-[#0071e3] font-medium">Chỉ sửa điểm hạnh kiểm lớp được giao</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Bento Card 2: Square Card (5 cols) -->
+            <div class="md:col-span-5 apple-card p-8 sm:p-10 flex flex-col justify-between">
+                <div>
+                    <span class="apple-eyebrow">Nhật ký phiên bản</span>
+                    <h3 class="text-2xl font-semibold text-[#1d1d1f] tracking-tight mt-1 mb-3">
+                        Version History
+                    </h3>
+                    <p class="text-sm text-[#86868b] leading-relaxed mb-6">
+                        Ghi nhận chính xác giá trị trước và sau khi chỉnh sửa theo phong cách Google Sheets với nhãn tiếng Việt rõ ràng.
+                    </p>
+                </div>
+                <div class="p-4 bg-[#f5f5f7] rounded-2xl border border-black/[0.04] space-y-1.5 text-xs">
+                    <div class="text-[11px] text-[#86868b] font-medium">Điểm hạnh kiểm</div>
+                    <div class="flex items-center space-x-2">
+                        <span class="text-[#ff3b30] line-through">100</span>
+                        <i data-lucide="arrow-right" class="w-3.5 h-3.5 text-[#86868b]"></i>
+                        <span class="text-[#34c759] font-semibold">90</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Bento Card 3: Square Card (5 cols) -->
+            <div class="md:col-span-5 apple-card p-8 sm:p-10 flex flex-col justify-between">
+                <div>
+                    <span class="apple-eyebrow">Tự động hóa an toàn</span>
+                    <h3 class="text-2xl font-semibold text-[#1d1d1f] tracking-tight mt-1 mb-3">
+                        Undo & Redo thông minh
+                    </h3>
+                    <p class="text-sm text-[#86868b] leading-relaxed mb-6">
+                        Mọi lệnh sinh bởi AI đều lưu trữ chuỗi khôi phục đảo ngược. Bạn có thể hoàn tác ngay lập tức chỉ với 1 cú click.
+                    </p>
+                </div>
+                <div class="flex items-center space-x-3">
+                    <span class="px-3.5 py-1.5 rounded-full text-xs font-medium bg-black/5 text-[#1d1d1f] border border-black/5 inline-flex items-center">
+                        <i data-lucide="undo-2" class="w-3.5 h-3.5 mr-1.5"></i>Hoàn tác (Undo)
+                    </span>
+                    <span class="px-3.5 py-1.5 rounded-full text-xs font-medium bg-black/5 text-[#1d1d1f] border border-black/5 inline-flex items-center">
+                        <i data-lucide="redo-2" class="w-3.5 h-3.5 mr-1.5"></i>Làm lại (Redo)
+                    </span>
+                </div>
+            </div>
+
+            <!-- Bento Card 4: Wide Card (7 cols) -->
+            <div class="md:col-span-7 apple-card p-8 sm:p-10 flex flex-col justify-between">
+                <div>
+                    <span class="apple-eyebrow">Cơ sở dữ liệu hiệu năng</span>
+                    <h3 class="text-2xl font-semibold text-[#1d1d1f] tracking-tight mt-1 mb-3">
+                        Drizzle ORM & SQLite LibSQL
+                    </h3>
+                    <p class="text-sm text-[#86868b] leading-relaxed mb-6">
+                        Khởi động chỉ trong vài mili-giây, phản hồi truy vấn tức thời và bảo tồn toàn vẹn dữ liệu trong file SQLite độc lập.
+                    </p>
+                </div>
+                <div class="grid grid-cols-3 gap-3 text-center">
+                    <div class="bg-[#f5f5f7] p-3 rounded-2xl border border-black/[0.04]">
+                        <div class="text-lg font-semibold text-[#1d1d1f]">0ms</div>
+                        <div class="text-[10px] text-[#86868b]">Độ trễ local</div>
+                    </div>
+                    <div class="bg-[#f5f5f7] p-3 rounded-2xl border border-black/[0.04]">
+                        <div class="text-lg font-semibold text-[#1d1d1f]">100%</div>
+                        <div class="text-[10px] text-[#86868b]">Type-safe ORM</div>
+                    </div>
+                    <div class="bg-[#f5f5f7] p-3 rounded-2xl border border-black/[0.04]">
+                        <div class="text-lg font-semibold text-[#1d1d1f]">Zero</div>
+                        <div class="text-[10px] text-[#86868b]">Cấu hình rườm rà</div>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </section>
+
+    <!-- ========================================================================= -->
+    <!-- 5. CONFIGURATOR LIST PATTERN (<ConfiguratorList />)                        -->
+    <!-- ========================================================================= -->
+    <section id="configurator" class="py-20 px-4 sm:px-8 max-w-4xl mx-auto">
+        <div class="text-center mb-12 space-y-2">
+            <span class="apple-eyebrow">Cấu hình phân quyền mẫu</span>
+            <h2 class="text-3xl font-semibold text-[#1d1d1f] tracking-tight">
+                Chọn cấp bậc ủy quyền phù hợp
+            </h2>
+            <p class="text-sm text-[#86868b]">
+                Mô hình phân chia quyền hạn chuẩn mực giữa Tổ chức và Giảng viên.
+            </p>
+        </div>
+
+        <div class="space-y-3.5">
+            <!-- Option 1: Owner -->
+            <label class="block apple-card p-5 sm:p-6 cursor-pointer border-2 border-[#0071e3] shadow-sm transition-all" onclick="selectRole(this)">
+                <div class="flex items-center justify-between">
+                    <div class="flex items-center space-x-3.5">
+                        <div class="w-4 h-4 rounded-full border-4 border-[#0071e3] bg-white"></div>
+                        <div>
+                            <div class="text-sm font-semibold text-[#1d1d1f]">Quản trị viên Tổ chức (Organization Owner)</div>
+                            <div class="text-xs text-[#86868b] mt-0.5">Khởi tạo niên khóa, lớp học, mời thành viên và quản lý cấu trúc trường</div>
+                        </div>
+                    </div>
+                    <span class="text-xs font-semibold text-[#0071e3] hidden sm:inline">Khuyến nghị</span>
+                </div>
+            </label>
+
+            <!-- Option 2: Class Member -->
+            <label class="block apple-card p-5 sm:p-6 cursor-pointer border border-[#d2d2d7] hover:border-black/30 transition-all" onclick="selectRole(this)">
+                <div class="flex items-center justify-between">
+                    <div class="flex items-center space-x-3.5">
+                        <div class="w-4 h-4 rounded-full border border-[#86868b] bg-white"></div>
+                        <div>
+                            <div class="text-sm font-semibold text-[#1d1d1f]">Giáo viên Bộ môn / Chủ nhiệm (Class-level Access)</div>
+                            <div class="text-xs text-[#86868b] mt-0.5">Chỉ được ghi trên các lớp học được phân công; sửa điểm hạnh kiểm và theo dõi học sinh</div>
+                        </div>
+                    </div>
+                    <span class="text-xs text-[#86868b] hidden sm:inline">Quyền giới hạn</span>
+                </div>
+            </label>
+
+            <!-- Option 3: Read-only Member -->
+            <label class="block apple-card p-5 sm:p-6 cursor-pointer border border-[#d2d2d7] hover:border-black/30 transition-all" onclick="selectRole(this)">
+                <div class="flex items-center justify-between">
+                    <div class="flex items-center space-x-3.5">
+                        <div class="w-4 h-4 rounded-full border border-[#86868b] bg-white"></div>
+                        <div>
+                            <div class="text-sm font-semibold text-[#1d1d1f]">Thành viên Quan sát (Read-only Member)</div>
+                            <div class="text-xs text-[#86868b] mt-0.5">Xem danh sách lớp học, sổ điểm và xuất báo cáo; không được chỉnh sửa dữ liệu gốc</div>
+                        </div>
+                    </div>
+                    <span class="text-xs text-[#86868b] hidden sm:inline">Chỉ đọc</span>
+                </div>
+            </label>
+        </div>
+    </section>
+
+    <!-- ========================================================================= -->
+    <!-- 6. MINIMALIST APPLE FOOTER (<Footer />)                                   -->
+    <!-- ========================================================================= -->
+    <footer id="architecture" class="bg-[#f5f5f7] border-t border-black/[0.08] text-[#86868b] text-[11px] py-12 px-4 sm:px-8 mt-16">
+        <div class="max-w-6xl mx-auto space-y-6">
+            <p class="leading-relaxed">
+                1. EduManager vận hành dựa trên công nghệ V8 Isolate Sandbox (`isolated-vm`), cách ly hoàn toàn mã JavaScript sinh bởi AI khỏi tiến trình Node.js chính.
+                2. Mọi sửa đổi trạng thái học sinh đều được ghi nhận vào bảng `audit_logs_table` hỗ trợ kiểm toán dữ liệu và tính toán khác biệt theo thời gian thực.
+            </p>
+
+            <div class="h-[1px] bg-black/[0.08] w-full"></div>
+
+            <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                <div>
+                    Bản quyền &copy; 2026 EduManager. Thiết kế theo tiêu chuẩn Apple Human Interface Guidelines.
+                </div>
+                <div class="flex items-center space-x-4 text-[#1d1d1f]">
+                    <a href="/login" class="hover:underline">Đăng nhập</a>
+                    <a href="/signup" class="hover:underline">Đăng ký</a>
+                    <a href="/dashboard" class="hover:underline">Dashboard</a>
+                </div>
+            </div>
+        </div>
     </footer>
 
+    <!-- Client-side Interactivity Script -->
     <script type="module">
-        import { getAuthToken, decodeAuthToken, isAlreadyLogin } from "/public/clientAuth.js";
-        const tmpP = document.getElementById("tmp-p");
+        import { isAlreadyLogin, decodeAuthToken } from "/public/clientAuth.js";
 
+        // Segmented Control Switcher
+        window.switchTab = function(tabName) {
+            ['org', 'sheet', 'ai'].forEach(tab => {
+                const btn = document.getElementById(`tab-btn-${tab}`);
+                const content = document.getElementById(`tab-content-${tab}`);
+                if (tab === tabName) {
+                    btn.className = "apple-segmented-thumb px-5 py-1.5 text-xs font-medium transition-all";
+                    content.classList.remove('hidden');
+                } else {
+                    btn.className = "px-5 py-1.5 text-xs font-medium text-[#86868b] hover:text-[#1d1d1f] transition-all";
+                    content.classList.add('hidden');
+                }
+            });
+        };
+
+        // Configurator Selection
+        window.selectRole = function(selectedLabel) {
+            const labels = selectedLabel.parentElement.querySelectorAll('label');
+            labels.forEach(label => {
+                const dot = label.querySelector('.rounded-full');
+                if (label === selectedLabel) {
+                    label.className = "block apple-card p-5 sm:p-6 cursor-pointer border-2 border-[#0071e3] shadow-sm transition-all";
+                    dot.className = "w-4 h-4 rounded-full border-4 border-[#0071e3] bg-white";
+                } else {
+                    label.className = "block apple-card p-5 sm:p-6 cursor-pointer border border-[#d2d2d7] hover:border-black/30 transition-all";
+                    dot.className = "w-4 h-4 rounded-full border border-[#86868b] bg-white";
+                }
+            });
+        };
+
+        // User session handling in header
         if (isAlreadyLogin()) {
-            try {
-                const token = getAuthToken();
-                const decoded = await decodeAuthToken();
-                tmpP.innerHTML = `<span class="text-emerald-400 font-semibold">Đã đăng nhập</span><br><span class="text-slate-400">User:</span> ${decoded.username || 'N/A'} (${decoded.email || ''})<br><span class="text-slate-400">JWT Payload:</span> ${JSON.stringify(decoded)}`;
-            } catch (e) {
-                tmpP.innerHTML = `<span class="text-amber-400">Token không hợp lệ</span>`;
-            }
-        } else {
-            tmpP.innerHTML = `<span class="text-slate-500">Chưa đăng nhập (Chưa có Auth Token)</span>`;
+            decodeAuthToken().then(user => {
+                const headerAuth = document.getElementById('header-auth');
+                if (headerAuth && user && user.username) {
+                    headerAuth.innerHTML = `
+                        <span class="text-xs text-[#86868b] hidden sm:inline">${user.username}</span>
+                        <a href="/dashboard" class="rounded-full px-3.5 py-1 text-xs font-medium bg-[#0071e3] text-white hover:bg-[#0077ed] active:scale-95 transition-all">
+                            Dashboard
+                        </a>
+                        <a href="/logout" class="text-xs text-[#86868b] hover:text-[#1d1d1f] p-1.5 rounded-full hover:bg-black/5 flex items-center justify-center" title="Đăng xuất">
+                            <i data-lucide="log-out" class="w-3.5 h-3.5"></i>
+                        </a>
+                    `;
+                    if (window.lucide) window.lucide.createIcons();
+                }
+            }).catch(() => {});
         }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            if (window.lucide) window.lucide.createIcons();
+        });
     </script>
 </body>
 
