@@ -9,7 +9,8 @@ import {
     secureUpdateStudent,
     secureDeleteStudent,
     secureDeductConductScore,
-    secureInviteMember
+    secureInviteMember,
+    secureCloseMonthlyConduct
 } from './writePermissionLayer.js';
 import {
     deleteClass,
@@ -87,6 +88,9 @@ const WHITELISTED_SERVER_ACTIONS = {
     },
     'deduct_conduct_score': async (actorUser, orgId, params) => {
         return await secureDeductConductScore(actorUser, params.studentId, params.points, params.reason, 'AGENT');
+    },
+    'close_monthly_conduct': async (actorUser, orgId, params) => {
+        return await secureCloseMonthlyConduct(actorUser, params.classId, params.month, params.year, 'AGENT');
     }
 };
 
@@ -217,6 +221,9 @@ DANH SÁCH HÀM API SERVER & CÚ PHÁP (SERVER API SIGNATURES):
 
 12. await deductConductScore(studentId: number, points: number, reason: string): Promise<{ id: number, name: string, conductScore: number }>
     -> Trừ điểm hạnh kiểm của học sinh kèm lý do. Ví dụ: await deductConductScore(10, 5, "Đi học muộn")
+
+13. await closeMonthlyConduct(classId?: number, month?: number, year?: number): Promise<{ message: string }>
+    -> Chốt sổ hạnh kiểm tháng, xếp loại học sinh theo thang điểm (90-100: Tốt, 80-<90: Khá, 70-<80: Đạt, <70: Chưa đạt), lưu trữ lịch sử và đặt lại điểm hạnh kiểm cả lớp về 100. Ví dụ: await closeMonthlyConduct(currentClass?.id || 1, 10, 2026)
 
 YÊU CẦU ĐỊNH DẠNG JSON TRẢ VỀ (JSON OUTPUT SCHEMA):
 1. "thought": Luồng tư duy / suy nghĩ của Agent: Phân tích kỹ yêu cầu của người dùng, phân tích dữ liệu trong context, suy nghĩ về kết quả thực thi lệnh trước đó (nếu có), logic lựa chọn hàm API, các bước dự kiến và cách xử lý trường hợp đặc biệt.
@@ -716,6 +723,17 @@ export async function executeAiPlanOnServer(actorUser, orgId, planActions, codeS
             return res;
         }));
 
+        await jail.set('_closeMonthlyConduct', wrapSafeApi(async (classId, month, year) => {
+            const now = new Date();
+            const targetClassId = Number(classId || safeContext?.currentClass?.id);
+            const targetMonth = Number(month || (now.getMonth() + 1));
+            const targetYear = Number(year || now.getFullYear());
+            const params = { classId: targetClassId, month: targetMonth, year: targetYear };
+            const res = await WHITELISTED_SERVER_ACTIONS['close_monthly_conduct'](actorUser, orgId, params);
+            executedBatch.push({ action: 'close_monthly_conduct', params, result: res });
+            return res;
+        }));
+
         // Log capture function that collects logs into executionLogs array and outputs to host console
         await jail.set('_log', new ivm.Reference((msg) => {
             const str = typeof msg === 'string' ? msg : JSON.stringify(msg);
@@ -746,6 +764,7 @@ export async function executeAiPlanOnServer(actorUser, orgId, planActions, codeS
             const updateStudent = (...args) => callHost(_updateStudent, ...args);
             const deleteStudent = (...args) => callHost(_deleteStudent, ...args);
             const deductConductScore = (...args) => callHost(_deductConductScore, ...args);
+            const closeMonthlyConduct = (...args) => callHost(_closeMonthlyConduct, ...args);
             const console = {
                 log: (...args) => {
                     const str = args.map(a => {

@@ -82,6 +82,23 @@ export async function initDatabase() {
                 after_state TEXT,
                 source TEXT NOT NULL DEFAULT 'USER',
                 created_at TEXT NOT NULL
+            );`,
+            `CREATE TABLE IF NOT EXISTS monthly_conduct_summaries_table (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                organization_id INTEGER NOT NULL,
+                class_id INTEGER NOT NULL REFERENCES classes_table(id),
+                month INTEGER NOT NULL,
+                year INTEGER NOT NULL,
+                month_label TEXT NOT NULL,
+                student_id INTEGER NOT NULL REFERENCES students_table(id),
+                student_code TEXT NOT NULL,
+                student_name TEXT NOT NULL,
+                final_score REAL NOT NULL,
+                conduct_rank TEXT NOT NULL,
+                deduction_history_json TEXT,
+                closed_at TEXT NOT NULL,
+                closed_by_user_id INTEGER NOT NULL,
+                closed_by_user_name TEXT
             );`
         ]);
         console.log('✅ Cơ sở dữ liệu (Database) đã được đồng bộ cấu trúc bảng thành công.');

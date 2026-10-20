@@ -25,7 +25,10 @@ import {
     secureInviteMember,
     secureSetMemberClassPermissions,
     secureRemoveMember,
-    getAuditLogs
+    getAuditLogs,
+    getMonthlyConductData,
+    secureCloseMonthlyConduct,
+    secureReopenMonthlyConduct
 } from "../core/writePermissionLayer.js";
 import { syncBroker } from "../core/syncBroker.js";
 
@@ -457,6 +460,62 @@ export default async function (fastify) {
         try {
             const updated = await secureDeductConductScore(authUser, studentId, points, reason || 'Trừ điểm hạnh kiểm', "USER");
             return reply.send({ message: 'Trừ điểm hạnh kiểm thành công', student: updated });
+        } catch (err) {
+            return reply.status(403).send({ error: 'Forbidden', message: err.message });
+        }
+    });
+
+    // -------------------------------------------------------------
+    // MONTHLY CONDUCT SUMMARY & EVALUATION APIS
+    // -------------------------------------------------------------
+    fastify.get('/api/organization/classes/:classId/monthly-summaries', async (request, reply) => {
+        const authUser = await authenticate(request, reply);
+        if (!authUser) return;
+
+        const { classId } = request.params;
+        const now = new Date();
+        const month = request.query.month ? Number(request.query.month) : (now.getMonth() + 1);
+        const year = request.query.year ? Number(request.query.year) : now.getFullYear();
+
+        try {
+            const data = await getMonthlyConductData(authUser, classId, month, year);
+            return reply.send(data);
+        } catch (err) {
+            return reply.status(400).send({ error: 'Bad Request', message: err.message });
+        }
+    });
+
+    fastify.post('/api/organization/classes/:classId/monthly-summaries/close', async (request, reply) => {
+        const authUser = await authenticate(request, reply);
+        if (!authUser) return;
+
+        const { classId } = request.params;
+        const { month, year } = request.body || {};
+        const now = new Date();
+        const m = month ? Number(month) : (now.getMonth() + 1);
+        const y = year ? Number(year) : now.getFullYear();
+
+        try {
+            const res = await secureCloseMonthlyConduct(authUser, classId, m, y, "USER");
+            return reply.send(res);
+        } catch (err) {
+            return reply.status(400).send({ error: 'Bad Request', message: err.message });
+        }
+    });
+
+    fastify.post('/api/organization/classes/:classId/monthly-summaries/reopen', async (request, reply) => {
+        const authUser = await authenticate(request, reply);
+        if (!authUser) return;
+
+        const { classId } = request.params;
+        const { month, year } = request.body || {};
+        if (!month || !year) {
+            return reply.status(400).send({ error: 'Bad Request', message: 'Vui lòng cung cấp tháng và năm cần mở lại' });
+        }
+
+        try {
+            const res = await secureReopenMonthlyConduct(authUser, classId, Number(month), Number(year), "USER");
+            return reply.send(res);
         } catch (err) {
             return reply.status(403).send({ error: 'Forbidden', message: err.message });
         }

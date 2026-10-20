@@ -1,5 +1,5 @@
 import { db } from './db.js';
-import { auditLogsTable, studentsTable, classesTable, academicYearsTable, userTable } from './schema.js';
+import { auditLogsTable, studentsTable, classesTable, academicYearsTable, userTable, monthlyConductSummariesTable } from './schema.js';
 import { eq, and, desc } from 'drizzle-orm';
 import { syncBroker } from './syncBroker.js';
 import {
@@ -724,3 +724,304 @@ export async function getAuditLogs(actorUser, { classId = null, limit = 100 } = 
 
     return resultLogs;
 }
+
+/**
+ * 11. Helper to calculate conduct rank based on score:
+ * - 90 - 100: Tốt
+ * - 80 - dưới 90: Khá
+ * - 70 - dưới 80: Đạt
+ * - dưới 70: Chưa đạt
+ */
+export function calculateConductRank(score) {
+    const s = Number(score ?? 100);
+    if (s >= 90) return 'Tốt';
+    if (s >= 80) return 'Khá';
+    if (s >= 70) return 'Đạt';
+    return 'Chưa đạt';
+}
+
+/**
+ * 12. Get Monthly Conduct Data (Historical snapshot if closed, or live calculation preview if active)
+ */
+export async function getMonthlyConductData(actorUser, classId, month, year) {
+    const access = await checkUserClassAccess(actorUser.id, classId);
+    if (!access.canRead) {
+        throw new Error('Bạn không có quyền xem thông tin lớp học này.');
+    }
+
+    const numClassId = Number(classId);
+    const m = Number(month);
+    const y = Number(year);
+    const monthLabel = `Tháng ${m < 10 ? '0' + m : m}/${y}`;
+
+    // Check if there are already saved summary records for this class & month
+    const existing = await db
+        .select()
+        .from(monthlyConductSummariesTable)
+        .where(
+            and(
+                eq(monthlyConductSummariesTable.classId, numClassId),
+                eq(monthlyConductSummariesTable.month, m),
+                eq(monthlyConductSummariesTable.year, y)
+            )
+        );
+
+    if (existing.length > 0) {
+        // Closed historical snapshot
+        const first = existing[0];
+        const stats = {
+            total: existing.length,
+            tot: existing.filter(r => r.conductRank === 'Tốt').length,
+            kha: existing.filter(r => r.conductRank === 'Khá').length,
+            dat: existing.filter(r => r.conductRank === 'Đạt').length,
+            chuaDat: existing.filter(r => r.conductRank === 'Chưa đạt').length
+        };
+
+        const summaries = existing.map(item => ({
+            id: item.id,
+            studentId: item.studentId,
+            studentCode: item.studentCode,
+            studentName: item.studentName,
+            finalScore: item.finalScore,
+            conductRank: item.conductRank,
+            deductions: item.deductionHistoryJson ? JSON.parse(item.deductionHistoryJson) : [],
+            closedAt: item.closedAt
+        }));
+
+        return {
+            isClosed: true,
+            month: m,
+            year: y,
+            monthLabel,
+            closedInfo: {
+                closedAt: first.closedAt,
+                closedByUserName: first.closedByUserName || 'Giáo viên'
+            },
+            stats,
+            summaries
+        };
+    }
+
+    // Live preview from current students in class
+    const students = await db
+        .select()
+        .from(studentsTable)
+        .where(eq(studentsTable.classId, numClassId));
+
+    // Get deduction audit logs for this class
+    const logs = await db
+        .select()
+        .from(auditLogsTable)
+        .where(
+            and(
+                eq(auditLogsTable.classId, numClassId),
+                eq(auditLogsTable.action, 'DEDUCT_CONDUCT_SCORE')
+            )
+        );
+
+    const summaries = students.map(st => {
+        const score = Number(st.conductScore ?? 100);
+        const rank = calculateConductRank(score);
+
+        // Filter deduction logs for this student
+        const studentLogs = logs.filter(l => Number(l.entityId) === Number(st.id)).map(l => ({
+            reason: l.description,
+            time: l.createdAt,
+            actorName: l.userName
+        }));
+
+        return {
+            studentId: st.id,
+            studentCode: st.studentCode,
+            studentName: st.name,
+            finalScore: score,
+            conductRank: rank,
+            deductions: studentLogs,
+            currentReason: st.conductDeductionReason
+        };
+    });
+
+    const stats = {
+        total: summaries.length,
+        tot: summaries.filter(r => r.conductRank === 'Tốt').length,
+        kha: summaries.filter(r => r.conductRank === 'Khá').length,
+        dat: summaries.filter(r => r.conductRank === 'Đạt').length,
+        chuaDat: summaries.filter(r => r.conductRank === 'Chưa đạt').length
+    };
+
+    return {
+        isClosed: false,
+        month: m,
+        year: y,
+        monthLabel,
+        closedInfo: null,
+        stats,
+        summaries
+    };
+}
+
+/**
+ * 13. Secure Close Monthly Conduct & Reset Scores to 100
+ */
+export async function secureCloseMonthlyConduct(actorUser, classId, month, year, source = 'USER') {
+    const access = await checkUserClassAccess(actorUser.id, classId);
+    if (!access.canWrite) {
+        throw new Error('Bạn không có quyền chốt sổ hạnh kiểm lớp học này.');
+    }
+
+    const numClassId = Number(classId);
+    const m = Number(month);
+    const y = Number(year);
+    const monthLabel = `Tháng ${m < 10 ? '0' + m : m}/${y}`;
+
+    // Check if already closed
+    const existing = await db
+        .select()
+        .from(monthlyConductSummariesTable)
+        .where(
+            and(
+                eq(monthlyConductSummariesTable.classId, numClassId),
+                eq(monthlyConductSummariesTable.month, m),
+                eq(monthlyConductSummariesTable.year, y)
+            )
+        )
+        .limit(1);
+
+    if (existing.length > 0) {
+        throw new Error(`Hạnh kiểm ${monthLabel} của lớp này đã được chốt sổ trước đó.`);
+    }
+
+    const students = await db
+        .select()
+        .from(studentsTable)
+        .where(eq(studentsTable.classId, numClassId));
+
+    if (students.length === 0) {
+        throw new Error('Lớp học chưa có học sinh nào để chốt điểm.');
+    }
+
+    // Get deduction logs
+    const logs = await db
+        .select()
+        .from(auditLogsTable)
+        .where(
+            and(
+                eq(auditLogsTable.classId, numClassId),
+                eq(auditLogsTable.action, 'DEDUCT_CONDUCT_SCORE')
+            )
+        );
+
+    const nowIso = new Date().toISOString();
+    const actorName = actorUser.name || actorUser.username || actorUser.email;
+
+    const summaryInserts = students.map(st => {
+        const score = Number(st.conductScore ?? 100);
+        const rank = calculateConductRank(score);
+
+        const studentLogs = logs.filter(l => Number(l.entityId) === Number(st.id)).map(l => ({
+            reason: l.description,
+            time: l.createdAt,
+            actorName: l.userName
+        }));
+
+        return {
+            organizationId: access.organizationId,
+            classId: numClassId,
+            month: m,
+            year: y,
+            monthLabel,
+            studentId: st.id,
+            studentCode: st.studentCode,
+            studentName: st.name,
+            finalScore: score,
+            conductRank: rank,
+            deductionHistoryJson: JSON.stringify(studentLogs),
+            closedAt: nowIso,
+            closedByUserId: Number(actorUser.id),
+            closedByUserName: actorName
+        };
+    });
+
+    // Insert all summary records
+    for (const record of summaryInserts) {
+        await db.insert(monthlyConductSummariesTable).values(record);
+    }
+
+    // RESET all students in this class back to 100 conduct score and clear deduction reason
+    await db
+        .update(studentsTable)
+        .set({
+            conductScore: 100,
+            conductDeductionReason: null
+        })
+        .where(eq(studentsTable.classId, numClassId));
+
+    // Audit log
+    await logAuditChange({
+        actorUser,
+        organizationId: access.organizationId,
+        action: 'CLOSE_MONTHLY_CONDUCT',
+        entityType: 'class',
+        entityId: numClassId,
+        classId: numClassId,
+        description: `Chốt sổ & Đánh giá hạnh kiểm ${monthLabel} cho ${students.length} học sinh và đặt lại điểm về 100`,
+        beforeState: { studentCount: students.length, month: m, year: y },
+        afterState: { monthLabel, closedAt: nowIso, resetScore: 100 },
+        source
+    });
+
+    syncBroker.broadcastSyncEvent({
+        orgId: access.organizationId,
+        classId: numClassId,
+        type: 'MONTHLY_CONDUCT_CLOSED',
+        senderUserId: actorUser.id,
+        message: `Đã chốt sổ hạnh kiểm ${monthLabel} và đặt lại điểm về 100.`
+    });
+
+    return {
+        success: true,
+        monthLabel,
+        closedAt: nowIso,
+        studentCount: students.length,
+        message: `Đã chốt sổ hạnh kiểm ${monthLabel} thành công và đặt lại điểm về 100!`
+    };
+}
+
+/**
+ * 14. Secure Reopen Monthly Conduct (Owner only)
+ */
+export async function secureReopenMonthlyConduct(actorUser, classId, month, year, source = 'USER') {
+    const access = await checkUserClassAccess(actorUser.id, classId);
+    if (!access.isOwner) {
+        throw new Error('Chỉ Người sở hữu Tổ chức mới có quyền mở lại sổ hạnh kiểm đã chốt.');
+    }
+
+    const numClassId = Number(classId);
+    const m = Number(month);
+    const y = Number(year);
+
+    // Delete existing records for that month
+    await db
+        .delete(monthlyConductSummariesTable)
+        .where(
+            and(
+                eq(monthlyConductSummariesTable.classId, numClassId),
+                eq(monthlyConductSummariesTable.month, m),
+                eq(monthlyConductSummariesTable.year, y)
+            )
+        );
+
+    await logAuditChange({
+        actorUser,
+        organizationId: access.organizationId,
+        action: 'REOPEN_MONTHLY_CONDUCT',
+        entityType: 'class',
+        entityId: numClassId,
+        classId: numClassId,
+        description: `Mở lại sổ hạnh kiểm Tháng ${m}/${y} cho lớp`,
+        source
+    });
+
+    return { success: true, message: `Đã mở lại sổ hạnh kiểm Tháng ${m}/${y}.` };
+}
+

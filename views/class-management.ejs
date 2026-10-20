@@ -226,6 +226,10 @@
                         <i data-lucide="history" class="w-3.5 h-3.5"></i>
                         <span>Lịch sử Phiên bản</span>
                     </button>
+                    <button @click="openMonthlySummaryModal" class="excel-toolbar-btn text-[#15803d] border-[#34c759]/30 bg-[#34c759]/10 hover:bg-[#34c759]/20 font-medium">
+                        <i data-lucide="award" class="w-3.5 h-3.5 text-[#34c759]"></i>
+                        <span>Tổng kết Tháng</span>
+                    </button>
                     <div class="relative ml-2">
                         <i data-lucide="search" class="w-3.5 h-3.5 absolute left-3 top-2.5 text-[#86868b]"></i>
                         <input v-model="searchQuery" type="text" placeholder="Tìm kiếm học sinh..." class="pl-8 pr-3 py-1 bg-[#f5f5f7] border border-black/[0.08] rounded-full text-[#1d1d1f] text-xs focus:bg-white focus:border-[#0071e3] transition w-52 outline-none">
@@ -714,6 +718,220 @@
                 <div class="flex justify-end pt-3 border-t border-black/[0.06]">
                     <button @click="showAuditLogsModal = false" class="px-5 py-2 bg-black/[0.04] hover:bg-black/[0.08] text-[#1d1d1f] text-xs font-medium rounded-full transition">
                         Đóng
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Monthly Conduct Summary & Evaluation Modal -->
+        <div v-if="showMonthlySummaryModal" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-md">
+            <div class="bg-white border border-black/[0.08] rounded-[36px] max-w-5xl w-full p-6 shadow-[0_24px_70px_rgba(0,0,0,0.18)] flex flex-col max-h-[90vh]">
+                <!-- Modal Header -->
+                <div class="flex items-center justify-between pb-4 border-b border-black/[0.06]">
+                    <div class="flex items-center space-x-3">
+                        <div class="w-10 h-10 rounded-full bg-[#34c759]/10 text-[#34c759] border border-[#34c759]/20 flex items-center justify-center font-bold">
+                            <i data-lucide="award" class="w-5 h-5"></i>
+                        </div>
+                        <div>
+                            <h3 class="text-sm font-semibold text-[#1d1d1f] flex items-center gap-2">
+                                <span>Tổng kết & Xếp loại Hạnh kiểm — Lớp {{ currentClass?.name }}</span>
+                                <span v-if="monthlyData.isClosed" class="px-2.5 py-0.5 text-[10px] font-semibold bg-[#34c759]/10 text-[#15803d] rounded-full border border-[#34c759]/20 flex items-center gap-1">
+                                    <i data-lucide="check-circle" class="w-3 h-3"></i>Đã chốt sổ
+                                </span>
+                                <span v-else class="px-2.5 py-0.5 text-[10px] font-semibold bg-[#ff9500]/10 text-[#d97706] rounded-full border border-[#ff9500]/20 flex items-center gap-1">
+                                    <i data-lucide="clock" class="w-3 h-3"></i>Dữ liệu trực tiếp (Chưa chốt)
+                                </span>
+                            </h3>
+                            <p class="text-xs text-[#86868b]">
+                                Tự động xếp loại: Tốt (90-100), Khá (80-89), Đạt (70-79), Chưa đạt (&lt;70)
+                            </p>
+                        </div>
+                    </div>
+
+                    <!-- Month / Year Selector and Close Button -->
+                    <div class="flex items-center space-x-2">
+                        <div class="flex items-center bg-[#f5f5f7] rounded-full border border-black/[0.08] p-1 space-x-1">
+                            <select v-model="selectedSummaryMonth" @change="fetchMonthlySummary" class="bg-transparent text-xs font-medium text-[#1d1d1f] px-2 py-0.5 outline-none cursor-pointer">
+                                <option v-for="m in 12" :key="m" :value="m">Tháng {{ m < 10 ? '0' + m : m }}</option>
+                            </select>
+                            <span class="text-[#86868b] text-xs">/</span>
+                            <select v-model="selectedSummaryYear" @change="fetchMonthlySummary" class="bg-transparent text-xs font-medium text-[#1d1d1f] px-2 py-0.5 outline-none cursor-pointer">
+                                <option :value="2025">2025</option>
+                                <option :value="2026">2026</option>
+                                <option :value="2027">2027</option>
+                            </select>
+                        </div>
+
+                        <button @click="showMonthlySummaryModal = false" class="w-8 h-8 rounded-full hover:bg-black/[0.05] text-[#86868b] hover:text-[#1d1d1f] flex items-center justify-center transition">
+                            <i data-lucide="x" class="w-4 h-4"></i>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Closed Info Banner if Closed -->
+                <div v-if="monthlyData.isClosed && monthlyData.closedInfo" class="mt-3 p-3 bg-[#34c759]/10 border border-[#34c759]/20 rounded-2xl text-xs text-[#15803d] flex items-center justify-between">
+                    <span class="flex items-center gap-1.5">
+                        <i data-lucide="shield-check" class="w-4 h-4 text-[#34c759]"></i>
+                        <span>Đã chốt sổ và lưu lịch sử vào ngày <strong>{{ formatDate(monthlyData.closedInfo.closedAt) }}</strong> bởi <strong>{{ monthlyData.closedInfo.closedByUserName }}</strong>.</span>
+                    </span>
+                    <button v-if="userPermission.isOwner" @click="reopenMonthlyConduct" class="px-3 py-1 bg-white hover:bg-red-50 text-[#ff3b30] border border-[#ff3b30]/30 rounded-full font-medium transition text-[11px] active:scale-[0.98]">
+                        Mở lại sổ tháng này
+                    </button>
+                </div>
+
+                <!-- 4 Statistics Cards -->
+                <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 my-4">
+                    <!-- Tốt (90 - 100) -->
+                    <div class="p-3 bg-[#34c759]/5 border border-[#34c759]/20 rounded-2xl flex items-center space-x-3">
+                        <div class="w-9 h-9 rounded-xl bg-[#34c759]/10 text-[#15803d] flex items-center justify-center font-bold text-sm">
+                            <i data-lucide="sparkles" class="w-4 h-4"></i>
+                        </div>
+                        <div>
+                            <div class="text-[10px] text-[#86868b] font-medium uppercase tracking-wider">Hạnh kiểm Tốt (90-100)</div>
+                            <div class="text-base font-bold text-[#15803d]">{{ monthlyData.stats?.tot || 0 }} <span class="text-xs font-normal text-[#86868b]">HS</span></div>
+                        </div>
+                    </div>
+
+                    <!-- Khá (80 - dưới 90) -->
+                    <div class="p-3 bg-[#0071e3]/5 border border-[#0071e3]/20 rounded-2xl flex items-center space-x-3">
+                        <div class="w-9 h-9 rounded-xl bg-[#0071e3]/10 text-[#0071e3] flex items-center justify-center font-bold text-sm">
+                            <i data-lucide="check-check" class="w-4 h-4"></i>
+                        </div>
+                        <div>
+                            <div class="text-[10px] text-[#86868b] font-medium uppercase tracking-wider">Hạnh kiểm Khá (80-89)</div>
+                            <div class="text-base font-bold text-[#0071e3]">{{ monthlyData.stats?.kha || 0 }} <span class="text-xs font-normal text-[#86868b]">HS</span></div>
+                        </div>
+                    </div>
+
+                    <!-- Đạt (70 - dưới 80) -->
+                    <div class="p-3 bg-[#ff9500]/5 border border-[#ff9500]/20 rounded-2xl flex items-center space-x-3">
+                        <div class="w-9 h-9 rounded-xl bg-[#ff9500]/10 text-[#d97706] flex items-center justify-center font-bold text-sm">
+                            <i data-lucide="alert-circle" class="w-4 h-4"></i>
+                        </div>
+                        <div>
+                            <div class="text-[10px] text-[#86868b] font-medium uppercase tracking-wider">Hạnh kiểm Đạt (70-79)</div>
+                            <div class="text-base font-bold text-[#d97706]">{{ monthlyData.stats?.dat || 0 }} <span class="text-xs font-normal text-[#86868b]">HS</span></div>
+                        </div>
+                    </div>
+
+                    <!-- Chưa đạt (< 70) -->
+                    <div class="p-3 bg-[#ff3b30]/5 border border-[#ff3b30]/20 rounded-2xl flex items-center space-x-3">
+                        <div class="w-9 h-9 rounded-xl bg-[#ff3b30]/10 text-[#b91c1c] flex items-center justify-center font-bold text-sm">
+                            <i data-lucide="alert-triangle" class="w-4 h-4"></i>
+                        </div>
+                        <div>
+                            <div class="text-[10px] text-[#86868b] font-medium uppercase tracking-wider">Chưa đạt (&lt;70)</div>
+                            <div class="text-base font-bold text-[#b91c1c]">{{ monthlyData.stats?.chuaDat || 0 }} <span class="text-xs font-normal text-[#86868b]">HS</span></div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Student List Table -->
+                <div class="flex-1 overflow-y-auto border border-black/[0.08] rounded-2xl">
+                    <div v-if="loadingMonthlySummary" class="text-center py-16 text-[#86868b]">
+                        <i data-lucide="loader-2" class="w-6 h-6 animate-spin mb-2 text-[#0071e3] mx-auto"></i>
+                        <p class="text-xs">Đang tải dữ liệu xếp loại...</p>
+                    </div>
+
+                    <div v-else-if="!monthlyData.summaries || monthlyData.summaries.length === 0" class="text-center py-16 text-[#86868b]">
+                        <i data-lucide="users" class="w-8 h-8 mb-2 text-[#86868b] mx-auto opacity-40"></i>
+                        <p class="text-xs">Lớp học chưa có dữ liệu học sinh</p>
+                    </div>
+
+                    <table v-else class="w-full text-left text-xs border-collapse">
+                        <thead class="bg-[#fafafc] border-b border-black/[0.06] sticky top-0 z-10 text-[11px] text-[#86868b] font-semibold">
+                            <tr>
+                                <th class="p-2.5 text-center w-12">#</th>
+                                <th class="p-2.5 w-24">Mã HS</th>
+                                <th class="p-2.5">Họ và Tên</th>
+                                <th class="p-2.5 text-center w-28">Điểm Hạnh Kiểm</th>
+                                <th class="p-2.5 text-center w-32">Xếp Loại</th>
+                                <th class="p-2.5">Vi phạm / Lý do trừ điểm</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-black/[0.04]">
+                            <tr v-for="(item, sIdx) in monthlyData.summaries" :key="item.studentId || sIdx" class="hover:bg-black/[0.015] transition">
+                                <td class="p-2.5 text-center font-mono text-[#86868b]">{{ sIdx + 1 }}</td>
+                                <td class="p-2.5 font-mono text-[#86868b]">{{ item.studentCode || '—' }}</td>
+                                <td class="p-2.5 font-medium text-[#1d1d1f]">{{ item.studentName }}</td>
+                                <td class="p-2.5 text-center font-mono font-semibold text-sm" :class="item.finalScore >= 90 ? 'text-[#15803d]' : item.finalScore >= 80 ? 'text-[#0071e3]' : item.finalScore >= 70 ? 'text-[#d97706]' : 'text-[#b91c1c]'">
+                                    {{ item.finalScore }}
+                                </td>
+                                <td class="p-2.5 text-center">
+                                    <span :class="getRankBadgeClass(item.conductRank)" class="px-2.5 py-0.5 text-[10px] font-semibold rounded-full border inline-block">
+                                        {{ item.conductRank }}
+                                    </span>
+                                </td>
+                                <td class="p-2.5 text-[#86868b]">
+                                    <div v-if="item.deductions && item.deductions.length > 0" class="space-y-0.5">
+                                        <div v-for="(d, dIdx) in item.deductions" :key="dIdx" class="text-[11px] text-[#d97706] flex items-center gap-1">
+                                            <i data-lucide="alert-triangle" class="w-3 h-3 flex-shrink-0"></i>
+                                            <span>{{ d.reason }}</span>
+                                        </div>
+                                    </div>
+                                    <span v-else-if="item.currentReason" class="text-[11px] text-[#d97706] flex items-center gap-1">
+                                        <i data-lucide="alert-triangle" class="w-3 h-3 flex-shrink-0"></i>
+                                        <span>{{ item.currentReason }}</span>
+                                    </span>
+                                    <span v-else class="text-[11px] text-[#34c759] flex items-center gap-1">
+                                        <i data-lucide="check" class="w-3 h-3"></i> Tốt, không vi phạm
+                                    </span>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <!-- Footer Actions -->
+                <div class="flex items-center justify-between pt-4 border-t border-black/[0.06] mt-4">
+                    <button @click="exportMonthlySummaryCsv" class="px-4 py-2 bg-black/[0.04] hover:bg-black/[0.08] text-[#1d1d1f] rounded-full text-xs font-medium transition border border-black/[0.06] flex items-center space-x-1.5 active:scale-[0.98]">
+                        <i data-lucide="file-spreadsheet" class="w-3.5 h-3.5 text-[#86868b]"></i>
+                        <span>Xuất Báo Cáo CSV</span>
+                    </button>
+
+                    <div class="flex items-center space-x-2.5">
+                        <button @click="showMonthlySummaryModal = false" class="px-4 py-2 bg-black/[0.04] hover:bg-black/[0.08] text-[#1d1d1f] rounded-full text-xs font-medium transition">
+                            Đóng
+                        </button>
+                        <button v-if="!monthlyData.isClosed && userPermission.canWrite" @click="showCloseConfirmModal = true" class="px-5 py-2 bg-[#34c759] hover:bg-[#2fb34f] text-white rounded-full text-xs font-medium transition flex items-center space-x-1.5 shadow-sm active:scale-[0.98]">
+                            <i data-lucide="calendar-check" class="w-3.5 h-3.5"></i>
+                            <span>Chốt Sổ Tháng & Reset Điểm Về 100</span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Confirm Close Modal -->
+        <div v-if="showCloseConfirmModal" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-md">
+            <div class="bg-white border border-black/[0.08] rounded-[32px] max-w-md w-full p-6 shadow-2xl space-y-4">
+                <div class="flex items-center space-x-3">
+                    <div class="w-10 h-10 rounded-full bg-[#ff9500]/10 text-[#ff9500] border border-[#ff9500]/20 flex items-center justify-center font-bold">
+                        <i data-lucide="alert-triangle" class="w-5 h-5"></i>
+                    </div>
+                    <div>
+                        <h4 class="text-sm font-semibold text-[#1d1d1f]">Xác nhận chốt sổ hạnh kiểm?</h4>
+                        <p class="text-xs text-[#86868b]">Lớp {{ currentClass?.name }} — {{ monthlyData.monthLabel }}</p>
+                    </div>
+                </div>
+
+                <div class="p-3.5 bg-[#f5f5f7] rounded-2xl text-xs text-[#1d1d1f] space-y-2 border border-black/[0.05]">
+                    <p>Hệ thống sẽ thực hiện các thao tác sau:</p>
+                    <ul class="list-disc pl-5 space-y-1 text-[#86868b]">
+                        <li>Lưu trữ vĩnh viễn kết quả xếp loại hạnh kiểm của <strong>{{ monthlyData.summaries?.length || 0 }} học sinh</strong> trong {{ monthlyData.monthLabel }}.</li>
+                        <li><strong>Đặt lại điểm hạnh kiểm của toàn bộ học sinh về 100</strong> để bắt đầu tính cho tháng mới.</li>
+                        <li>Xóa lý do trừ điểm tạm thời của chu kỳ cũ.</li>
+                    </ul>
+                </div>
+
+                <div class="flex justify-end space-x-2 pt-2 border-t border-black/[0.06]">
+                    <button @click="showCloseConfirmModal = false" :disabled="closingMonthlyConduct" class="px-4 py-2 bg-black/[0.04] hover:bg-black/[0.08] text-[#1d1d1f] text-xs font-medium rounded-full transition">
+                        Hủy
+                    </button>
+                    <button @click="confirmCloseMonthlyConduct" :disabled="closingMonthlyConduct" class="px-5 py-2 bg-[#34c759] hover:bg-[#2fb34f] text-white text-xs font-medium rounded-full transition flex items-center space-x-1.5 shadow-sm active:scale-[0.98]">
+                        <i v-if="closingMonthlyConduct" data-lucide="loader-2" class="w-3.5 h-3.5 animate-spin"></i>
+                        <i v-else data-lucide="check" class="w-3.5 h-3.5"></i>
+                        <span>Đồng ý Chốt Sổ & Reset</span>
                     </button>
                 </div>
             </div>
@@ -1415,6 +1633,145 @@
                     }
                 }
 
+                // Monthly Conduct Summary & Evaluation
+                const showMonthlySummaryModal = ref(false);
+                const showCloseConfirmModal = ref(false);
+                const loadingMonthlySummary = ref(false);
+                const closingMonthlyConduct = ref(false);
+                const selectedSummaryMonth = ref((new Date()).getMonth() + 1);
+                const selectedSummaryYear = ref((new Date()).getFullYear());
+                const monthlyData = ref({
+                    isClosed: false,
+                    month: (new Date()).getMonth() + 1,
+                    year: (new Date()).getFullYear(),
+                    monthLabel: '',
+                    closedInfo: null,
+                    stats: { total: 0, tot: 0, kha: 0, dat: 0, chuaDat: 0 },
+                    summaries: []
+                });
+
+                async function openMonthlySummaryModal() {
+                    showMonthlySummaryModal.value = true;
+                    await fetchMonthlySummary();
+                }
+
+                async function fetchMonthlySummary() {
+                    loadingMonthlySummary.value = true;
+                    try {
+                        const headers = getTokenHeader();
+                        const classId = getClassIdFromUrl();
+                        const res = await fetch(`/api/organization/classes/${classId}/monthly-summaries?month=${selectedSummaryMonth.value}&year=${selectedSummaryYear.value}`, { headers });
+                        if (res.ok) {
+                            const data = await res.json();
+                            monthlyData.value = data;
+                        } else {
+                            const err = await res.json();
+                            showToast(err.message || 'Không thể tải tổng kết tháng', 'error');
+                        }
+                    } catch (e) {
+                        showToast('Lỗi kết nối máy chủ', 'error');
+                    } finally {
+                        loadingMonthlySummary.value = false;
+                        setTimeout(() => { if (window.renderLucideSafe) window.renderLucideSafe(); }, 50);
+                    }
+                }
+
+                async function confirmCloseMonthlyConduct() {
+                    closingMonthlyConduct.value = true;
+                    try {
+                        const headers = { ...getTokenHeader(), 'Content-Type': 'application/json' };
+                        const classId = getClassIdFromUrl();
+                        const res = await fetch(`/api/organization/classes/${classId}/monthly-summaries/close`, {
+                            method: 'POST',
+                            headers,
+                            body: JSON.stringify({
+                                month: selectedSummaryMonth.value,
+                                year: selectedSummaryYear.value
+                            })
+                        });
+                        const data = await res.json();
+                        if (res.ok) {
+                            showToast(data.message || 'Đã chốt sổ hạnh kiểm tháng và đặt lại điểm về 100!');
+                            showCloseConfirmModal.value = false;
+                            await fetchMonthlySummary();
+                            await fetchStudents();
+                        } else {
+                            showToast(data.message || 'Không thể chốt sổ hạnh kiểm', 'error');
+                        }
+                    } catch (e) {
+                        showToast('Lỗi kết nối máy chủ', 'error');
+                    } finally {
+                        closingMonthlyConduct.value = false;
+                    }
+                }
+
+                async function reopenMonthlyConduct() {
+                    if (!confirm(`Bạn có chắc chắn muốn mở lại sổ hạnh kiểm ${monthlyData.value.monthLabel}? Dữ liệu đã lưu của tháng này sẽ được mở lại để chỉnh sửa.`)) return;
+                    try {
+                        const headers = { ...getTokenHeader(), 'Content-Type': 'application/json' };
+                        const classId = getClassIdFromUrl();
+                        const res = await fetch(`/api/organization/classes/${classId}/monthly-summaries/reopen`, {
+                            method: 'POST',
+                            headers,
+                            body: JSON.stringify({
+                                month: selectedSummaryMonth.value,
+                                year: selectedSummaryYear.value
+                            })
+                        });
+                        const data = await res.json();
+                        if (res.ok) {
+                            showToast(data.message || 'Đã mở lại sổ hạnh kiểm thành công!');
+                            await fetchMonthlySummary();
+                        } else {
+                            showToast(data.message || 'Không thể mở lại sổ', 'error');
+                        }
+                    } catch (e) {
+                        showToast('Lỗi kết nối máy chủ', 'error');
+                    }
+                }
+
+                function exportMonthlySummaryCsv() {
+                    if (!monthlyData.value || !monthlyData.value.summaries || monthlyData.value.summaries.length === 0) {
+                        showToast('Chưa có dữ liệu để xuất', 'error');
+                        return;
+                    }
+                    const headers = ['STT', 'Mã Học Sinh', 'Họ và Tên', 'Điểm Hạnh Kiểm', 'Xếp Loại', 'Ghi Chú / Vi Phạm'];
+                    const rows = monthlyData.value.summaries.map((s, idx) => {
+                        const viPham = (s.deductions || []).map(d => d.reason).filter(Boolean).join('; ') || (s.currentReason || 'Không có vi phạm');
+                        return [
+                            idx + 1,
+                            `"${s.studentCode || ''}"`,
+                            `"${s.studentName || ''}"`,
+                            s.finalScore,
+                            `"${s.conductRank || ''}"`,
+                            `"${viPham.replace(/"/g, '""')}"`
+                        ];
+                    });
+
+                    const csvContent = '\uFEFF' + [headers.join(','), ...rows.map(r => r.join(','))].join('\n');
+                    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+                    const link = document.createElement('a');
+                    link.href = URL.createObjectURL(blob);
+                    link.download = `Bao_cao_hanh_kiem_${currentClass.value?.name || 'Lop'}_Thang_${selectedSummaryMonth.value}_${selectedSummaryYear.value}.csv`;
+                    link.click();
+                    showToast('Đã xuất báo cáo tổng kết tháng thành công!');
+                }
+
+                function getRankBadgeClass(rank) {
+                    switch (rank) {
+                        case 'Tốt':
+                            return 'bg-[#34c759]/10 text-[#15803d] border-[#34c759]/30';
+                        case 'Khá':
+                            return 'bg-[#0071e3]/10 text-[#0071e3] border-[#0071e3]/30';
+                        case 'Đạt':
+                            return 'bg-[#ff9500]/10 text-[#d97706] border-[#ff9500]/30';
+                        case 'Chưa đạt':
+                            return 'bg-[#ff3b30]/10 text-[#b91c1c] border-[#ff3b30]/30';
+                        default:
+                            return 'bg-black/[0.05] text-[#86868b] border-black/[0.08]';
+                    }
+                }
+
                 const refreshIcons = () => {
                     nextTick(() => {
                         if (window.lucide && window.lucide.createIcons) {
@@ -1423,7 +1780,7 @@
                     });
                 };
 
-                watch([students, searchQuery, showAiDrawer, showAiPreviewModal, showDeductModal, showAuditLogsModal, chatMessages, debugMode, toast], () => {
+                watch([students, searchQuery, showAiDrawer, showAiPreviewModal, showDeductModal, showAuditLogsModal, showMonthlySummaryModal, chatMessages, debugMode, toast], () => {
                     refreshIcons();
                 }, { deep: true });
 
@@ -1500,7 +1857,20 @@
                     classAuditLogs,
                     getStudentDeductionHistory,
                     onAiFileSelected,
-                    removeAiFile
+                    removeAiFile,
+                    showMonthlySummaryModal,
+                    showCloseConfirmModal,
+                    loadingMonthlySummary,
+                    closingMonthlyConduct,
+                    selectedSummaryMonth,
+                    selectedSummaryYear,
+                    monthlyData,
+                    openMonthlySummaryModal,
+                    fetchMonthlySummary,
+                    confirmCloseMonthlyConduct,
+                    reopenMonthlyConduct,
+                    exportMonthlySummaryCsv,
+                    getRankBadgeClass
                 };
             }
         }).mount('#app');

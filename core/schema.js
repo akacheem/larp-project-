@@ -76,3 +76,22 @@ export const auditLogsTable = sqliteTable("audit_logs_table", {
     source: text("source").notNull().default("USER"), // "USER" or "AGENT"
     createdAt: text("created_at").notNull()
 });
+
+// Monthly conduct evaluation & summary table (Chốt điểm & Xếp loại hạnh kiểm theo tháng)
+export const monthlyConductSummariesTable = sqliteTable("monthly_conduct_summaries_table", {
+    id: int({ mode: "number" }).primaryKey({ autoIncrement: true }),
+    organizationId: int("organization_id").notNull(),
+    classId: int("class_id").notNull().references(() => classesTable.id),
+    month: int("month").notNull(), // 1 - 12
+    year: int("year").notNull(), // e.g. 2026
+    monthLabel: text("month_label").notNull(), // e.g. "Tháng 10/2026"
+    studentId: int("student_id").notNull().references(() => studentsTable.id),
+    studentCode: text("student_code").notNull(),
+    studentName: text("student_name").notNull(),
+    finalScore: real("final_score").notNull(),
+    conductRank: text("conduct_rank").notNull(), // "Tốt", "Khá", "Đạt", "Chưa đạt"
+    deductionHistoryJson: text("deduction_history_json"), // JSON string array of deductions in this month
+    closedAt: text("closed_at").notNull(), // ISO timestamp
+    closedByUserId: int("closed_by_user_id").notNull(),
+    closedByUserName: text("closed_by_user_name")
+});
