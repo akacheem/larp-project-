@@ -247,16 +247,28 @@ YÊU CẦU ĐỊNH DẠNG JSON TRẢ VỀ (JSON OUTPUT SCHEMA):
             });
         }
 
-        const response = await ai.models.generateContent({
-            model: 'gemini-2.5-flash',
-            contents: [
-                { role: 'user', parts: parts }
-            ],
-            config: {
-                systemInstruction,
-                responseMimeType: 'application/json'
+        let response;
+        for (let attempt = 1; attempt <= 2; attempt++) {
+            try {
+                response = await ai.models.generateContent({
+                    model: 'gemini-3.6-flash',
+                    contents: [
+                        { role: 'user', parts: parts }
+                    ],
+                    config: {
+                        systemInstruction,
+                        responseMimeType: 'application/json'
+                    }
+                });
+                if (response && response.text) break;
+            } catch (attemptErr) {
+                if (attempt < 2) {
+                    await new Promise(res => setTimeout(res, 800));
+                } else {
+                    throw attemptErr;
+                }
             }
-        });
+        }
 
         if (response && response.text) {
             const parsed = JSON.parse(response.text);
@@ -309,7 +321,7 @@ ${executionOutput.error ? `- Lỗi phát sinh: ${executionOutput.error}` : ''}
 `;
 
         const response = await ai.models.generateContent({
-            model: 'gemini-2.5-flash',
+            model: 'gemini-3.6-flash',
             contents: [{ role: 'user', parts: [{ text: promptText }] }],
             config: {
                 systemInstruction,
