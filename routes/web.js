@@ -28,7 +28,9 @@ import {
     getAuditLogs,
     getMonthlyConductData,
     secureCloseMonthlyConduct,
-    secureReopenMonthlyConduct
+    secureReopenMonthlyConduct,
+    getClosedMonthlySummaryList,
+    secureUpdateMonthlySummaryItem
 } from "../core/writePermissionLayer.js";
 import { syncBroker } from "../core/syncBroker.js";
 
@@ -467,6 +469,7 @@ export default async function (fastify) {
 
     // -------------------------------------------------------------
     // MONTHLY CONDUCT SUMMARY & EVALUATION APIS
+    // Monthly Conduct Summaries
     // -------------------------------------------------------------
     fastify.get('/api/organization/classes/:classId/monthly-summaries', async (request, reply) => {
         const authUser = await authenticate(request, reply);
@@ -485,18 +488,31 @@ export default async function (fastify) {
         }
     });
 
+    fastify.get('/api/organization/classes/:classId/monthly-summaries/list', async (request, reply) => {
+        const authUser = await authenticate(request, reply);
+        if (!authUser) return;
+
+        const { classId } = request.params;
+        try {
+            const periods = await getClosedMonthlySummaryList(authUser, classId);
+            return reply.send({ periods });
+        } catch (err) {
+            return reply.status(400).send({ error: 'Bad Request', message: err.message });
+        }
+    });
+
     fastify.post('/api/organization/classes/:classId/monthly-summaries/close', async (request, reply) => {
         const authUser = await authenticate(request, reply);
         if (!authUser) return;
 
         const { classId } = request.params;
-        const { month, year } = request.body || {};
+        const { month, year, customTitle } = request.body || {};
         const now = new Date();
         const m = month ? Number(month) : (now.getMonth() + 1);
         const y = year ? Number(year) : now.getFullYear();
 
         try {
-            const res = await secureCloseMonthlyConduct(authUser, classId, m, y, "USER");
+            const res = await secureCloseMonthlyConduct(authUser, classId, m, y, customTitle, "USER");
             return reply.send(res);
         } catch (err) {
             return reply.status(400).send({ error: 'Bad Request', message: err.message });
@@ -518,6 +534,26 @@ export default async function (fastify) {
             return reply.send(res);
         } catch (err) {
             return reply.status(403).send({ error: 'Forbidden', message: err.message });
+        }
+    });
+
+    fastify.put('/api/organization/classes/:classId/monthly-summaries/:summaryId', async (request, reply) => {
+        const authUser = await authenticate(request, reply);
+        if (!authUser) return;
+
+        const { classId, summaryId } = request.params;
+        const { finalScore, note } = request.body || {};
+
+        if (finalScore === undefined || finalScore === null || isNaN(Number(finalScore))) {
+            return reply.status(400).send({ error: 'Bad Request', message: 'Vui lòng cung cấp điểm số hợp lệ (0-100).' });
+        }
+
+        try {
+            const res = await secureUpdateMonthlySummaryItem(authUser, classId, summaryId, { finalScore: Number(finalScore), note }, "USER");
+            return reply.send(res);
+        } catch (err) {
+            const status = err.message.includes('CHỈ_TỔ_CHỨC_MỚI_CÓ_QUYỀN') ? 403 : 400;
+            return reply.status(status).send({ error: status === 403 ? 'Forbidden' : 'Bad Request', message: err.message });
         }
     });
 

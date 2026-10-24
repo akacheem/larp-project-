@@ -734,7 +734,7 @@
                         </div>
                         <div>
                             <h3 class="text-sm font-semibold text-[#1d1d1f] flex items-center gap-2">
-                                <span>Tổng kết & Xếp loại Hạnh kiểm — Lớp {{ currentClass?.name }}</span>
+                                <span>{{ monthlyData.monthLabel ? monthlyData.monthLabel : 'Tổng kết & Xếp loại Hạnh kiểm' }} — Lớp {{ currentClass?.name }}</span>
                                 <span v-if="monthlyData.isClosed" class="px-2.5 py-0.5 text-[10px] font-semibold bg-[#34c759]/10 text-[#15803d] rounded-full border border-[#34c759]/20 flex items-center gap-1">
                                     <i data-lucide="check-circle" class="w-3 h-3"></i>Đã chốt sổ
                                 </span>
@@ -748,14 +748,26 @@
                         </div>
                     </div>
 
-                    <!-- Month / Year Selector and Close Button -->
+                    <!-- Period Selector (Past Closed Periods Dropdown + Custom Month/Year) and Close Button -->
                     <div class="flex items-center space-x-2">
+                        <!-- Dropdown of past closed periods -->
+                        <div v-if="closedPeriodsList && closedPeriodsList.length > 0" class="flex items-center bg-[#f5f5f7] rounded-full border border-black/[0.08] px-2.5 py-1">
+                            <i data-lucide="history" class="w-3.5 h-3.5 text-[#86868b] mr-1.5"></i>
+                            <select v-model="selectedPeriodKey" @change="onSelectPeriodKey" class="bg-transparent text-xs font-medium text-[#1d1d1f] outline-none cursor-pointer max-w-[200px] truncate">
+                                <option value="current">-- Xem kỳ khác / Tháng này --</option>
+                                <option v-for="p in closedPeriodsList" :key="p.year + '-' + p.month" :value="p.year + '-' + p.month">
+                                    {{ p.monthLabel }} (Đã chốt)
+                                </option>
+                            </select>
+                        </div>
+
+                        <!-- Month / Year Selector -->
                         <div class="flex items-center bg-[#f5f5f7] rounded-full border border-black/[0.08] p-1 space-x-1">
-                            <select v-model="selectedSummaryMonth" @change="fetchMonthlySummary" class="bg-transparent text-xs font-medium text-[#1d1d1f] px-2 py-0.5 outline-none cursor-pointer">
+                            <select v-model="selectedSummaryMonth" @change="onManualMonthYearChange" class="bg-transparent text-xs font-medium text-[#1d1d1f] px-2 py-0.5 outline-none cursor-pointer">
                                 <option v-for="m in 12" :key="m" :value="m">Tháng {{ m < 10 ? '0' + m : m }}</option>
                             </select>
                             <span class="text-[#86868b] text-xs">/</span>
-                            <select v-model="selectedSummaryYear" @change="fetchMonthlySummary" class="bg-transparent text-xs font-medium text-[#1d1d1f] px-2 py-0.5 outline-none cursor-pointer">
+                            <select v-model="selectedSummaryYear" @change="onManualMonthYearChange" class="bg-transparent text-xs font-medium text-[#1d1d1f] px-2 py-0.5 outline-none cursor-pointer">
                                 <option :value="2025">2025</option>
                                 <option :value="2026">2026</option>
                                 <option :value="2027">2027</option>
@@ -768,15 +780,23 @@
                     </div>
                 </div>
 
-                <!-- Closed Info Banner if Closed -->
-                <div v-if="monthlyData.isClosed && monthlyData.closedInfo" class="mt-3 p-3 bg-[#34c759]/10 border border-[#34c759]/20 rounded-2xl text-xs text-[#15803d] flex items-center justify-between">
+                <!-- Closed Info Banner & Permission Notification -->
+                <div v-if="monthlyData.isClosed && monthlyData.closedInfo" class="mt-3 p-3 bg-[#34c759]/10 border border-[#34c759]/20 rounded-2xl text-xs text-[#15803d] flex flex-wrap items-center justify-between gap-2">
                     <span class="flex items-center gap-1.5">
-                        <i data-lucide="shield-check" class="w-4 h-4 text-[#34c759]"></i>
-                        <span>Đã chốt sổ và lưu lịch sử vào ngày <strong>{{ formatDate(monthlyData.closedInfo.closedAt) }}</strong> bởi <strong>{{ monthlyData.closedInfo.closedByUserName }}</strong>.</span>
+                        <i data-lucide="shield-check" class="w-4 h-4 text-[#34c759] flex-shrink-0"></i>
+                        <span>Đã chốt sổ kỳ <strong>"{{ monthlyData.monthLabel }}"</strong> vào ngày <strong>{{ formatDate(monthlyData.closedInfo.closedAt) }}</strong> bởi <strong>{{ monthlyData.closedInfo.closedByUserName }}</strong>.</span>
                     </span>
-                    <button v-if="userPermission.isOwner" @click="reopenMonthlyConduct" class="px-3 py-1 bg-white hover:bg-red-50 text-[#ff3b30] border border-[#ff3b30]/30 rounded-full font-medium transition text-[11px] active:scale-[0.98]">
-                        Mở lại sổ tháng này
-                    </button>
+                    <div class="flex items-center space-x-2">
+                        <span v-if="isOrganizationAccountUser" class="px-2 py-0.5 bg-[#0071e3]/10 text-[#0071e3] border border-[#0071e3]/20 rounded-full font-medium text-[11px] flex items-center gap-1">
+                            <i data-lucide="edit-3" class="w-3 h-3"></i> Có quyền sửa điểm sai sót (TK Tổ chức)
+                        </span>
+                        <span v-else class="px-2 py-0.5 bg-black/[0.05] text-[#86868b] border border-black/[0.08] rounded-full font-medium text-[11px] flex items-center gap-1">
+                            <i data-lucide="lock" class="w-3 h-3"></i> Chỉ xem & xuất CSV (TK Cá nhân)
+                        </span>
+                        <button v-if="userPermission.isOwner" @click="reopenMonthlyConduct" class="px-3 py-1 bg-white hover:bg-red-50 text-[#ff3b30] border border-[#ff3b30]/30 rounded-full font-medium transition text-[11px] active:scale-[0.98]">
+                            Mở lại sổ tháng này
+                        </button>
+                    </div>
                 </div>
 
                 <!-- 4 Statistics Cards -->
@@ -844,38 +864,71 @@
                                 <th class="p-2.5 text-center w-12">#</th>
                                 <th class="p-2.5 w-24">Mã HS</th>
                                 <th class="p-2.5">Họ và Tên</th>
-                                <th class="p-2.5 text-center w-28">Điểm Hạnh Kiểm</th>
+                                <th class="p-2.5 text-center w-36">Điểm Hạnh Kiểm</th>
                                 <th class="p-2.5 text-center w-32">Xếp Loại</th>
                                 <th class="p-2.5">Vi phạm / Lý do trừ điểm</th>
+                                <th v-if="monthlyData.isClosed && isOrganizationAccountUser" class="p-2.5 text-center w-24">Thao tác</th>
                             </tr>
                         </thead>
                         <tbody class="divide-y divide-black/[0.04]">
-                            <tr v-for="(item, sIdx) in monthlyData.summaries" :key="item.studentId || sIdx" class="hover:bg-black/[0.015] transition">
+                            <tr v-for="(item, sIdx) in monthlyData.summaries" :key="item.id || item.studentId || sIdx" class="hover:bg-black/[0.015] transition">
                                 <td class="p-2.5 text-center font-mono text-[#86868b]">{{ sIdx + 1 }}</td>
                                 <td class="p-2.5 font-mono text-[#86868b]">{{ item.studentCode || '—' }}</td>
                                 <td class="p-2.5 font-medium text-[#1d1d1f]">{{ item.studentName }}</td>
-                                <td class="p-2.5 text-center font-mono font-semibold text-sm" :class="item.finalScore >= 90 ? 'text-[#15803d]' : item.finalScore >= 80 ? 'text-[#0071e3]' : item.finalScore >= 70 ? 'text-[#d97706]' : 'text-[#b91c1c]'">
-                                    {{ item.finalScore }}
+                                
+                                <!-- Score column: Organization can inline edit if closed, or normal view -->
+                                <td class="p-2.5 text-center font-mono">
+                                    <div v-if="monthlyData.isClosed && isOrganizationAccountUser && editingSummaryItem?.id === item.id" class="flex items-center justify-center space-x-1">
+                                        <input v-model.number="editingSummaryItem.score" type="number" min="0" max="100" class="w-16 px-1.5 py-0.5 border border-[#0071e3] rounded font-mono font-bold text-center text-sm text-[#0071e3] focus:outline-none focus:ring-1 focus:ring-[#0071e3]" />
+                                    </div>
+                                    <div v-else class="font-semibold text-sm" :class="item.finalScore >= 90 ? 'text-[#15803d]' : item.finalScore >= 80 ? 'text-[#0071e3]' : item.finalScore >= 70 ? 'text-[#d97706]' : 'text-[#b91c1c]'">
+                                        {{ item.finalScore }}
+                                    </div>
                                 </td>
+
                                 <td class="p-2.5 text-center">
                                     <span :class="getRankBadgeClass(item.conductRank)" class="px-2.5 py-0.5 text-[10px] font-semibold rounded-full border inline-block">
                                         {{ item.conductRank }}
                                     </span>
                                 </td>
+
                                 <td class="p-2.5 text-[#86868b]">
-                                    <div v-if="item.deductions && item.deductions.length > 0" class="space-y-0.5">
-                                        <div v-for="(d, dIdx) in item.deductions" :key="dIdx" class="text-[11px] text-[#d97706] flex items-center gap-1">
-                                            <i data-lucide="alert-triangle" class="w-3 h-3 flex-shrink-0"></i>
-                                            <span>{{ d.reason }}</span>
-                                        </div>
+                                    <div v-if="monthlyData.isClosed && isOrganizationAccountUser && editingSummaryItem?.id === item.id" class="space-y-1">
+                                        <input v-model="editingSummaryItem.note" type="text" placeholder="Lý do điều chỉnh sai sót..." class="w-full px-2 py-1 text-xs border border-black/[0.1] rounded-lg outline-none focus:border-[#0071e3]" />
                                     </div>
-                                    <span v-else-if="item.currentReason" class="text-[11px] text-[#d97706] flex items-center gap-1">
-                                        <i data-lucide="alert-triangle" class="w-3 h-3 flex-shrink-0"></i>
-                                        <span>{{ item.currentReason }}</span>
-                                    </span>
-                                    <span v-else class="text-[11px] text-[#34c759] flex items-center gap-1">
-                                        <i data-lucide="check" class="w-3 h-3"></i> Tốt, không vi phạm
-                                    </span>
+                                    <div v-else>
+                                        <div v-if="item.deductions && item.deductions.length > 0" class="space-y-0.5">
+                                            <div v-for="(d, dIdx) in item.deductions" :key="dIdx" class="text-[11px] text-[#d97706] flex items-center gap-1">
+                                                <i data-lucide="alert-triangle" class="w-3 h-3 flex-shrink-0"></i>
+                                                <span>{{ d.reason }}</span>
+                                            </div>
+                                        </div>
+                                        <span v-else-if="item.currentReason" class="text-[11px] text-[#d97706] flex items-center gap-1">
+                                            <i data-lucide="alert-triangle" class="w-3 h-3 flex-shrink-0"></i>
+                                            <span>{{ item.currentReason }}</span>
+                                        </span>
+                                        <span v-else class="text-[11px] text-[#34c759] flex items-center gap-1">
+                                            <i data-lucide="check" class="w-3 h-3"></i> Tốt, không vi phạm
+                                        </span>
+                                    </div>
+                                </td>
+
+                                <!-- Action Column for Organization in Closed Snapshots -->
+                                <td v-if="monthlyData.isClosed && isOrganizationAccountUser" class="p-2.5 text-center">
+                                    <div v-if="editingSummaryItem?.id === item.id" class="flex items-center justify-center space-x-1">
+                                        <button @click="saveEditSummaryItem" :disabled="savingSummaryItem" class="p-1 rounded bg-[#34c759]/15 text-[#15803d] hover:bg-[#34c759]/25 transition" title="Lưu điểm mới">
+                                            <i v-if="savingSummaryItem" data-lucide="loader-2" class="w-3.5 h-3.5 animate-spin"></i>
+                                            <i v-else data-lucide="check" class="w-3.5 h-3.5"></i>
+                                        </button>
+                                        <button @click="cancelEditSummaryItem" class="p-1 rounded bg-black/[0.05] text-[#86868b] hover:bg-black/[0.1] transition" title="Hủy">
+                                            <i data-lucide="x" class="w-3.5 h-3.5"></i>
+                                        </button>
+                                    </div>
+                                    <div v-else>
+                                        <button @click="startEditSummaryItem(item)" class="px-2 py-0.5 text-[10px] font-medium text-[#0071e3] bg-[#0071e3]/10 hover:bg-[#0071e3]/20 border border-[#0071e3]/20 rounded-full transition" title="Tài khoản Tổ chức sửa sai sót">
+                                            Sửa điểm
+                                        </button>
+                                    </div>
                                 </td>
                             </tr>
                         </tbody>
@@ -885,8 +938,8 @@
                 <!-- Footer Actions -->
                 <div class="flex items-center justify-between pt-4 border-t border-black/[0.06] mt-4">
                     <button @click="exportMonthlySummaryCsv" class="px-4 py-2 bg-black/[0.04] hover:bg-black/[0.08] text-[#1d1d1f] rounded-full text-xs font-medium transition border border-black/[0.06] flex items-center space-x-1.5 active:scale-[0.98]">
-                        <i data-lucide="file-spreadsheet" class="w-3.5 h-3.5 text-[#86868b]"></i>
-                        <span>Xuất Báo Cáo CSV</span>
+                        <i data-lucide="file-spreadsheet" class="w-3.5 h-3.5 text-[#15803d]"></i>
+                        <span>Xuất CSV Báo Cáo Cấp Trên</span>
                     </button>
 
                     <div class="flex items-center space-x-2.5">
@@ -895,14 +948,14 @@
                         </button>
                         <button v-if="!monthlyData.isClosed && userPermission.canWrite" @click="showCloseConfirmModal = true" class="px-5 py-2 bg-[#34c759] hover:bg-[#2fb34f] text-white rounded-full text-xs font-medium transition flex items-center space-x-1.5 shadow-sm active:scale-[0.98]">
                             <i data-lucide="calendar-check" class="w-3.5 h-3.5"></i>
-                            <span>Chốt Sổ Tháng & Reset Điểm Về 100</span>
+                            <span>Chốt Sổ Kỳ Này & Reset Điểm Về 100</span>
                         </button>
                     </div>
                 </div>
             </div>
         </div>
 
-        <!-- Confirm Close Modal -->
+        <!-- Confirm Close Modal with Custom Title Input -->
         <div v-if="showCloseConfirmModal" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-md">
             <div class="bg-white border border-black/[0.08] rounded-[32px] max-w-md w-full p-6 shadow-2xl space-y-4">
                 <div class="flex items-center space-x-3">
@@ -911,15 +964,25 @@
                     </div>
                     <div>
                         <h4 class="text-sm font-semibold text-[#1d1d1f]">Xác nhận chốt sổ hạnh kiểm?</h4>
-                        <p class="text-xs text-[#86868b]">Lớp {{ currentClass?.name }} — {{ monthlyData.monthLabel }}</p>
+                        <p class="text-xs text-[#86868b]">Lớp {{ currentClass?.name }} — Tháng {{ selectedSummaryMonth }}/{{ selectedSummaryYear }}</p>
                     </div>
                 </div>
 
+                <!-- Custom Period Name / Report Title Input -->
+                <div class="space-y-1.5">
+                    <label class="text-xs font-medium text-[#1d1d1f] flex items-center justify-between">
+                        <span>Tự đặt tên kỳ tổng kết / Báo cáo:</span>
+                        <span class="text-[10px] text-[#86868b]">Tùy chọn</span>
+                    </label>
+                    <input v-model="customCloseTitle" type="text" :placeholder="'Báo cáo hạnh kiểm Tháng ' + (selectedSummaryMonth < 10 ? '0' + selectedSummaryMonth : selectedSummaryMonth) + '/' + selectedSummaryYear" class="w-full px-3 py-2 text-xs border border-black/[0.1] rounded-xl outline-none focus:border-[#34c759] bg-[#fafafc]" />
+                    <p class="text-[11px] text-[#86868b]">Tên này sẽ hiển thị trong danh sách kỳ báo cáo và trên tiêu đề file CSV gửi cấp trên.</p>
+                </div>
+
                 <div class="p-3.5 bg-[#f5f5f7] rounded-2xl text-xs text-[#1d1d1f] space-y-2 border border-black/[0.05]">
-                    <p>Hệ thống sẽ thực hiện các thao tác sau:</p>
+                    <p class="font-medium text-[#1d1d1f]">Hệ thống sẽ thực hiện các thao tác sau:</p>
                     <ul class="list-disc pl-5 space-y-1 text-[#86868b]">
-                        <li>Lưu trữ vĩnh viễn kết quả xếp loại hạnh kiểm của <strong>{{ monthlyData.summaries?.length || 0 }} học sinh</strong> trong {{ monthlyData.monthLabel }}.</li>
-                        <li><strong>Đặt lại điểm hạnh kiểm của toàn bộ học sinh về 100</strong> để bắt đầu tính cho tháng mới.</li>
+                        <li>Lưu trữ vĩnh viễn kết quả xếp loại hạnh kiểm của <strong>{{ monthlyData.summaries?.length || 0 }} học sinh</strong>.</li>
+                        <li><strong>Đặt lại điểm hạnh kiểm của toàn bộ học sinh về 100</strong> để bắt đầu tính cho chu kỳ mới.</li>
                         <li>Xóa lý do trừ điểm tạm thời của chu kỳ cũ.</li>
                     </ul>
                 </div>
@@ -1640,6 +1703,16 @@
                 const closingMonthlyConduct = ref(false);
                 const selectedSummaryMonth = ref((new Date()).getMonth() + 1);
                 const selectedSummaryYear = ref((new Date()).getFullYear());
+                const closedPeriodsList = ref([]);
+                const selectedPeriodKey = ref('current');
+                const customCloseTitle = ref('');
+                const editingSummaryItem = ref(null);
+                const savingSummaryItem = ref(false);
+
+                const isOrganizationAccountUser = computed(() => {
+                    return Boolean(user.value?.isOrganizationAccount || userPermission.value.isOwner);
+                });
+
                 const monthlyData = ref({
                     isClosed: false,
                     month: (new Date()).getMonth() + 1,
@@ -1650,13 +1723,56 @@
                     summaries: []
                 });
 
+                async function fetchClosedPeriodsList() {
+                    try {
+                        const headers = getTokenHeader();
+                        const classId = getClassIdFromUrl();
+                        const res = await fetch(`/api/organization/classes/${classId}/monthly-summaries/list`, { headers });
+                        if (res.ok) {
+                            const data = await res.json();
+                            closedPeriodsList.value = data.periods || [];
+                        }
+                    } catch (e) {
+                        console.error('Lỗi khi tải danh sách các kỳ đã chốt', e);
+                    }
+                }
+
                 async function openMonthlySummaryModal() {
                     showMonthlySummaryModal.value = true;
+                    editingSummaryItem.value = null;
+                    customCloseTitle.value = '';
+                    await fetchClosedPeriodsList();
                     await fetchMonthlySummary();
+                }
+
+                function onSelectPeriodKey() {
+                    if (selectedPeriodKey.value === 'current') {
+                        const now = new Date();
+                        selectedSummaryMonth.value = now.getMonth() + 1;
+                        selectedSummaryYear.value = now.getFullYear();
+                    } else {
+                        const [y, m] = selectedPeriodKey.value.split('-').map(Number);
+                        selectedSummaryYear.value = y;
+                        selectedSummaryMonth.value = m;
+                    }
+                    editingSummaryItem.value = null;
+                    fetchMonthlySummary();
+                }
+
+                function onManualMonthYearChange() {
+                    const match = closedPeriodsList.value.find(p => p.month === selectedSummaryMonth.value && p.year === selectedSummaryYear.value);
+                    if (match) {
+                        selectedPeriodKey.value = `${match.year}-${match.month}`;
+                    } else {
+                        selectedPeriodKey.value = 'current';
+                    }
+                    editingSummaryItem.value = null;
+                    fetchMonthlySummary();
                 }
 
                 async function fetchMonthlySummary() {
                     loadingMonthlySummary.value = true;
+                    editingSummaryItem.value = null;
                     try {
                         const headers = getTokenHeader();
                         const classId = getClassIdFromUrl();
@@ -1686,13 +1802,16 @@
                             headers,
                             body: JSON.stringify({
                                 month: selectedSummaryMonth.value,
-                                year: selectedSummaryYear.value
+                                year: selectedSummaryYear.value,
+                                customTitle: customCloseTitle.value.trim() || undefined
                             })
                         });
                         const data = await res.json();
                         if (res.ok) {
                             showToast(data.message || 'Đã chốt sổ hạnh kiểm tháng và đặt lại điểm về 100!');
                             showCloseConfirmModal.value = false;
+                            customCloseTitle.value = '';
+                            await fetchClosedPeriodsList();
                             await fetchMonthlySummary();
                             await fetchStudents();
                         } else {
@@ -1706,7 +1825,7 @@
                 }
 
                 async function reopenMonthlyConduct() {
-                    if (!confirm(`Bạn có chắc chắn muốn mở lại sổ hạnh kiểm ${monthlyData.value.monthLabel}? Dữ liệu đã lưu của tháng này sẽ được mở lại để chỉnh sửa.`)) return;
+                    if (!confirm(`Bạn có chắc chắn muốn mở lại sổ hạnh kiểm "${monthlyData.value.monthLabel}"? Dữ liệu đã lưu của tháng này sẽ được mở lại để chỉnh sửa.`)) return;
                     try {
                         const headers = { ...getTokenHeader(), 'Content-Type': 'application/json' };
                         const classId = getClassIdFromUrl();
@@ -1721,6 +1840,7 @@
                         const data = await res.json();
                         if (res.ok) {
                             showToast(data.message || 'Đã mở lại sổ hạnh kiểm thành công!');
+                            await fetchClosedPeriodsList();
                             await fetchMonthlySummary();
                         } else {
                             showToast(data.message || 'Không thể mở lại sổ', 'error');
@@ -1730,14 +1850,91 @@
                     }
                 }
 
+                // Inline edit for organization accounts in past closed summaries
+                function startEditSummaryItem(item) {
+                    if (!isOrganizationAccountUser.value) {
+                        showToast('Chỉ tài khoản cấp Tổ chức mới có quyền chỉnh sửa điểm của tháng đã tổng kết!', 'error');
+                        return;
+                    }
+                    editingSummaryItem.value = {
+                        id: item.id,
+                        score: item.finalScore,
+                        note: ''
+                    };
+                }
+
+                function cancelEditSummaryItem() {
+                    editingSummaryItem.value = null;
+                }
+
+                async function saveEditSummaryItem() {
+                    if (!editingSummaryItem.value) return;
+                    if (!isOrganizationAccountUser.value) {
+                        showToast('Chỉ tài khoản cấp Tổ chức mới có quyền chỉnh sửa điểm!', 'error');
+                        return;
+                    }
+
+                    const score = Number(editingSummaryItem.value.score);
+                    if (isNaN(score) || score < 0 || score > 100) {
+                        showToast('Điểm hạnh kiểm phải từ 0 đến 100!', 'error');
+                        return;
+                    }
+
+                    savingSummaryItem.value = true;
+                    try {
+                        const headers = { ...getTokenHeader(), 'Content-Type': 'application/json' };
+                        const classId = getClassIdFromUrl();
+                        const res = await fetch(`/api/organization/classes/${classId}/monthly-summaries/${editingSummaryItem.value.id}`, {
+                            method: 'PUT',
+                            headers,
+                            body: JSON.stringify({
+                                finalScore: score,
+                                note: editingSummaryItem.value.note
+                            })
+                        });
+                        const data = await res.json();
+                        if (res.ok) {
+                            showToast(data.message || 'Đã sửa điểm tổng kết thành công!');
+                            editingSummaryItem.value = null;
+                            await fetchMonthlySummary();
+                        } else {
+                            showToast(data.message || 'Không thể cập nhật điểm', 'error');
+                        }
+                    } catch (e) {
+                        showToast('Lỗi kết nối khi cập nhật điểm', 'error');
+                    } finally {
+                        savingSummaryItem.value = false;
+                    }
+                }
+
                 function exportMonthlySummaryCsv() {
                     if (!monthlyData.value || !monthlyData.value.summaries || monthlyData.value.summaries.length === 0) {
                         showToast('Chưa có dữ liệu để xuất', 'error');
                         return;
                     }
-                    const headers = ['STT', 'Mã Học Sinh', 'Họ và Tên', 'Điểm Hạnh Kiểm', 'Xếp Loại', 'Ghi Chú / Vi Phạm'];
-                    const rows = monthlyData.value.summaries.map((s, idx) => {
-                        const viPham = (s.deductions || []).map(d => d.reason).filter(Boolean).join('; ') || (s.currentReason || 'Không có vi phạm');
+
+                    const className = currentClass.value?.name || 'Lớp';
+                    const reportTitle = monthlyData.value.monthLabel || `Báo cáo Hạnh kiểm Tháng ${selectedSummaryMonth.value}/${selectedSummaryYear.value}`;
+                    const stats = monthlyData.value.stats || { total: 0, tot: 0, kha: 0, dat: 0, chuaDat: 0 };
+                    const creatorName = monthlyData.value.closedInfo?.closedByUserName || displayName.value || 'Người lập';
+
+                    // Format high-level formal header for superiors / school board
+                    const reportHeaderRows = [
+                        `"CỘNG HÒA XÃ HỘI CHỦ NGHĨA VIỆT NAM"`,
+                        `"Độc lập - Tự do - Hạnh phúc"`,
+                        `""`,
+                        `"BÁO CÁO TỔNG KẾT ĐÁNH GIÁ & XẾP LOẠI HẠNH KIỂM"`,
+                        `"Tiêu đề kỳ báo cáo: ${reportTitle.replace(/"/g, '""')}"`,
+                        `"Lớp: ${className} | Niên khóa / Thời gian xuất: ${new Date().toLocaleDateString('vi-VN')}"`,
+                        `"Người lập báo cáo: ${creatorName.replace(/"/g, '""')}"`,
+                        `""`,
+                        `"THỐNG KÊ XẾP LOẠI: Tổng số: ${stats.total} HS | Tốt (90-100đ): ${stats.tot} HS | Khá (80-89đ): ${stats.kha} HS | Đạt (70-79đ): ${stats.dat} HS | Chưa đạt (<70đ): ${stats.chuaDat} HS"`,
+                        `""`
+                    ];
+
+                    const tableHeaders = ['STT', 'Mã Học Sinh', 'Họ và Tên', 'Điểm Hạnh Kiểm', 'Xếp Loại', 'Chi Tiết Vi Phạm / Ghi Chú'];
+                    const dataRows = monthlyData.value.summaries.map((s, idx) => {
+                        const viPham = (s.deductions || []).map(d => d.reason).filter(Boolean).join('; ') || (s.currentReason || 'Tốt, không có vi phạm');
                         return [
                             idx + 1,
                             `"${s.studentCode || ''}"`,
@@ -1745,16 +1942,17 @@
                             s.finalScore,
                             `"${s.conductRank || ''}"`,
                             `"${viPham.replace(/"/g, '""')}"`
-                        ];
+                        ].join(',');
                     });
 
-                    const csvContent = '\uFEFF' + [headers.join(','), ...rows.map(r => r.join(','))].join('\n');
+                    const csvContent = '\uFEFF' + reportHeaderRows.join('\n') + '\n' + tableHeaders.join(',') + '\n' + dataRows.join('\n');
                     const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
                     const link = document.createElement('a');
                     link.href = URL.createObjectURL(blob);
-                    link.download = `Bao_cao_hanh_kiem_${currentClass.value?.name || 'Lop'}_Thang_${selectedSummaryMonth.value}_${selectedSummaryYear.value}.csv`;
+                    const cleanFilename = reportTitle.replace(/[^a-zA-Z0-9\p{L}]/gu, '_').slice(0, 50);
+                    link.download = `${cleanFilename}_${className}.csv`;
                     link.click();
-                    showToast('Đã xuất báo cáo tổng kết tháng thành công!');
+                    showToast('Đã xuất báo cáo CSV gửi cấp trên thành công!');
                 }
 
                 function getRankBadgeClass(rank) {
@@ -1805,6 +2003,7 @@
                 return {
                     user,
                     userPermission,
+                    isOrganizationAccountUser,
                     loading,
                     saving,
                     currentClass,
@@ -1864,6 +2063,16 @@
                     closingMonthlyConduct,
                     selectedSummaryMonth,
                     selectedSummaryYear,
+                    closedPeriodsList,
+                    selectedPeriodKey,
+                    customCloseTitle,
+                    editingSummaryItem,
+                    savingSummaryItem,
+                    onSelectPeriodKey,
+                    onManualMonthYearChange,
+                    startEditSummaryItem,
+                    cancelEditSummaryItem,
+                    saveEditSummaryItem,
                     monthlyData,
                     openMonthlySummaryModal,
                     fetchMonthlySummary,

@@ -863,7 +863,7 @@ export async function getMonthlyConductData(actorUser, classId, month, year) {
 /**
  * 13. Secure Close Monthly Conduct & Reset Scores to 100
  */
-export async function secureCloseMonthlyConduct(actorUser, classId, month, year, source = 'USER') {
+export async function secureCloseMonthlyConduct(actorUser, classId, month, year, customTitle = null, source = 'USER') {
     const access = await checkUserClassAccess(actorUser.id, classId);
     if (!access.canWrite) {
         throw new Error('Bạn không có quyền chốt sổ hạnh kiểm lớp học này.');
@@ -872,7 +872,8 @@ export async function secureCloseMonthlyConduct(actorUser, classId, month, year,
     const numClassId = Number(classId);
     const m = Number(month);
     const y = Number(year);
-    const monthLabel = `Tháng ${m < 10 ? '0' + m : m}/${y}`;
+    const defaultLabel = `Tháng ${m < 10 ? '0' + m : m}/${y}`;
+    const monthLabel = (customTitle && customTitle.trim()) ? customTitle.trim() : defaultLabel;
 
     // Check if already closed
     const existing = await db
@@ -888,7 +889,7 @@ export async function secureCloseMonthlyConduct(actorUser, classId, month, year,
         .limit(1);
 
     if (existing.length > 0) {
-        throw new Error(`Hạnh kiểm ${monthLabel} của lớp này đã được chốt sổ trước đó.`);
+        throw new Error(`Hạnh kiểm ${defaultLabel} của lớp này đã được chốt sổ trước đó.`);
     }
 
     const students = await db
@@ -964,7 +965,7 @@ export async function secureCloseMonthlyConduct(actorUser, classId, month, year,
         entityType: 'class',
         entityId: numClassId,
         classId: numClassId,
-        description: `Chốt sổ & Đánh giá hạnh kiểm ${monthLabel} cho ${students.length} học sinh và đặt lại điểm về 100`,
+        description: `Chốt sổ & Đánh giá hạnh kiểm "${monthLabel}" cho ${students.length} học sinh và đặt lại điểm về 100`,
         beforeState: { studentCount: students.length, month: m, year: y },
         afterState: { monthLabel, closedAt: nowIso, resetScore: 100 },
         source
@@ -975,7 +976,7 @@ export async function secureCloseMonthlyConduct(actorUser, classId, month, year,
         classId: numClassId,
         type: 'MONTHLY_CONDUCT_CLOSED',
         senderUserId: actorUser.id,
-        message: `Đã chốt sổ hạnh kiểm ${monthLabel} và đặt lại điểm về 100.`
+        message: `Đã chốt sổ hạnh kiểm "${monthLabel}" và đặt lại điểm về 100.`
     });
 
     return {
@@ -983,7 +984,7 @@ export async function secureCloseMonthlyConduct(actorUser, classId, month, year,
         monthLabel,
         closedAt: nowIso,
         studentCount: students.length,
-        message: `Đã chốt sổ hạnh kiểm ${monthLabel} thành công và đặt lại điểm về 100!`
+        message: `Đã chốt sổ hạnh kiểm "${monthLabel}" thành công và đặt lại điểm về 100!`
     };
 }
 
@@ -1023,5 +1024,140 @@ export async function secureReopenMonthlyConduct(actorUser, classId, month, year
     });
 
     return { success: true, message: `Đã mở lại sổ hạnh kiểm Tháng ${m}/${y}.` };
+}
+
+/**
+ * 15. Get list of all closed periods for a class
+ */
+export async function getClosedMonthlySummaryList(actorUser, classId) {
+    const access = await checkUserClassAccess(actorUser.id, classId);
+    if (!access.canRead) {
+        throw new Error('Bạn không có quyền xem thông tin lớp học này.');
+    }
+
+    const numClassId = Number(classId);
+    const records = await db
+        .select()
+        .from(monthlyConductSummariesTable)
+        .where(eq(monthlyConductSummariesTable.classId, numClassId))
+        .orderBy(desc(monthlyConductSummariesTable.closedAt));
+
+    // Group distinct periods by month and year
+    const periodsMap = new Map();
+    for (const r of records) {
+        const key = `${r.year}-${r.month}`;
+        if (!periodsMap.has(key)) {
+            periodsMap.set(key, {
+                month: r.month,
+                year: r.year,
+                monthLabel: r.monthLabel,
+                closedAt: r.closedAt,
+                closedByUserName: r.closedByUserName,
+                studentCount: 1
+            });
+        } else {
+            periodsMap.get(key).studentCount += 1;
+        }
+    }
+
+    return Array.from(periodsMap.values());
+}
+
+/**
+ * 16. Secure Update Monthly Conduct Summary Record (Organization Account Only)
+ * Allows organization accounts to correct mistakes in historical snapshots.
+ * Personal accounts are strictly forbidden from editing historical records.
+ */
+export async function secureUpdateMonthlySummaryItem(actorUser, classId, summaryId, { finalScore, note }, source = 'USER') {
+    const dbUser = await getUserById(actorUser.id);
+    const access = await checkUserClassAccess(actorUser.id, classId);
+
+    // Strict validation: Only organization accounts (or class owner) can modify historical records
+    if (!dbUser || (!dbUser.isOrganizationAccount && !access.isOwner)) {
+        throw new Error('CHỈ_TỔ_CHỨC_MỚI_CÓ_QUYỀN: Chỉ tài khoản cấp Tổ chức mới có quyền chỉnh sửa điểm của tháng đã tổng kết!');
+    }
+
+    const numSummaryId = Number(summaryId);
+    const numScore = Math.max(0, Math.min(100, Math.round(Number(finalScore))));
+    const newRank = calculateConductRank(numScore);
+
+    // Find the existing summary item
+    const existing = await db
+        .select()
+        .from(monthlyConductSummariesTable)
+        .where(
+            and(
+                eq(monthlyConductSummariesTable.id, numSummaryId),
+                eq(monthlyConductSummariesTable.classId, Number(classId))
+            )
+        )
+        .limit(1);
+
+    if (existing.length === 0) {
+        throw new Error('Không tìm thấy bản ghi tổng kết hạnh kiểm này.');
+    }
+
+    const oldRecord = existing[0];
+    const beforeState = {
+        finalScore: oldRecord.finalScore,
+        conductRank: oldRecord.conductRank,
+        studentName: oldRecord.studentName
+    };
+
+    // Update deductions / notes if provided
+    let updatedDeductions = oldRecord.deductionHistoryJson ? JSON.parse(oldRecord.deductionHistoryJson) : [];
+    if (note && note.trim()) {
+        updatedDeductions.push({
+            reason: `[Tổ chức điều chỉnh]: ${note.trim()}`,
+            time: new Date().toISOString(),
+            actorName: actorUser.name || actorUser.username || actorUser.email
+        });
+    }
+
+    await db
+        .update(monthlyConductSummariesTable)
+        .set({
+            finalScore: numScore,
+            conductRank: newRank,
+            deductionHistoryJson: JSON.stringify(updatedDeductions)
+        })
+        .where(eq(monthlyConductSummariesTable.id, numSummaryId));
+
+    const afterState = {
+        finalScore: numScore,
+        conductRank: newRank,
+        studentName: oldRecord.studentName
+    };
+
+    await logAuditChange({
+        actorUser,
+        organizationId: access.organizationId,
+        action: 'UPDATE_MONTHLY_SUMMARY',
+        entityType: 'monthly_summary',
+        entityId: numSummaryId,
+        classId: Number(classId),
+        description: `Tổ chức sửa điểm tổng kết ${oldRecord.monthLabel} cho HS "${oldRecord.studentName}": ${beforeState.finalScore}đ (${beforeState.conductRank}) -> ${numScore}đ (${newRank})`,
+        beforeState,
+        afterState,
+        source
+    });
+
+    syncBroker.broadcastSyncEvent({
+        orgId: access.organizationId,
+        classId: Number(classId),
+        type: 'MONTHLY_CONDUCT_UPDATED',
+        senderUserId: actorUser.id,
+        message: `Đã cập nhật điểm tổng kết ${oldRecord.monthLabel} của học sinh ${oldRecord.studentName}.`
+    });
+
+    return {
+        success: true,
+        summaryId: numSummaryId,
+        studentName: oldRecord.studentName,
+        finalScore: numScore,
+        conductRank: newRank,
+        deductions: updatedDeductions,
+        message: `Đã cập nhật điểm cho ${oldRecord.studentName} thành ${numScore}đ (${newRank})!`
+    };
 }
 
