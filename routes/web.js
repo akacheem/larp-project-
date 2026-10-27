@@ -30,7 +30,8 @@ import {
     secureCloseMonthlyConduct,
     secureReopenMonthlyConduct,
     getClosedMonthlySummaryList,
-    secureUpdateMonthlySummaryItem
+    secureUpdateMonthlySummaryItem,
+    getTermConductSummary
 } from "../core/writePermissionLayer.js";
 import { syncBroker } from "../core/syncBroker.js";
 
@@ -554,6 +555,21 @@ export default async function (fastify) {
         } catch (err) {
             const status = err.message.includes('CHỈ_TỔ_CHỨC_MỚI_CÓ_QUYỀN') ? 403 : 400;
             return reply.status(status).send({ error: status === 403 ? 'Forbidden' : 'Bad Request', message: err.message });
+        }
+    });
+
+    fastify.post('/api/organization/classes/:classId/term-summaries', async (request, reply) => {
+        const authUser = await authenticate(request, reply);
+        if (!authUser) return;
+
+        const { classId } = request.params;
+        const { termType = 'sem1', selectedPeriodKeys = [] } = request.body || {};
+
+        try {
+            const data = await getTermConductSummary(authUser, classId, { termType, selectedPeriodKeys });
+            return reply.send(data);
+        } catch (err) {
+            return reply.status(400).send({ error: 'Bad Request', message: err.message });
         }
     });
 

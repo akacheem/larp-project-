@@ -126,16 +126,16 @@
         }
 
         .excel-toolbar-btn {
-            padding: 5px 12px;
+            padding: 7px 15px;
             background-color: rgba(0, 0, 0, 0.03);
-            border: 1px solid rgba(0, 0, 0, 0.06);
+            border: 1px solid rgba(0, 0, 0, 0.08);
             border-radius: 9999px;
             color: #1d1d1f;
-            font-size: 11px;
+            font-size: 13px;
             font-weight: 500;
             display: flex;
             align-items: center;
-            gap: 6px;
+            gap: 7px;
             transition: all 0.15s ease;
         }
 
@@ -198,53 +198,58 @@
                         <i v-else data-lucide="bug-off" class="w-3.5 h-3.5 text-[#86868b]"></i>
                         <span>Debug: {{ debugMode ? 'Bật' : 'Tắt' }}</span>
                     </div>
-                    <button @click="saveAllChanges" :disabled="saving || !userPermission.canWrite || modifiedCount === 0" :class="!userPermission.canWrite || modifiedCount === 0 ? 'bg-black/[0.03] text-[#86868b] border border-black/[0.06] cursor-not-allowed' : 'bg-[#0071e3] hover:bg-[#0077ed] text-white shadow-sm active:scale-[0.98]'" class="px-4 py-1.5 font-medium text-xs rounded-full transition flex items-center space-x-1.5">
-                        <i v-if="saving" data-lucide="loader-2" class="w-3.5 h-3.5 animate-spin"></i>
-                        <i v-else-if="!userPermission.canWrite" data-lucide="lock" class="w-3.5 h-3.5"></i>
-                        <i v-else data-lucide="save" class="w-3.5 h-3.5"></i>
+                    <button @click="saveAllChanges" :disabled="saving || !userPermission.canWrite || modifiedCount === 0" :class="!userPermission.canWrite || modifiedCount === 0 ? 'bg-black/[0.03] text-[#86868b] border border-black/[0.06] cursor-not-allowed' : 'bg-[#0071e3] hover:bg-[#0077ed] text-white shadow-md active:scale-[0.98]'" class="px-5 py-2 font-semibold text-xs sm:text-sm rounded-full transition flex items-center space-x-2">
+                        <i v-if="saving" data-lucide="loader-2" class="w-4 h-4 animate-spin"></i>
+                        <i v-else-if="!userPermission.canWrite" data-lucide="lock" class="w-4 h-4"></i>
+                        <i v-else data-lucide="save" class="w-4 h-4"></i>
                         <span>Lưu thay đổi ({{ modifiedCount }})</span>
                     </button>
                 </div>
             </div>
 
             <!-- Apple Numbers Ribbon Toolbar -->
-            <div class="px-6 py-2 bg-white/50 flex items-center justify-between gap-4 overflow-x-auto text-xs">
-                <div class="flex items-center space-x-2">
-                    <button @click="addNewRow" :disabled="!userPermission.isOwner" :class="!userPermission.isOwner ? 'opacity-40 cursor-not-allowed text-[#86868b] border-black/[0.04] bg-white' : 'text-[#15803d] border-[#34c759]/30 bg-[#34c759]/10 hover:bg-[#34c759]/20'" class="excel-toolbar-btn" :title="!userPermission.isOwner ? 'Chỉ Người sở hữu Tổ chức mới được phép thêm học sinh' : ''">
-                        <i data-lucide="plus" class="w-3.5 h-3.5"></i>
+            <div class="px-6 py-2.5 bg-white/50 flex items-center justify-between gap-4 overflow-x-auto text-xs sm:text-sm">
+                <div class="flex items-center space-x-2.5">
+                    <button @click="addNewRow" :disabled="!userPermission.isOwner" :class="!userPermission.isOwner ? 'opacity-40 cursor-not-allowed text-[#86868b] border-black/[0.04] bg-white' : 'text-[#15803d] border-[#34c759]/30 bg-[#34c759]/10 hover:bg-[#34c759]/20 font-medium'" class="excel-toolbar-btn shadow-xs" :title="!userPermission.isOwner ? 'Chỉ Người sở hữu Tổ chức mới được phép thêm học sinh' : ''">
+                        <i data-lucide="plus" class="w-4 h-4"></i>
                         <span>Thêm hàng</span>
                     </button>
                     <button @click="fetchStudents" class="excel-toolbar-btn">
-                        <i data-lucide="refresh-cw" class="w-3.5 h-3.5 text-[#86868b]"></i>
+                        <i data-lucide="refresh-cw" class="w-4 h-4 text-[#86868b]"></i>
                         <span>Tải lại</span>
                     </button>
                     <button @click="exportCsv" class="excel-toolbar-btn">
-                        <i data-lucide="file-spreadsheet" class="w-3.5 h-3.5 text-[#86868b]"></i>
+                        <i data-lucide="file-spreadsheet" class="w-4 h-4 text-[#86868b]"></i>
                         <span>Xuất CSV</span>
                     </button>
                     <button @click="openAuditLogsModal" class="excel-toolbar-btn text-[#0071e3] border-[#0071e3]/20 bg-[#0071e3]/5 hover:bg-[#0071e3]/10">
-                        <i data-lucide="history" class="w-3.5 h-3.5"></i>
+                        <i data-lucide="history" class="w-4 h-4"></i>
                         <span>Lịch sử Phiên bản</span>
                     </button>
-                    <button @click="openMonthlySummaryModal" class="excel-toolbar-btn text-[#15803d] border-[#34c759]/30 bg-[#34c759]/10 hover:bg-[#34c759]/20 font-medium">
-                        <i data-lucide="award" class="w-3.5 h-3.5 text-[#34c759]"></i>
+                    <button @click="openMonthlySummaryModal" class="excel-toolbar-btn text-[#15803d] border-[#34c759]/30 bg-[#34c759]/10 hover:bg-[#34c759]/20 font-semibold shadow-xs">
+                        <i data-lucide="award" class="w-4 h-4 text-[#34c759]"></i>
                         <span>Tổng kết Tháng</span>
                     </button>
+                    <!-- Nút Tổng kết Học kỳ / Cả năm (Mới) -->
+                    <button @click="openTermSummaryModal" class="excel-toolbar-btn text-[#7c3aed] border-[#8b5cf6]/30 bg-[#8b5cf6]/10 hover:bg-[#8b5cf6]/20 font-semibold shadow-xs">
+                        <i data-lucide="calendar-range" class="w-4 h-4 text-[#7c3aed]"></i>
+                        <span>Tổng kết Kỳ & Cả Năm</span>
+                    </button>
                     <div class="relative ml-2">
-                        <i data-lucide="search" class="w-3.5 h-3.5 absolute left-3 top-2.5 text-[#86868b]"></i>
-                        <input v-model="searchQuery" type="text" placeholder="Tìm kiếm học sinh..." class="pl-8 pr-3 py-1 bg-[#f5f5f7] border border-black/[0.08] rounded-full text-[#1d1d1f] text-xs focus:bg-white focus:border-[#0071e3] transition w-52 outline-none">
+                        <i data-lucide="search" class="w-4 h-4 absolute left-3 top-2.5 text-[#86868b]"></i>
+                        <input v-model="searchQuery" type="text" placeholder="Tìm kiếm học sinh..." class="pl-9 pr-3.5 py-1.5 bg-[#f5f5f7] border border-black/[0.08] rounded-full text-[#1d1d1f] text-xs focus:bg-white focus:border-[#0071e3] transition w-56 outline-none">
                     </div>
                 </div>
 
                 <div class="flex items-center space-x-3 text-xs text-[#86868b]">
-                    <button @click="showAiDrawer = !showAiDrawer" class="px-3.5 py-1 bg-[#1d1d1f] hover:bg-black text-white rounded-full transition font-medium flex items-center space-x-1.5 shadow-sm text-xs active:scale-[0.98]">
-                        <i data-lucide="sparkles" class="w-3.5 h-3.5 text-[#ff9500]"></i>
+                    <button @click="showAiDrawer = !showAiDrawer" class="px-4 py-1.5 bg-[#1d1d1f] hover:bg-black text-white rounded-full transition font-medium flex items-center space-x-1.5 shadow-sm text-xs sm:text-sm active:scale-[0.98]">
+                        <i data-lucide="sparkles" class="w-4 h-4 text-[#ff9500]"></i>
                         <span>Trợ lý Gemini AI</span>
                     </button>
                     <span class="text-black/10">|</span>
-                    <span class="flex items-center gap-1.5">Tổng số: <strong class="text-[#1d1d1f] font-mono">{{ students.length }}</strong></span>
+                    <span class="flex items-center gap-1.5">Tổng số: <strong class="text-[#1d1d1f] font-mono text-xs">{{ students.length }}</strong></span>
                     <span class="text-black/10">|</span>
-                    <span class="flex items-center gap-1.5">Đang sửa: <strong class="text-[#0071e3] font-mono">{{ modifiedCount }}</strong></span>
+                    <span class="flex items-center gap-1.5">Đang sửa: <strong class="text-[#0071e3] font-mono text-xs">{{ modifiedCount }}</strong></span>
                 </div>
             </div>
 
@@ -372,8 +377,8 @@
                                             <i data-lucide="alert-triangle" class="w-2.5 h-2.5 mr-0.5 inline"></i>{{ row.conductDeductionReason }}
                                         </span>
                                     </div>
-                                    <button v-if="userPermission.canWrite" @click="openDeductModal(row)" type="button" class="px-2.5 py-0.5 bg-[#ff9500]/10 hover:bg-[#ff9500]/20 text-[#d97706] border border-[#ff9500]/30 rounded-full text-[10px] font-medium transition flex items-center space-x-1 whitespace-nowrap active:scale-[0.98]" title="Trừ điểm hạnh kiểm & Nhập lý do">
-                                        <i data-lucide="minus-circle" class="w-3 h-3"></i>
+                                    <button v-if="userPermission.canWrite" @click="openDeductModal(row)" type="button" class="px-3 py-1 bg-[#ff9500]/10 hover:bg-[#ff9500]/20 text-[#d97706] border border-[#ff9500]/30 rounded-full text-xs font-semibold transition flex items-center space-x-1.5 whitespace-nowrap active:scale-[0.98] shadow-xs" title="Trừ điểm hạnh kiểm & Nhập lý do">
+                                        <i data-lucide="minus-circle" class="w-3.5 h-3.5"></i>
                                         <span>Trừ điểm</span>
                                     </button>
                                 </div>
@@ -995,6 +1000,172 @@
                         <i v-if="closingMonthlyConduct" data-lucide="loader-2" class="w-3.5 h-3.5 animate-spin"></i>
                         <i v-else data-lucide="check" class="w-3.5 h-3.5"></i>
                         <span>Đồng ý Chốt Sổ & Reset</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Term Summary Modal (Tổng kết Học kỳ I, Học kỳ II, Cả năm) -->
+        <div v-if="showTermSummaryModal" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-md">
+            <div class="bg-white border border-black/[0.08] rounded-[36px] max-w-6xl w-full p-6 shadow-[0_24px_70px_rgba(0,0,0,0.2)] flex flex-col max-h-[92vh]">
+                <!-- Modal Header -->
+                <div class="flex items-center justify-between pb-4 border-b border-black/[0.06]">
+                    <div class="flex items-center space-x-3.5">
+                        <div class="w-11 h-11 rounded-2xl bg-[#7c3aed]/10 text-[#7c3aed] border border-[#7c3aed]/20 flex items-center justify-center font-bold shadow-xs">
+                            <i data-lucide="calendar-range" class="w-6 h-6"></i>
+                        </div>
+                        <div>
+                            <h3 class="text-base font-bold text-[#1d1d1f] flex items-center gap-2">
+                                <span>BẢNG TỔNG KẾT HẠNH KIỂM — LỚP {{ currentClass?.name }}</span>
+                                <span class="px-3 py-0.5 text-xs font-semibold rounded-full bg-[#7c3aed]/10 text-[#7c3aed] border border-[#7c3aed]/20">
+                                    {{ activeTermType === 'sem1' ? 'Học kỳ I' : activeTermType === 'sem2' ? 'Học kỳ II' : 'Cả Năm Học' }}
+                                </span>
+                            </h3>
+                            <p class="text-xs text-[#86868b]">
+                                Xem điểm chi tiết theo từng tháng và thống kê số tháng xếp loại Tốt của từng học sinh
+                            </p>
+                        </div>
+                    </div>
+
+                    <div class="flex items-center space-x-3">
+                        <!-- Term Switcher Tabs -->
+                        <div class="flex items-center bg-[#f5f5f7] p-1 rounded-full border border-black/[0.06]">
+                            <button @click="switchTermType('sem1')" :class="activeTermType === 'sem1' ? 'bg-white text-[#7c3aed] shadow-xs font-bold' : 'text-[#86868b] hover:text-[#1d1d1f] font-medium'" class="px-3.5 py-1.5 rounded-full text-xs transition">
+                                Học kỳ I
+                            </button>
+                            <button @click="switchTermType('sem2')" :class="activeTermType === 'sem2' ? 'bg-white text-[#7c3aed] shadow-xs font-bold' : 'text-[#86868b] hover:text-[#1d1d1f] font-medium'" class="px-3.5 py-1.5 rounded-full text-xs transition">
+                                Học kỳ II
+                            </button>
+                            <button @click="switchTermType('year')" :class="activeTermType === 'year' ? 'bg-white text-[#15803d] shadow-xs font-bold' : 'text-[#86868b] hover:text-[#1d1d1f] font-medium'" class="px-3.5 py-1.5 rounded-full text-xs transition">
+                                Cả Năm (Tất cả tháng)
+                            </button>
+                        </div>
+
+                        <button @click="showTermSummaryModal = false" class="w-9 h-9 rounded-full hover:bg-black/[0.05] text-[#86868b] hover:text-[#1d1d1f] flex items-center justify-center transition">
+                            <i data-lucide="x" class="w-5 h-5"></i>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Custom Month Selection Filter for Semester I & II -->
+                <div v-if="activeTermType !== 'year'" class="mt-3.5 p-3.5 bg-[#f8fafc] border border-black/[0.06] rounded-2xl flex flex-wrap items-center justify-between gap-3 text-xs">
+                    <div class="flex items-center gap-2">
+                        <span class="font-semibold text-[#1d1d1f] flex items-center gap-1.5">
+                            <i data-lucide="check-square" class="w-4 h-4 text-[#7c3aed]"></i>
+                            <span>Chọn các tháng gộp vào {{ activeTermType === 'sem1' ? 'Học kỳ I' : 'Học kỳ II' }}:</span>
+                        </span>
+                        <div v-if="closedPeriodsList.length === 0" class="text-[#86868b] italic">
+                            (Chưa có tháng nào được chốt sổ. Hãy dùng nút "Tổng kết Tháng" để chốt sổ các tháng trước.)
+                        </div>
+                        <div v-else class="flex flex-wrap items-center gap-2">
+                            <label v-for="p in closedPeriodsList" :key="p.year + '-' + p.month" class="flex items-center space-x-1.5 px-2.5 py-1 rounded-xl border cursor-pointer transition select-none" :class="selectedTermPeriodKeys.includes(p.year + '-' + p.month) ? 'bg-[#7c3aed]/10 border-[#7c3aed]/30 text-[#7c3aed] font-semibold' : 'bg-white border-black/[0.08] text-[#86868b] hover:bg-black/[0.02]'">
+                                <input type="checkbox" :value="p.year + '-' + p.month" v-model="selectedTermPeriodKeys" @change="fetchTermSummaryData" class="rounded text-[#7c3aed] focus:ring-0">
+                                <span>{{ p.monthLabel }}</span>
+                            </label>
+                        </div>
+                    </div>
+                    <div class="text-[11px] text-[#86868b]">
+                        Đã chọn <strong>{{ selectedTermPeriodKeys.length }}</strong> tháng
+                    </div>
+                </div>
+
+                <div v-else class="mt-3.5 p-3 bg-[#34c759]/10 border border-[#34c759]/20 rounded-2xl text-xs text-[#15803d] flex items-center justify-between">
+                    <span class="flex items-center gap-1.5 font-medium">
+                        <i data-lucide="sparkles" class="w-4 h-4 text-[#34c759]"></i>
+                        <span>Tổng kết Cả Năm: Mặc định nối và hiển thị toàn bộ tất cả <strong>{{ closedPeriodsList.length }} tháng</strong> đã chốt của cả năm học.</span>
+                    </span>
+                </div>
+
+                <!-- Table Content Container -->
+                <div class="flex-1 overflow-auto border border-black/[0.08] rounded-2xl mt-4">
+                    <div v-if="loadingTermSummary" class="text-center py-20 text-[#86868b]">
+                        <i data-lucide="loader-2" class="w-7 h-7 animate-spin mb-2 text-[#7c3aed] mx-auto"></i>
+                        <p class="text-xs">Đang tổng hợp dữ liệu học kỳ...</p>
+                    </div>
+
+                    <div v-else-if="!termSummaryData.students || termSummaryData.students.length === 0" class="text-center py-20 text-[#86868b]">
+                        <i data-lucide="calendar-x" class="w-9 h-9 mb-2 text-[#86868b] mx-auto opacity-40"></i>
+                        <p class="text-xs">Không tìm thấy dữ liệu học sinh hoặc các tháng đã chọn</p>
+                    </div>
+
+                    <!-- Excel-like Term Evaluation Table (Inspired by Teacher Worksheet) -->
+                    <table v-else class="w-full text-left text-xs border-collapse font-sans">
+                        <thead class="bg-[#f8fafc] border-b-2 border-black/[0.1] sticky top-0 z-10 text-[11px] font-bold text-[#1d1d1f]">
+                            <!-- Row 1 Header: Stt, Họ Tên, Các Cột Tháng, Thống kê -->
+                            <tr class="divide-x divide-black/[0.08]">
+                                <th class="p-2.5 text-center w-12 bg-[#f1f5f9]">STT</th>
+                                <th class="p-2.5 w-24 bg-[#f1f5f9]">Mã HS</th>
+                                <th class="p-2.5 w-52 bg-[#f1f5f9]">Họ và Tên Học Sinh</th>
+
+                                <!-- Dynamic Month Columns on Top Header -->
+                                <th v-for="col in termSummaryData.monthColumns" :key="col.key" class="p-2.5 text-center min-w-[100px] bg-[#f8fafc] text-[#7c3aed]">
+                                    <div class="text-[12px] font-bold">{{ col.label }}</div>
+                                    <div class="text-[10px] text-[#86868b] font-normal">Điểm (Loại)</div>
+                                </th>
+
+                                <th v-if="termSummaryData.monthColumns.length === 0" class="p-2.5 text-center text-[#86868b] italic">
+                                    Chưa có tháng nào được chọn
+                                </th>
+
+                                <!-- Summary Statistics Column -->
+                                <th class="p-2.5 text-center w-36 bg-[#ecfdf5] text-[#15803d]">
+                                    <div class="text-[12px] font-bold">Số Tháng Tốt</div>
+                                    <div class="text-[10px] text-[#15803d]/70 font-normal">≥ 90 điểm</div>
+                                </th>
+                                <th class="p-2.5 text-center w-36 bg-[#f1f5f9] text-[#1d1d1f]">
+                                    <div class="text-[12px] font-bold">Khác (Khá/Đạt/CĐ)</div>
+                                    <div class="text-[10px] text-[#86868b] font-normal">&lt; 90 điểm</div>
+                                </th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-black/[0.06]">
+                            <tr v-for="(st, idx) in termSummaryData.students" :key="st.studentId || idx" class="hover:bg-black/[0.015] divide-x divide-black/[0.06] transition">
+                                <td class="p-2.5 text-center font-mono text-[#86868b] font-medium">{{ idx + 1 }}</td>
+                                <td class="p-2.5 font-mono text-[#86868b]">{{ st.studentCode || '—' }}</td>
+                                <td class="p-2.5 font-semibold text-[#1d1d1f] whitespace-nowrap">{{ st.studentName }}</td>
+
+                                <!-- Monthly Scores & Conduct Ranks -->
+                                <td v-for="col in termSummaryData.monthColumns" :key="col.key" class="p-2.5 text-center font-mono">
+                                    <div v-if="st.monthScores && st.monthScores[col.key]" class="flex flex-col items-center">
+                                        <span class="font-bold text-sm" :class="st.monthScores[col.key].score >= 90 ? 'text-[#15803d]' : st.monthScores[col.key].score >= 80 ? 'text-[#0071e3]' : st.monthScores[col.key].score >= 70 ? 'text-[#d97706]' : 'text-[#b91c1c]'">
+                                            {{ st.monthScores[col.key].score }}
+                                        </span>
+                                        <span :class="getRankBadgeClass(st.monthScores[col.key].rank)" class="px-2 py-0.2 text-[9px] font-bold rounded-full border mt-0.5">
+                                            {{ st.monthScores[col.key].rank }}
+                                        </span>
+                                    </div>
+                                    <span v-else class="text-[#86868b] text-[11px]">—</span>
+                                </td>
+
+                                <td v-if="termSummaryData.monthColumns.length === 0" class="p-2.5 text-center text-[#86868b]">
+                                    —
+                                </td>
+
+                                <!-- Stat 1: Số tháng Tốt -->
+                                <td class="p-2.5 text-center font-mono bg-[#ecfdf5]/40">
+                                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold bg-[#34c759]/15 text-[#15803d] border border-[#34c759]/30">
+                                        {{ st.goodCount }} / {{ termSummaryData.monthColumns.length }}
+                                    </span>
+                                </td>
+
+                                <!-- Stat 2: Khác -->
+                                <td class="p-2.5 text-center font-mono text-xs text-[#86868b]">
+                                    {{ st.fairCount + st.passCount + st.failCount }} tháng
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <!-- Footer Actions -->
+                <div class="flex items-center justify-between pt-4 border-t border-black/[0.06] mt-4">
+                    <button @click="exportTermSummaryCsv" class="px-5 py-2.5 bg-[#7c3aed] hover:bg-[#6d28d9] text-white rounded-full text-xs font-semibold transition flex items-center space-x-2 shadow-sm active:scale-[0.98]">
+                        <i data-lucide="file-spreadsheet" class="w-4 h-4"></i>
+                        <span>Xuất CSV Bảng Điểm Kỳ & Cả Năm</span>
+                    </button>
+
+                    <button @click="showTermSummaryModal = false" class="px-5 py-2.5 bg-black/[0.05] hover:bg-black/[0.09] text-[#1d1d1f] rounded-full text-xs font-medium transition">
+                        Đóng
                     </button>
                 </div>
             </div>
@@ -1970,6 +2141,140 @@
                     }
                 }
 
+                // ==========================================
+                // Term Summary State & Logic (HK1, HK2, Cả Năm)
+                // ==========================================
+                const showTermSummaryModal = ref(false);
+                const loadingTermSummary = ref(false);
+                const activeTermType = ref('sem1'); // 'sem1' | 'sem2' | 'year'
+                const selectedTermPeriodKeys = ref([]);
+                const termSummaryData = ref({
+                    termType: 'sem1',
+                    monthColumns: [],
+                    students: []
+                });
+
+                async function openTermSummaryModal() {
+                    showTermSummaryModal.value = true;
+                    await fetchClosedPeriodsList();
+
+                    // Mặc định chọn 5 tháng đầu tiên cho HK1 nếu có, hoặc các tháng hiện có
+                    if (selectedTermPeriodKeys.value.length === 0 && closedPeriodsList.value.length > 0) {
+                        // Sắp xếp tăng dần theo năm - tháng
+                        const sorted = [...closedPeriodsList.value].sort((a, b) => (a.year * 100 + a.month) - (b.year * 100 + b.month));
+                        selectedTermPeriodKeys.value = sorted.slice(0, Math.min(sorted.length, 5)).map(p => `${p.year}-${p.month}`);
+                    }
+
+                    await fetchTermSummaryData();
+                }
+
+                async function switchTermType(type) {
+                    activeTermType.value = type;
+                    if (type === 'year') {
+                        // Cả năm: chọn tất cả các tháng đã chốt
+                        selectedTermPeriodKeys.value = closedPeriodsList.value.map(p => `${p.year}-${p.month}`);
+                    } else if (type === 'sem2') {
+                        const sorted = [...closedPeriodsList.value].sort((a, b) => (a.year * 100 + a.month) - (b.year * 100 + b.month));
+                        // HK2: lấy nửa sau các tháng nếu có
+                        if (sorted.length > 5) {
+                            selectedTermPeriodKeys.value = sorted.slice(5).map(p => `${p.year}-${p.month}`);
+                        } else {
+                            selectedTermPeriodKeys.value = sorted.map(p => `${p.year}-${p.month}`);
+                        }
+                    } else if (type === 'sem1') {
+                        const sorted = [...closedPeriodsList.value].sort((a, b) => (a.year * 100 + a.month) - (b.year * 100 + b.month));
+                        selectedTermPeriodKeys.value = sorted.slice(0, Math.min(sorted.length, 5)).map(p => `${p.year}-${p.month}`);
+                    }
+
+                    await fetchTermSummaryData();
+                }
+
+                async function fetchTermSummaryData() {
+                    loadingTermSummary.value = true;
+                    try {
+                        const headers = { ...getTokenHeader(), 'Content-Type': 'application/json' };
+                        const classId = getClassIdFromUrl();
+                        const res = await fetch(`/api/organization/classes/${classId}/term-summaries`, {
+                            method: 'POST',
+                            headers,
+                            body: JSON.stringify({
+                                termType: activeTermType.value,
+                                selectedPeriodKeys: selectedTermPeriodKeys.value
+                            })
+                        });
+
+                        if (res.ok) {
+                            const data = await res.json();
+                            termSummaryData.value = data;
+                        } else {
+                            const err = await res.json();
+                            showToast(err.message || 'Không thể tổng hợp dữ liệu học kỳ', 'error');
+                        }
+                    } catch (e) {
+                        showToast('Lỗi kết nối máy chủ khi tổng hợp học kỳ', 'error');
+                    } finally {
+                        loadingTermSummary.value = false;
+                        setTimeout(() => { if (window.renderLucideSafe) window.renderLucideSafe(); }, 50);
+                    }
+                }
+
+                function exportTermSummaryCsv() {
+                    if (!termSummaryData.value || !termSummaryData.value.students || termSummaryData.value.students.length === 0) {
+                        showToast('Chưa có dữ liệu để xuất bảng tổng kết kỳ', 'error');
+                        return;
+                    }
+
+                    const className = currentClass.value?.name || 'Lớp';
+                    const termName = activeTermType.value === 'sem1' ? 'HỌC KỲ I' : activeTermType.value === 'sem2' ? 'HỌC KỲ II' : 'CẢ NĂM HỌC';
+                    const creatorName = displayName.value || 'Giáo viên';
+                    const monthCols = termSummaryData.value.monthColumns || [];
+
+                    const reportHeaderRows = [
+                        `"CỘNG HÒA XÃ HỘI CHỦ NGHĨA VIỆT NAM"`,
+                        `"Độc lập - Tự do - Hạnh phúc"`,
+                        `""`,
+                        `"BẢNG TỔNG KẾT HẠNH KIỂM HỌC SINH — ${termName}"`,
+                        `"Lớp: ${className} | Ngày xuất báo cáo: ${new Date().toLocaleDateString('vi-VN')}"`,
+                        `"Người lập: ${creatorName.replace(/"/g, '""')}"`,
+                        `""`
+                    ];
+
+                    // Table headers: STT, Mã HS, Họ và Tên, [Các tháng], Số tháng Tốt (>=90đ), Khác (<90đ)
+                    const tableHeaders = [
+                        'STT',
+                        'Mã Học Sinh',
+                        'Họ và Tên Học Sinh',
+                        ...monthCols.map(c => `"${c.label.replace(/"/g, '""')}"`),
+                        'Số Tháng Tốt (>=90đ)',
+                        'Khác (<90đ)'
+                    ];
+
+                    const dataRows = termSummaryData.value.students.map((st, idx) => {
+                        const monthScoreValues = monthCols.map(c => {
+                            const item = st.monthScores && st.monthScores[c.key];
+                            return item ? `${item.score} (${item.rank})` : '—';
+                        });
+
+                        return [
+                            idx + 1,
+                            `"${st.studentCode || ''}"`,
+                            `"${st.studentName || ''}"`,
+                            ...monthScoreValues,
+                            `"${st.goodCount} / ${monthCols.length}"`,
+                            `"${st.fairCount + st.passCount + st.failCount} tháng"`
+                        ].join(',');
+                    });
+
+                    const csvContent = '\uFEFF' + reportHeaderRows.join('\n') + '\n' + tableHeaders.join(',') + '\n' + dataRows.join('\n');
+                    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+                    const link = document.createElement('a');
+                    link.href = URL.createObjectURL(blob);
+                    const fileTerm = activeTermType.value === 'sem1' ? 'Hoc_Ky_1' : activeTermType.value === 'sem2' ? 'Hoc_Ky_2' : 'Ca_Nam';
+                    link.download = `Bang_tong_ket_${fileTerm}_${className}.csv`;
+                    link.click();
+                    showToast('Đã xuất file CSV tổng kết kỳ thành công!');
+                }
+
                 const refreshIcons = () => {
                     nextTick(() => {
                         if (window.lucide && window.lucide.createIcons) {
@@ -1978,7 +2283,7 @@
                     });
                 };
 
-                watch([students, searchQuery, showAiDrawer, showAiPreviewModal, showDeductModal, showAuditLogsModal, showMonthlySummaryModal, chatMessages, debugMode, toast], () => {
+                watch([students, searchQuery, showAiDrawer, showAiPreviewModal, showDeductModal, showAuditLogsModal, showMonthlySummaryModal, showTermSummaryModal, chatMessages, debugMode, toast], () => {
                     refreshIcons();
                 }, { deep: true });
 
@@ -2079,7 +2384,17 @@
                     confirmCloseMonthlyConduct,
                     reopenMonthlyConduct,
                     exportMonthlySummaryCsv,
-                    getRankBadgeClass
+                    getRankBadgeClass,
+                    // Term Summary returns
+                    showTermSummaryModal,
+                    loadingTermSummary,
+                    activeTermType,
+                    selectedTermPeriodKeys,
+                    termSummaryData,
+                    openTermSummaryModal,
+                    switchTermType,
+                    fetchTermSummaryData,
+                    exportTermSummaryCsv
                 };
             }
         }).mount('#app');

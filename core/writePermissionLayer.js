@@ -1161,3 +1161,118 @@ export async function secureUpdateMonthlySummaryItem(actorUser, classId, summary
     };
 }
 
+/**
+ * 17. Get Term Conduct Summary (Tổng kết Học kỳ I, Học kỳ II, hoặc Cả năm)
+ * Trả về danh sách học sinh kèm điểm của từng tháng đã chọn, tổng số tháng Tốt, số tháng Khá, Đạt, Chưa đạt.
+ */
+export async function getTermConductSummary(actorUser, classId, { termType = 'sem1', selectedPeriodKeys = [] }) {
+    const access = await checkUserClassAccess(actorUser.id, classId);
+    if (!access.canRead) {
+        throw new Error('Bạn không có quyền xem thông tin lớp học này.');
+    }
+
+    const numClassId = Number(classId);
+
+    // Lấy tất cả bản ghi tổng kết của lớp này
+    const allSummaries = await db
+        .select()
+        .from(monthlyConductSummariesTable)
+        .where(eq(monthlyConductSummariesTable.classId, numClassId))
+        .orderBy(monthlyConductSummariesTable.year, monthlyConductSummariesTable.month);
+
+    // Lấy danh sách tất cả học sinh hiện tại của lớp
+    const currentStudents = await db
+        .select()
+        .from(studentsTable)
+        .where(eq(studentsTable.classId, numClassId));
+
+    // Lọc các kỳ (tháng) dựa theo termType và selectedPeriodKeys
+    // Mỗi kỳ có key dạng `${year}-${month}`
+    let targetSummaries = [];
+    if (termType === 'year') {
+        // Cả năm: mặc định lấy TẤT CẢ các tháng đã tổng kết
+        targetSummaries = allSummaries;
+    } else if (selectedPeriodKeys && selectedPeriodKeys.length > 0) {
+        // Học kỳ I hoặc II với danh sách do giáo viên chọn
+        const keySet = new Set(selectedPeriodKeys);
+        targetSummaries = allSummaries.filter(s => keySet.has(`${s.year}-${s.month}`));
+    } else {
+        // Nếu chưa chọn thủ công, mặc định: HK1 lấy 5 tháng đầu (nếu có), HK2 lấy các tháng tiếp theo
+        targetSummaries = allSummaries;
+    }
+
+    // Lấy danh sách các cột tháng duy nhất theo thứ tự thời gian
+    const monthColumnsMap = new Map();
+    for (const s of targetSummaries) {
+        const key = `${s.year}-${s.month}`;
+        if (!monthColumnsMap.has(key)) {
+            monthColumnsMap.set(key, {
+                key,
+                year: s.year,
+                month: s.month,
+                label: s.monthLabel || `Tháng ${s.month < 10 ? '0' + s.month : s.month}/${s.year}`
+            });
+        }
+    }
+    const monthColumns = Array.from(monthColumnsMap.values());
+
+    // Map học sinh: lấy từ currentStudents + các học sinh trong snapshot nếu có học sinh cũ
+    const studentMap = new Map();
+    for (const st of currentStudents) {
+        studentMap.set(st.id, {
+            studentId: st.id,
+            studentCode: st.studentCode,
+            studentName: st.name,
+            monthScores: {}, // { [periodKey]: { score, rank } }
+            goodCount: 0,
+            fairCount: 0,
+            passCount: 0,
+            failCount: 0,
+            totalMonthsEvaluated: 0
+        });
+    }
+
+    // Đưa điểm từ targetSummaries vào map
+    for (const s of targetSummaries) {
+        let st = studentMap.get(s.studentId);
+        if (!st) {
+            st = {
+                studentId: s.studentId,
+                studentCode: s.studentCode,
+                studentName: s.studentName,
+                monthScores: {},
+                goodCount: 0,
+                fairCount: 0,
+                passCount: 0,
+                failCount: 0,
+                totalMonthsEvaluated: 0
+            };
+            studentMap.set(s.studentId, st);
+        }
+
+        const periodKey = `${s.year}-${s.month}`;
+        st.monthScores[periodKey] = {
+            score: s.finalScore,
+            rank: s.conductRank
+        };
+
+        st.totalMonthsEvaluated += 1;
+        if (s.conductRank === 'Tốt') st.goodCount += 1;
+        else if (s.conductRank === 'Khá') st.fairCount += 1;
+        else if (s.conductRank === 'Đạt') st.passCount += 1;
+        else st.failCount += 1;
+    }
+
+    const studentsResult = Array.from(studentMap.values()).sort((a, b) => {
+        // Sắp xếp theo tên học sinh
+        return (a.studentName || '').localeCompare(b.studentName || '', 'vi');
+    });
+
+    return {
+        termType,
+        monthColumns,
+        students: studentsResult
+    };
+}
+
+
