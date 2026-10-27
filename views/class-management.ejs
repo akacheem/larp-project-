@@ -16,6 +16,8 @@
     <link rel="stylesheet" href="/public/style.css">
     <!-- TailwindCSS CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
+    <!-- SheetJS (xlsx) for perfect Excel styling, borders, and column auto-fit -->
+    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
     <script>
         tailwind.config = {
             theme: {
@@ -1692,36 +1694,122 @@
                     }
                 }
 
-                function exportCsv() {
-                    if (students.value.length === 0) {
-                        showToast('Không có dữ liệu để xuất CSV!', 'error');
-                        return;
-                    }
+                // Helper function to export beautiful Excel with real grid borders, alignments & auto column widths
+                function exportExcelHtmlTable({ filename, title, subheaders = [], headers, rows, colWidths = [] }) {
+                    const totalCols = headers.length;
+                    let html = `
+                    <html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel" xmlns="http://www.w3.org/TR/REC-html40">
+                    <head>
+                        <!--[if gte mso 9]>
+                        <xml>
+                            <x:ExcelWorkbook>
+                                <x:ExcelWorksheets>
+                                    <x:ExcelWorksheet>
+                                        <x:Name>Báo Cáo</x:Name>
+                                        <x:WorksheetOptions>
+                                            <x:DisplayGridlines/>
+                                        </x:WorksheetOptions>
+                                    </x:ExcelWorksheet>
+                                </x:ExcelWorksheets>
+                            </x:ExcelWorkbook>
+                        </xml>
+                        <![endif]-->
+                        <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+                        <style>
+                            body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; font-size: 11pt; }
+                            .title-row { font-size: 14pt; font-weight: bold; text-align: center; height: 32px; vertical-align: middle; }
+                            .sub-row { font-size: 10.5pt; text-align: center; color: #333333; height: 22px; vertical-align: middle; }
+                            .table-grid { border-collapse: collapse; border: 1.5pt solid #000000; width: 100%; }
+                            .table-grid th { 
+                                background-color: #f1f5f9; 
+                                color: #000000; 
+                                font-weight: bold; 
+                                border: 1pt solid #000000; 
+                                padding: 8px 10px; 
+                                text-align: center; 
+                                vertical-align: middle; 
+                            }
+                            .table-grid td { 
+                                border: 1pt solid #000000; 
+                                padding: 6px 9px; 
+                                vertical-align: middle; 
+                                mso-number-format: "\\@"; /* Treat as explicit Text in Excel to avoid 2-Feb auto date bug */
+                            }
+                            .text-center { text-align: center; }
+                            .text-left { text-align: left; }
+                            .text-right { text-align: right; }
+                            .font-bold { font-weight: bold; }
+                            .bg-good { background-color: #ecfdf5; color: #15803d; font-weight: bold; }
+                        </style>
+                    </head>
+                    <body>
+                        <table>
+                            ${title ? `<tr><td colspan="${totalCols}" class="title-row">${title}</td></tr>` : ''}
+                            ${subheaders.map(sub => `<tr><td colspan="${totalCols}" class="sub-row">${sub}</td></tr>`).join('')}
+                            ${title || subheaders.length > 0 ? '<tr><td colspan="' + totalCols + '" style="height: 12px;"></td></tr>' : ''}
+                        </table>
+                        <table class="table-grid">
+                            <thead>
+                                <tr>
+                                    ${headers.map((h, i) => `<th ${colWidths[i] ? `style="width:${colWidths[i]}px;"` : ''}>${h}</th>`).join('')}
+                                </tr>
+                            </thead>
+                            <tbody>
+                                ${rows.map(r => `
+                                    <tr>
+                                        ${r.map(c => {
+                                            const val = c.value !== undefined ? c.value : c;
+                                            const align = c.align || 'text-center';
+                                            const cls = c.cls || '';
+                                            return `<td class="${align} ${cls}">${val}</td>`;
+                                        }).join('')}
+                                    </tr>
+                                `).join('')}
+                            </tbody>
+                        </table>
+                    </body>
+                    </html>
+                    `;
 
-                    let csvContent = "data:text/csv;charset=utf-8,STT,Mã Học Sinh,Họ và Tên,Ngày Sinh,SĐT Học Sinh,Email Học Sinh,SĐT Phụ Huynh,Email Phụ Huynh,Điểm Hạnh Kiểm\n";
-
-                    students.value.forEach((st, idx) => {
-                        const row = [
-                            idx + 1,
-                            st.studentCode || '',
-                            `"${st.name || ''}"`,
-                            st.dateOfBirth || '',
-                            st.phone || '',
-                            st.email || '',
-                            st.parentPhone || '',
-                            st.parentEmail || '',
-                            st.conductScore ?? 100
-                        ].join(",");
-                        csvContent += row + "\n";
-                    });
-
-                    const encodedUri = encodeURI(csvContent);
-                    const link = document.createElement("a");
-                    link.setAttribute("href", encodedUri);
-                    link.setAttribute("download", `Danh_Sach_Hoc_Sinh_Lop_${currentClass.value?.name || 'Class'}.csv`);
+                    const blob = new Blob(['\uFEFF' + html], { type: 'application/vnd.ms-excel;charset=utf-8' });
+                    const link = document.createElement('a');
+                    link.href = URL.createObjectURL(blob);
+                    link.download = filename.endsWith('.xls') ? filename : `${filename}.xls`;
                     document.body.appendChild(link);
                     link.click();
                     document.body.removeChild(link);
+                }
+
+                function exportCsv() {
+                    if (students.value.length === 0) {
+                        showToast('Không có dữ liệu để xuất!', 'error');
+                        return;
+                    }
+
+                    const className = currentClass.value?.name || 'Lớp';
+                    const headers = ['STT', 'Mã Học Sinh', 'Họ và Tên', 'Ngày Sinh', 'SĐT Học Sinh', 'Email Học Sinh', 'SĐT Phụ Huynh', 'Email Phụ Huynh', 'Điểm Hạnh Kiểm'];
+                    const rows = students.value.map((st, idx) => [
+                        { value: idx + 1, align: 'text-center' },
+                        { value: st.studentCode || '', align: 'text-center' },
+                        { value: st.name || '', align: 'text-left font-bold' },
+                        { value: st.dateOfBirth || '', align: 'text-center' },
+                        { value: st.phone || '', align: 'text-center' },
+                        { value: st.email || '', align: 'text-left' },
+                        { value: st.parentPhone || '', align: 'text-center' },
+                        { value: st.parentEmail || '', align: 'text-left' },
+                        { value: st.conductScore ?? 100, align: 'text-center font-bold' }
+                    ]);
+
+                    exportExcelHtmlTable({
+                        filename: `Danh_Sach_Hoc_Sinh_Lop_${className}`,
+                        title: `DANH SÁCH HỌC SINH — LỚP ${className}`,
+                        subheaders: [`Thời gian xuất: ${new Date().toLocaleDateString('vi-VN')}`],
+                        headers,
+                        rows,
+                        colWidths: [45, 95, 200, 100, 110, 160, 110, 160, 100]
+                    });
+
+                    showToast('Đã xuất danh sách học sinh (kẻ bảng & cân lề chuẩn Excel) thành công!');
                 }
 
                 // Gemini Chatbot Integration
@@ -2089,41 +2177,34 @@
                     const stats = monthlyData.value.stats || { total: 0, tot: 0, kha: 0, dat: 0, chuaDat: 0 };
                     const creatorName = monthlyData.value.closedInfo?.closedByUserName || displayName.value || 'Người lập';
 
-                    // Format high-level formal header for superiors / school board
-                    const reportHeaderRows = [
-                        `"CỘNG HÒA XÃ HỘI CHỦ NGHĨA VIỆT NAM"`,
-                        `"Độc lập - Tự do - Hạnh phúc"`,
-                        `""`,
-                        `"BÁO CÁO TỔNG KẾT ĐÁNH GIÁ & XẾP LOẠI HẠNH KIỂM"`,
-                        `"Tiêu đề kỳ báo cáo: ${reportTitle.replace(/"/g, '""')}"`,
-                        `"Lớp: ${className} | Niên khóa / Thời gian xuất: ${new Date().toLocaleDateString('vi-VN')}"`,
-                        `"Người lập báo cáo: ${creatorName.replace(/"/g, '""')}"`,
-                        `""`,
-                        `"THỐNG KÊ XẾP LOẠI: Tổng số: ${stats.total} HS | Tốt (90-100đ): ${stats.tot} HS | Khá (80-89đ): ${stats.kha} HS | Đạt (70-79đ): ${stats.dat} HS | Chưa đạt (<70đ): ${stats.chuaDat} HS"`,
-                        `""`
-                    ];
-
-                    const tableHeaders = ['STT', 'Mã Học Sinh', 'Họ và Tên', 'Điểm Hạnh Kiểm', 'Xếp Loại', 'Chi Tiết Vi Phạm / Ghi Chú'];
-                    const dataRows = monthlyData.value.summaries.map((s, idx) => {
+                    const headers = ['STT', 'Mã Học Sinh', 'Họ và Tên Học Sinh', 'Điểm Hạnh Kiểm', 'Xếp Loại', 'Chi Tiết Vi Phạm / Ghi Chú'];
+                    const rows = monthlyData.value.summaries.map((s, idx) => {
                         const viPham = (s.deductions || []).map(d => d.reason).filter(Boolean).join('; ') || (s.currentReason || 'Tốt, không có vi phạm');
+                        const rankCls = s.conductRank === 'Tốt' ? 'bg-good' : '';
                         return [
-                            idx + 1,
-                            `"${s.studentCode || ''}"`,
-                            `"${s.studentName || ''}"`,
-                            s.finalScore,
-                            `"${s.conductRank || ''}"`,
-                            `"${viPham.replace(/"/g, '""')}"`
-                        ].join(',');
+                            { value: idx + 1, align: 'text-center' },
+                            { value: s.studentCode || '—', align: 'text-center' },
+                            { value: s.studentName || '', align: 'text-left font-bold' },
+                            { value: s.finalScore, align: 'text-center font-bold' },
+                            { value: s.conductRank || '', align: `text-center ${rankCls}` },
+                            { value: viPham, align: 'text-left' }
+                        ];
                     });
 
-                    const csvContent = '\uFEFF' + reportHeaderRows.join('\n') + '\n' + tableHeaders.join(',') + '\n' + dataRows.join('\n');
-                    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-                    const link = document.createElement('a');
-                    link.href = URL.createObjectURL(blob);
-                    const cleanFilename = reportTitle.replace(/[^a-zA-Z0-9\p{L}]/gu, '_').slice(0, 50);
-                    link.download = `${cleanFilename}_${className}.csv`;
-                    link.click();
-                    showToast('Đã xuất báo cáo CSV gửi cấp trên thành công!');
+                    exportExcelHtmlTable({
+                        filename: `Bao_cao_hanh_kiem_${reportTitle.replace(/[^a-zA-Z0-9\p{L}]/gu, '_')}_${className}`,
+                        title: `BÁO CÁO TỔNG KẾT ĐÁNH GIÁ & XẾP LOẠI HẠNH KIỂM`,
+                        subheaders: [
+                            `Tiêu đề kỳ báo cáo: ${reportTitle}`,
+                            `Lớp: ${className} | Ngày xuất: ${new Date().toLocaleDateString('vi-VN')} | Người lập: ${creatorName}`,
+                            `THỐNG KÊ: Tổng: ${stats.total} HS | Tốt: ${stats.tot} | Khá: ${stats.kha} | Đạt: ${stats.dat} | Chưa đạt: ${stats.chuaDat}`
+                        ],
+                        headers,
+                        rows,
+                        colWidths: [50, 95, 200, 110, 100, 320]
+                    });
+
+                    showToast('Đã xuất báo cáo tháng (kẻ bảng & căn lề chuẩn) thành công!');
                 }
 
                 function getRankBadgeClass(rank) {
@@ -2229,50 +2310,61 @@
                     const creatorName = displayName.value || 'Giáo viên';
                     const monthCols = termSummaryData.value.monthColumns || [];
 
-                    const reportHeaderRows = [
-                        `"CỘNG HÒA XÃ HỘI CHỦ NGHĨA VIỆT NAM"`,
-                        `"Độc lập - Tự do - Hạnh phúc"`,
-                        `""`,
-                        `"BẢNG TỔNG KẾT HẠNH KIỂM HỌC SINH — ${termName}"`,
-                        `"Lớp: ${className} | Ngày xuất báo cáo: ${new Date().toLocaleDateString('vi-VN')}"`,
-                        `"Người lập: ${creatorName.replace(/"/g, '""')}"`,
-                        `""`
-                    ];
-
                     // Table headers: STT, Mã HS, Họ và Tên, [Các tháng], Số tháng Tốt (>=90đ), Khác (<90đ)
-                    const tableHeaders = [
+                    const headers = [
                         'STT',
                         'Mã Học Sinh',
                         'Họ và Tên Học Sinh',
-                        ...monthCols.map(c => `"${c.label.replace(/"/g, '""')}"`),
-                        'Số Tháng Tốt (>=90đ)',
+                        ...monthCols.map(c => c.label),
+                        'Số Tháng Tốt (≥90đ)',
                         'Khác (<90đ)'
                     ];
 
-                    const dataRows = termSummaryData.value.students.map((st, idx) => {
-                        const monthScoreValues = monthCols.map(c => {
+                    const colWidths = [
+                        50,
+                        95,
+                        210,
+                        ...monthCols.map(() => 110),
+                        130,
+                        110
+                    ];
+
+                    const rows = termSummaryData.value.students.map((st, idx) => {
+                        const monthCells = monthCols.map(c => {
                             const item = st.monthScores && st.monthScores[c.key];
-                            return item ? `${item.score} (${item.rank})` : '—';
+                            return {
+                                value: item ? `${item.score} (${item.rank})` : '—',
+                                align: 'text-center',
+                                cls: item && item.score >= 90 ? 'bg-good' : ''
+                            };
                         });
 
                         return [
-                            idx + 1,
-                            `"${st.studentCode || ''}"`,
-                            `"${st.studentName || ''}"`,
-                            ...monthScoreValues,
-                            `"${st.goodCount} / ${monthCols.length}"`,
-                            `"${st.fairCount + st.passCount + st.failCount} tháng"`
-                        ].join(',');
+                            { value: idx + 1, align: 'text-center' },
+                            { value: st.studentCode || '—', align: 'text-center' },
+                            { value: st.studentName || '', align: 'text-left font-bold' },
+                            ...monthCells,
+                            // Hiển thị dạng "X / Y tháng" rõ ràng, có mso-number-format text để Excel không tự đổi sang ngày (ví dụ 2-Feb)
+                            { value: `${st.goodCount} / ${monthCols.length} tháng`, align: 'text-center font-bold bg-good' },
+                            { value: `${st.fairCount + st.passCount + st.failCount} tháng`, align: 'text-center' }
+                        ];
                     });
 
-                    const csvContent = '\uFEFF' + reportHeaderRows.join('\n') + '\n' + tableHeaders.join(',') + '\n' + dataRows.join('\n');
-                    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-                    const link = document.createElement('a');
-                    link.href = URL.createObjectURL(blob);
                     const fileTerm = activeTermType.value === 'sem1' ? 'Hoc_Ky_1' : activeTermType.value === 'sem2' ? 'Hoc_Ky_2' : 'Ca_Nam';
-                    link.download = `Bang_tong_ket_${fileTerm}_${className}.csv`;
-                    link.click();
-                    showToast('Đã xuất file CSV tổng kết kỳ thành công!');
+
+                    exportExcelHtmlTable({
+                        filename: `Bang_tong_ket_${fileTerm}_${className}`,
+                        title: `BẢNG TỔNG KẾT HẠNH KIỂM HỌC SINH — ${termName}`,
+                        subheaders: [
+                            `Lớp: ${className} | Ngày xuất: ${new Date().toLocaleDateString('vi-VN')} | Người lập: ${creatorName}`,
+                            `Quy chuẩn: Số tháng Tốt tính theo các tháng đạt từ 90 đến 100 điểm`
+                        ],
+                        headers,
+                        rows,
+                        colWidths
+                    });
+
+                    showToast('Đã xuất bảng tổng kết kỳ (kẻ bảng & căn lề chuẩn) thành công!');
                 }
 
                 const refreshIcons = () => {
