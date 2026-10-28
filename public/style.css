@@ -1,5 +1,10 @@
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
 
+/* Prevent Flash of Uncompiled Content (FOUC) and popups during page load */
+[v-cloak] {
+  display: none !important;
+}
+
 :root {
   --apple-canvas: #f5f5f7;
   --apple-surface: #ffffff;

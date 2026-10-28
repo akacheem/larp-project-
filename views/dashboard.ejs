@@ -45,10 +45,16 @@
             }
         }
     </script>
+    <style>
+        /* Hide Vue elements and modals before Vue mounts to eliminate popup flashes on page transitions */
+        [v-cloak] {
+            display: none !important;
+        }
+    </style>
 </head>
 
 <body class="min-h-screen bg-[#f5f5f7] text-[#1d1d1f] antialiased selection:bg-[#0071e3] selection:text-white flex flex-col font-sans">
-    <div id="app" class="flex-1 flex flex-col">
+    <div id="app" v-cloak class="flex-1 flex flex-col">
         <!-- Apple Frosted Glass Header Bar -->
         <header class="sticky top-0 z-40 h-14 backdrop-blur-xl bg-white/80 border-b border-black/[0.06] px-6 flex items-center justify-between transition-colors">
             <div class="flex items-center space-x-3">
@@ -501,7 +507,7 @@
             </button>
 
             <!-- Gemini AI Chatbot Drawer Panel -->
-            <div v-if="showAiDrawer" class="fixed bottom-24 right-6 w-96 rounded-[36px] border border-black/[0.08] shadow-[0_16px_50px_rgba(0,0,0,0.12)] z-40 flex flex-col bg-white/95 backdrop-blur-2xl overflow-hidden h-[490px]">
+            <div v-if="showAiDrawer" v-cloak class="fixed bottom-24 right-6 w-96 rounded-[36px] border border-black/[0.08] shadow-[0_16px_50px_rgba(0,0,0,0.12)] z-40 flex flex-col bg-white/95 backdrop-blur-2xl overflow-hidden h-[490px]">
                 <!-- Chatbot Header -->
                 <div class="px-5 py-3.5 border-b border-black/[0.06] flex justify-between items-center bg-white/80 backdrop-blur-md">
                     <div class="flex items-center space-x-2.5">
@@ -596,7 +602,7 @@
             </div>
 
             <!-- Server AI Preview Modal -->
-            <div v-if="showAiPreviewModal" class="fixed inset-0 bg-black/40 backdrop-blur-md z-50 flex items-center justify-center p-4">
+            <div v-if="showAiPreviewModal" v-cloak class="fixed inset-0 bg-black/40 backdrop-blur-md z-50 flex items-center justify-center p-4">
                 <div class="bg-white max-w-lg w-full rounded-[36px] p-6 sm:p-7 border border-black/[0.08] space-y-4 shadow-[0_24px_70px_rgba(0,0,0,0.18)]">
                     <div class="flex items-center space-x-3 border-b border-black/[0.06] pb-3">
                         <div class="w-10 h-10 rounded-full bg-[#0071e3]/10 text-[#0071e3] flex items-center justify-center font-bold">
@@ -659,7 +665,7 @@
         </div>
 
         <!-- STUDENT MANAGEMENT MODAL (Strictly for Organization Accounts) -->
-        <div v-if="showStudentModal" class="fixed inset-0 bg-black/40 backdrop-blur-md z-50 flex items-center justify-center p-4">
+        <div v-if="showStudentModal" v-cloak class="fixed inset-0 bg-black/40 backdrop-blur-md z-50 flex items-center justify-center p-4">
             <div class="bg-white max-w-3xl w-full rounded-[36px] p-6 sm:p-7 border border-black/[0.08] space-y-4 shadow-[0_24px_70px_rgba(0,0,0,0.18)] max-h-[90vh] flex flex-col">
                 <div class="flex items-center justify-between border-b border-black/[0.06] pb-3">
                     <div class="flex items-center space-x-3">
@@ -779,7 +785,7 @@
         </div>
 
         <!-- CUSTOM RIGHT CLICK CONTEXT MENU -->
-        <div v-if="contextMenu.show" :style="{ top: contextMenu.y + 'px', left: contextMenu.x + 'px' }" class="fixed z-50 bg-white/95 backdrop-blur-2xl border border-black/[0.08] rounded-2xl shadow-[0_12px_40px_rgba(0,0,0,0.15)] p-1.5 min-w-[210px] text-xs space-y-0.5">
+        <div v-if="contextMenu.show" v-cloak :style="{ top: contextMenu.y + 'px', left: contextMenu.x + 'px' }" class="fixed z-50 bg-white/95 backdrop-blur-2xl border border-black/[0.08] rounded-2xl shadow-[0_12px_40px_rgba(0,0,0,0.15)] p-1.5 min-w-[210px] text-xs space-y-0.5">
             <div class="px-3 py-1 text-[10px] uppercase tracking-wider font-semibold text-[#86868b]">
                 Lớp: {{ contextMenu.cls?.name }}
             </div>
@@ -799,7 +805,7 @@
         </div>
 
         <!-- Toast Feedback Notification -->
-        <div v-if="toast.show" :class="toast.type === 'error' ? 'bg-white text-[#1d1d1f] border-[#ff3b30]/30 shadow-[0_8px_30px_rgba(255,59,48,0.15)]' : 'bg-white text-[#1d1d1f] border-[#34c759]/30 shadow-[0_8px_30px_rgba(52,199,89,0.15)]'" class="fixed bottom-6 left-6 px-4 py-2.5 rounded-full border text-xs font-medium flex items-center space-x-2.5 z-50 backdrop-blur-xl transition-all">
+        <div v-if="toast.show" v-cloak :class="toast.type === 'error' ? 'bg-white text-[#1d1d1f] border-[#ff3b30]/30 shadow-[0_8px_30px_rgba(255,59,48,0.15)]' : 'bg-white text-[#1d1d1f] border-[#34c759]/30 shadow-[0_8px_30px_rgba(52,199,89,0.15)]'" class="fixed bottom-6 left-6 px-4 py-2.5 rounded-full border text-xs font-medium flex items-center space-x-2.5 z-50 backdrop-blur-xl transition-all">
             <i :data-lucide="toast.type === 'error' ? 'alert-circle' : 'check-circle-2'" class="w-4 h-4" :class="toast.type === 'error' ? 'text-[#ff3b30]' : 'text-[#34c759]'"></i>
             <span>{{ toast.message }}</span>
         </div>
