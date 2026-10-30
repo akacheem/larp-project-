@@ -400,6 +400,18 @@
                                             <span>{{ m.userName }}</span>
                                             <span class="text-xs font-normal text-[#86868b]">({{ m.userEmail }})</span>
                                         </h4>
+
+                    <!-- Direct link to Spreadsheet & CSV Import -->
+                    <div class="flex items-center justify-between p-3 bg-white border border-black/[0.08] rounded-2xl">
+                        <div class="flex items-center space-x-2 text-xs text-[#1d1d1f]">
+                            <i data-lucide="file-spreadsheet" class="w-4 h-4 text-[#0071e3]"></i>
+                            <span>Có sẵn danh sách học sinh từ file Excel hoặc CSV?</span>
+                        </div>
+                        <a :href="'/class-management/' + selectedClass?.id" class="px-3.5 py-1.5 bg-[#0071e3] hover:bg-[#0077ed] text-white rounded-full text-xs font-semibold flex items-center space-x-1.5 transition shadow-xs active:scale-95">
+                            <i data-lucide="file-up" class="w-3.5 h-3.5"></i>
+                            <span>Mở Bảng tính & Import File CSV</span>
+                        </a>
+                    </div>
                                         <p class="text-[11px] text-[#86868b] mt-0.5">Tài khoản cá nhân thuộc tổ chức</p>
                                     </div>
                                     <div class="flex items-center space-x-2">
@@ -688,6 +700,18 @@
                         <i data-lucide="user-plus" class="w-3.5 h-3.5 text-[#0071e3] inline mr-1"></i>
                         <span>Thêm học sinh mới vào Lớp {{ selectedClass?.name }}</span>
                     </h4>
+
+                    <!-- Direct link to Spreadsheet & CSV Import -->
+                    <div class="flex items-center justify-between p-3 bg-white border border-black/[0.08] rounded-2xl">
+                        <div class="flex items-center space-x-2 text-xs text-[#1d1d1f]">
+                            <i data-lucide="file-spreadsheet" class="w-4 h-4 text-[#0071e3]"></i>
+                            <span>Có sẵn danh sách học sinh từ file Excel hoặc CSV?</span>
+                        </div>
+                        <a :href="'/class-management/' + selectedClass?.id" class="px-3.5 py-1.5 bg-[#0071e3] hover:bg-[#0077ed] text-white rounded-full text-xs font-semibold flex items-center space-x-1.5 transition shadow-xs active:scale-95">
+                            <i data-lucide="file-up" class="w-3.5 h-3.5"></i>
+                            <span>Mở Bảng tính & Import File CSV</span>
+                        </a>
+                    </div>
                     <form @submit.prevent="addStudent" class="grid grid-cols-1 md:grid-cols-3 gap-2.5">
                         <div>
                             <label class="block text-[11px] font-medium text-[#86868b] mb-1 pl-2">Mã Học sinh</label>
