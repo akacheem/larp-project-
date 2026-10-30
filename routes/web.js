@@ -117,12 +117,58 @@ export default async function (fastify) {
         return reply.view('class-management.ejs');
     });
 
-    // Auth API
+    // Auth API - Login & Signup endpoints
     fastify.post('/submit-signup', async (request, reply) => {
-        const { username, email, password, isOrganization } = request.body;
+        let { username, email, password, isOrganization } = request.body || {};
 
-        if (!username || !email || !password || isOrganization === undefined) {
-            return reply.status(400).send({ error: 'Bad Request', message: 'Vui lòng điền đầy đủ thông tin' });
+        if (!username || !email || !password) {
+            return reply.status(400).send({ error: 'Bad Request', message: 'Vui lòng điền đầy đủ: Họ tên, Email và Mật khẩu!' });
+        }
+
+        username = String(username).trim();
+        email = String(email).trim().toLowerCase();
+
+        if (username.length < 2) {
+            return reply.status(400).send({ error: 'Bad Request', message: 'Họ và tên tối thiểu phải có 2 ký tự!' });
+        }
+
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        if (!emailRegex.test(email)) {
+            return reply.status(400).send({ error: 'Bad Request', message: 'Địa chỉ Email không đúng định dạng!' });
+        }
+
+        if (String(password).length < 8) {
+            return reply.status(400).send({ error: 'Bad Request', message: 'Mật khẩu phải có tối thiểu 8 ký tự!' });
+        }
+
+        if (await isUserAlreadySignup(email)) {
+            return reply.status(409).send({ error: 'Conflict', message: 'Địa chỉ Email này đã được đăng ký tài khoản trước đó!' });
+        }
+
+        try {
+            const user = await newUser(username, Boolean(isOrganization), email, password);
+            const token = await genJwtToken(fastify, user);
+            return reply.status(200).send({
+                message: 'OK',
+                token,
+                user: {
+                    id: user.id,
+                    name: user.name,
+                    email: user.email,
+                    isOrganizationAccount: Boolean(user.isOrganizationAccount)
+                }
+            });
+        } catch (e) {
+            console.error('Lỗi khi đăng ký:', e);
+            if (e.message === 'EMAIL_ALREADY_EXISTS') {
+                return reply.status(409).send({ error: 'Conflict', message: 'Email này đã tồn tại trong hệ thống!' });
+            }
+            return reply.status(500).send({ error: 'Internal Server Error', message: 'Lỗi máy chủ khi đăng ký: ' + (e.message || 'Lỗi máy chủ nội bộ!') });
+        }
+
+        if (false) { /* unused old signup code
+        }
+
         }
 
         if (await isUserAlreadySignup(email)) {
@@ -135,7 +181,7 @@ export default async function (fastify) {
             return reply.status(200).send({ message: 'OK', token });
         } catch (e) {
             console.error(e);
-            return reply.status(500).send({ error: 'Internal Server Error', message: 'Lỗi máy chủ nội bộ!' });
+            return reply.status(500).send({ error: 'Internal Server Error', message: 'Lỗi máy chủ nội bộ!' }); */
         }
     });
 

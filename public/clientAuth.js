@@ -3,18 +3,32 @@ function setAuthToken(tok) {
 }
 
 export async function signup(username, email, password, isOrganizationAccount) {
-    var res = await fetch("/submit-signup", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ username: username, email: email, isOrganization: isOrganizationAccount, password: password }) });
-    var jres = await res.json();
+    try {
+        const res = await fetch("/submit-signup", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+                username: username,
+                email: email,
+                isOrganization: isOrganizationAccount,
+                password: password
+            })
+        });
+        const jres = await res.json();
 
-    if (!res.ok) {
-        throw new Error(jres.message);
+        if (!res.ok) {
+            return { ok: false, message: jres.message || "Đăng ký tài khoản thất bại" };
+        }
+
+        if (!jres.token) {
+            return { ok: false, message: "Máy chủ phản hồi không hợp lệ" };
+        }
+
+        setAuthToken(jres.token);
+        return { ok: true, message: "ok" };
+    } catch (err) {
+        return { ok: false, message: err.message || "Không thể kết nối đến máy chủ" };
     }
-
-    if (!jres.token) {
-        throw new Error("BAD_SERVER_RESPONSE");
-    }
-
-    setAuthToken(jres.token);
 }
 
 export function isAlreadyLogin() {

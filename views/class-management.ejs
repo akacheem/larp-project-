@@ -221,6 +221,10 @@
                         <i data-lucide="plus" class="w-4 h-4"></i>
                         <span>Thêm hàng</span>
                     </button>
+                    <button @click="openImportModal" :disabled="!userPermission.isOwner" :class="!userPermission.isOwner ? 'opacity-40 cursor-not-allowed text-[#86868b] border-black/[0.04] bg-white' : 'text-[#0071e3] border-[#0071e3]/30 bg-[#0071e3]/10 hover:bg-[#0071e3]/20 font-medium'" class="excel-toolbar-btn shadow-xs" :title="!userPermission.isOwner ? 'Chỉ Người sở hữu Tổ chức mới được phép nhập danh sách học sinh' : 'Nhập danh sách học sinh từ file CSV hoặc Excel (Có file mẫu tải về)'">
+                        <i data-lucide="file-up" class="w-4 h-4"></i>
+                        <span>Nhập CSV / Excel</span>
+                    </button>
                     <button @click="fetchStudents" class="excel-toolbar-btn">
                         <i data-lucide="refresh-cw" class="w-4 h-4 text-[#86868b]"></i>
                         <span>Tải lại</span>
@@ -1173,6 +1177,158 @@
 
                     <button @click="showTermSummaryModal = false" class="px-5 py-2.5 bg-black/[0.05] hover:bg-black/[0.09] text-[#1d1d1f] rounded-full text-xs font-medium transition">
                         Đóng
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- CSV / Excel Import Modal with Sample Template Download -->
+        <div v-if="showImportModal" v-cloak class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-md">
+            <div class="bg-white border border-black/[0.08] rounded-[36px] max-w-4xl w-full p-6 sm:p-7 shadow-[0_24px_70px_rgba(0,0,0,0.2)] flex flex-col max-h-[90vh]">
+                <!-- Modal Header -->
+                <div class="flex items-center justify-between pb-4 border-b border-black/[0.06]">
+                    <div class="flex items-center space-x-3.5">
+                        <div class="w-11 h-11 rounded-2xl bg-[#0071e3]/10 text-[#0071e3] border border-[#0071e3]/20 flex items-center justify-center font-bold shadow-xs">
+                            <i data-lucide="file-up" class="w-6 h-6"></i>
+                        </div>
+                        <div>
+                            <h3 class="text-base font-bold text-[#1d1d1f] flex items-center gap-2">
+                                <span>Nhập Danh Sách Học Sinh từ File (CSV / Excel)</span>
+                                <span class="px-2.5 py-0.5 text-xs font-semibold rounded-full bg-[#0071e3]/10 text-[#0071e3] border border-[#0071e3]/20">
+                                    Lớp {{ currentClass?.name }}
+                                </span>
+                            </h3>
+                            <p class="text-xs text-[#86868b]">
+                                Tải file mẫu về máy, nhập thông tin học sinh và tải lên lại để tự động import vào bảng tính.
+                            </p>
+                        </div>
+                    </div>
+                    <button @click="closeImportModal" class="w-9 h-9 rounded-full hover:bg-black/[0.05] text-[#86868b] hover:text-[#1d1d1f] flex items-center justify-center transition">
+                        <i data-lucide="x" class="w-5 h-5"></i>
+                    </button>
+                </div>
+
+                <!-- Modal Body: Scrollable -->
+                <div class="flex-1 overflow-y-auto py-4 space-y-5">
+                    <!-- Step 1: Download Sample Template Card -->
+                    <div class="p-4 bg-[#f8fafc] border border-black/[0.06] rounded-2xl space-y-3">
+                        <div class="flex items-center justify-between">
+                            <div class="flex items-center space-x-2">
+                                <span class="w-6 h-6 rounded-full bg-[#0071e3] text-white flex items-center justify-center text-xs font-bold">1</span>
+                                <span class="font-semibold text-xs text-[#1d1d1f]">Bước 1: Tải file mẫu chuẩn về máy</span>
+                            </div>
+                            <span class="text-[11px] text-[#86868b]">Đầy đủ cột chuẩn & định dạng UTF-8 Tiếng Việt</span>
+                        </div>
+                        <p class="text-xs text-[#515154] leading-relaxed">
+                            File mẫu đã có sẵn các cột: <strong>STT, Mã Học Sinh, Họ và Tên (*bắt buộc), Ngày Sinh, SĐT Học Sinh, Email Học Sinh, SĐT Phụ Huynh, Email Phụ Huynh, Điểm Hạnh Kiểm</strong> và dữ liệu mẫu minh họa.
+                        </p>
+                        <div class="flex flex-wrap items-center gap-2.5 pt-1">
+                            <button @click="downloadCsvTemplate" type="button" class="px-4 py-2 bg-white hover:bg-black/[0.03] text-[#1d1d1f] border border-black/[0.1] rounded-full text-xs font-medium transition flex items-center space-x-2 shadow-xs active:scale-[0.98]">
+                                <i data-lucide="download" class="w-3.5 h-3.5 text-[#0071e3]"></i>
+                                <span>Tải File Mẫu (.CSV Tiếng Việt)</span>
+                            </button>
+                            <button @click="downloadExcelTemplate" type="button" class="px-4 py-2 bg-white hover:bg-black/[0.03] text-[#15803d] border border-[#34c759]/30 bg-[#34c759]/5 rounded-full text-xs font-medium transition flex items-center space-x-2 shadow-xs active:scale-[0.98]">
+                                <i data-lucide="file-spreadsheet" class="w-3.5 h-3.5 text-[#15803d]"></i>
+                                <span>Tải File Mẫu (.XLSX Excel)</span>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Step 2: Upload File Card / Dropzone -->
+                    <div class="p-4 bg-white border border-black/[0.08] rounded-2xl space-y-3">
+                        <div class="flex items-center space-x-2">
+                            <span class="w-6 h-6 rounded-full bg-[#0071e3] text-white flex items-center justify-center text-xs font-bold">2</span>
+                            <span class="font-semibold text-xs text-[#1d1d1f]">Bước 2: Tải lên file đã điền thông tin</span>
+                        </div>
+                        
+                        <div @dragover.prevent="dragOver = true" @dragleave.prevent="dragOver = false" @drop.prevent="handleFileDrop" :class="dragOver ? 'border-[#0071e3] bg-[#0071e3]/5' : 'border-dashed border-black/[0.15] bg-[#fbfbfd] hover:bg-[#f5f5f7]'" class="border-2 rounded-2xl p-6 text-center cursor-pointer transition flex flex-col items-center justify-center space-y-2 relative" @click="$refs.fileImportInput.click()">
+                            <input ref="fileImportInput" type="file" accept=".csv, .xlsx, .xls, text/csv, application/vnd.openxmlformats-officedocument.spreadsheetml.sheet, application/vnd.ms-excel" class="hidden" @change="handleFileSelect">
+                            
+                            <div class="w-12 h-12 rounded-full bg-black/[0.04] text-[#0071e3] flex items-center justify-center mb-1">
+                                <i data-lucide="upload-cloud" class="w-6 h-6"></i>
+                            </div>
+                            <div class="text-xs font-medium text-[#1d1d1f]">
+                                <span class="text-[#0071e3] hover:underline cursor-pointer">Nhấn vào đây để chọn file</span> hoặc kéo thả file vào khung này
+                            </div>
+                            <p class="text-[11px] text-[#86868b]">
+                                Hỗ trợ: <strong>.CSV, .XLSX, .XLS</strong>
+                            </p>
+                            <div v-if="importFileName" class="mt-2 inline-flex items-center space-x-2 px-3 py-1 bg-[#34c759]/10 text-[#15803d] border border-[#34c759]/20 rounded-full text-xs font-medium">
+                                <i data-lucide="check-circle" class="w-3.5 h-3.5"></i>
+                                <span>Đã chọn: {{ importFileName }}</span>
+                                <span v-if="importFileSize" class="text-[10px] text-[#86868b]">({{ importFileSize }})</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Step 3: Parsed Data Preview -->
+                    <div v-if="importParsedStudents.length > 0" class="space-y-3">
+                        <div class="flex items-center justify-between flex-wrap gap-2">
+                            <div class="flex items-center space-x-2">
+                                <span class="w-6 h-6 rounded-full bg-[#34c759] text-white flex items-center justify-center text-xs font-bold">3</span>
+                                <span class="font-semibold text-xs text-[#1d1d1f]">Bước 3: Xem trước dữ liệu ({{ importParsedStudents.length }} học sinh hợp lệ)</span>
+                            </div>
+                            <!-- Import Mode -->
+                            <div class="flex items-center space-x-3 text-xs">
+                                <label class="flex items-center space-x-1.5 cursor-pointer">
+                                    <input type="radio" value="append" v-model="importMode" class="text-[#0071e3]">
+                                    <span>Bổ sung vào danh sách hiện tại</span>
+                                </label>
+                                <label class="flex items-center space-x-1.5 cursor-pointer">
+                                    <input type="radio" value="replace" v-model="importMode" class="text-[#0071e3]">
+                                    <span>Ghi đè danh sách lớp</span>
+                                </label>
+                            </div>
+                        </div>
+
+                        <div v-if="importSkippedRows > 0" class="p-2.5 bg-[#ff9500]/10 border border-[#ff9500]/20 rounded-xl text-xs text-[#d97706] flex items-center space-x-2">
+                            <i data-lucide="alert-triangle" class="w-4 h-4 flex-shrink-0"></i>
+                            <span>Đã tự động bỏ qua {{ importSkippedRows }} dòng trống hoặc không có Họ và Tên.</span>
+                        </div>
+
+                        <div class="border border-black/[0.08] rounded-2xl overflow-x-auto max-h-56 bg-white">
+                            <table class="w-full text-left text-xs border-collapse">
+                                <thead class="bg-[#f8fafc] border-b border-black/[0.06] sticky top-0 text-[11px] font-bold text-[#1d1d1f]">
+                                    <tr>
+                                        <th class="p-2 text-center w-10">#</th>
+                                        <th class="p-2 w-24">Mã HS</th>
+                                        <th class="p-2 min-w-[150px]">Họ và Tên (*)</th>
+                                        <th class="p-2 w-24">Ngày Sinh</th>
+                                        <th class="p-2 w-28">SĐT HS</th>
+                                        <th class="p-2 min-w-[140px]">Email HS</th>
+                                        <th class="p-2 w-28">SĐT Phụ Huynh</th>
+                                        <th class="p-2 min-w-[140px]">Email Phụ Huynh</th>
+                                        <th class="p-2 text-center w-20">Điểm HK</th>
+                                    </tr>
+                                </thead>
+                                <tbody class="divide-y divide-black/[0.04]">
+                                    <tr v-for="(st, idx) in importParsedStudents" :key="idx" class="hover:bg-black/[0.015]">
+                                        <td class="p-2 text-center font-mono text-[#86868b]">{{ idx + 1 }}</td>
+                                        <td class="p-2 font-mono text-[#1d1d1f] font-semibold">{{ st.studentCode || 'Tự động' }}</td>
+                                        <td class="p-2 font-medium text-[#1d1d1f]">{{ st.name }}</td>
+                                        <td class="p-2 font-mono text-[#86868b]">{{ st.dateOfBirth || '—' }}</td>
+                                        <td class="p-2 font-mono text-[#86868b]">{{ st.phone || '—' }}</td>
+                                        <td class="p-2 text-[#86868b]">{{ st.email || '—' }}</td>
+                                        <td class="p-2 font-mono text-[#86868b]">{{ st.parentPhone || '—' }}</td>
+                                        <td class="p-2 text-[#86868b]">{{ st.parentEmail || '—' }}</td>
+                                        <td class="p-2 text-center font-bold text-[#15803d] font-mono">{{ st.conductScore ?? 100 }}</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Footer Actions -->
+                <div class="flex items-center justify-between pt-4 border-t border-black/[0.06] mt-2">
+                    <button @click="closeImportModal" type="button" class="px-5 py-2.5 bg-black/[0.05] hover:bg-black/[0.09] text-[#1d1d1f] rounded-full text-xs font-medium transition">
+                        Đóng
+                    </button>
+
+                    <button @click="confirmImportStudents" :disabled="importParsedStudents.length === 0 || importingStudents" type="button" class="px-6 py-2.5 bg-[#0071e3] hover:bg-[#0077ed] disabled:opacity-40 text-white rounded-full text-xs font-semibold transition flex items-center space-x-2 shadow-sm active:scale-[0.98]">
+                        <i v-if="importingStudents" data-lucide="loader-2" class="w-4 h-4 animate-spin"></i>
+                        <i v-else data-lucide="check" class="w-4 h-4"></i>
+                        <span>Xác nhận nhập {{ importParsedStudents.length > 0 ? importParsedStudents.length + ' học sinh' : '' }} vào bảng</span>
                     </button>
                 </div>
             </div>
@@ -2372,6 +2528,308 @@
                     showToast('Đã xuất bảng tổng kết kỳ (kẻ bảng & căn lề chuẩn) thành công!');
                 }
 
+                // ==========================================
+                // CSV & Excel Import State & Handlers
+                // ==========================================
+                const showImportModal = ref(false);
+                const fileImportInput = ref(null);
+                const dragOver = ref(false);
+                const importFileName = ref('');
+                const importFileSize = ref('');
+                const importParsedStudents = ref([]);
+                const importSkippedRows = ref(0);
+                const importMode = ref('append'); // 'append' | 'replace'
+                const importingStudents = ref(false);
+
+                function openImportModal() {
+                    if (!userPermission.value.isOwner) {
+                        showToast('Chỉ Người sở hữu Tổ chức mới có quyền nhập danh sách học sinh!', 'error');
+                        return;
+                    }
+                    importFileName.value = '';
+                    importFileSize.value = '';
+                    importParsedStudents.value = [];
+                    importSkippedRows.value = 0;
+                    importMode.value = 'append';
+                    showImportModal.value = true;
+                }
+
+                function closeImportModal() {
+                    showImportModal.value = false;
+                    importFileName.value = '';
+                    importParsedStudents.value = [];
+                    importSkippedRows.value = 0;
+                }
+
+                function downloadCsvTemplate() {
+                    const csvContent =
+`STT,Mã Học Sinh,Họ và Tên,Ngày Sinh,SĐT Học Sinh,Email Học Sinh,SĐT Phụ Huynh,Email Phụ Huynh,Điểm Hạnh Kiểm
+1,HS001,Nguyễn Văn An,2008-05-15,0912345678,an.nv@gmail.com,0987654321,ph.an@gmail.com,100
+2,HS002,Trần Thị Bích,2008-09-22,0923456789,bich.tt@gmail.com,0976543210,ph.bich@gmail.com,100
+3,HS003,Lê Hoàng Cường,2008-11-03,0934567890,cuong.lh@gmail.com,0965432109,ph.cuong@gmail.com,100
+4,HS004,Phạm Minh Đức,2008-01-28,0945678901,duc.pm@gmail.com,0954321098,ph.duc@gmail.com,100
+5,HS005,Võ Hoàng Yến,2008-07-19,0956789012,yen.vh@gmail.com,0943210987,ph.yen@gmail.com,100`;
+
+                    const blob = new Blob(['\uFEFF' + csvContent], { type: 'text/csv;charset=utf-8;' });
+                    const link = document.createElement('a');
+                    link.href = URL.createObjectURL(blob);
+                    link.download = `Mau_Nhap_Hoc_Sinh_EduManager.csv`;
+                    document.body.appendChild(link);
+                    link.click();
+                    document.body.removeChild(link);
+                    showToast('Đã tải xuống file mẫu CSV thành công!');
+                }
+
+                function downloadExcelTemplate() {
+                    if (!window.XLSX) {
+                        downloadCsvTemplate();
+                        return;
+                    }
+
+                    const data = [
+                        ['STT', 'Mã Học Sinh', 'Họ và Tên', 'Ngày Sinh', 'SĐT Học Sinh', 'Email Học Sinh', 'SĐT Phụ Huynh', 'Email Phụ Huynh', 'Điểm Hạnh Kiểm'],
+                        [1, 'HS001', 'Nguyễn Văn An', '2008-05-15', '0912345678', 'an.nv@gmail.com', '0987654321', 'ph.an@gmail.com', 100],
+                        [2, 'HS002', 'Trần Thị Bích', '2008-09-22', '0923456789', 'bich.tt@gmail.com', '0976543210', 'ph.bich@gmail.com', 100],
+                        [3, 'HS003', 'Lê Hoàng Cường', '2008-11-03', '0934567890', 'cuong.lh@gmail.com', '0965432109', 'ph.cuong@gmail.com', 100],
+                        [4, 'HS004', 'Phạm Minh Đức', '2008-01-28', '0945678901', 'duc.pm@gmail.com', '0954321098', 'ph.duc@gmail.com', 100],
+                        [5, 'HS005', 'Võ Hoàng Yến', '2008-07-19', '0956789012', 'yen.vh@gmail.com', '0943210987', 'ph.yen@gmail.com', 100]
+                    ];
+
+                    const ws = XLSX.utils.aoa_to_sheet(data);
+                    ws['!cols'] = [
+                        { wch: 6 },
+                        { wch: 14 },
+                        { wch: 24 },
+                        { wch: 14 },
+                        { wch: 16 },
+                        { wch: 24 },
+                        { wch: 16 },
+                        { wch: 24 },
+                        { wch: 16 }
+                    ];
+
+                    const wb = XLSX.utils.book_new();
+                    XLSX.utils.book_append_sheet(wb, ws, 'DanhSachHocSinh');
+                    XLSX.writeFile(wb, 'Mau_Nhap_Hoc_Sinh_EduManager.xlsx');
+                    showToast('Đã tải xuống file mẫu Excel (.xlsx) thành công!');
+                }
+
+                function handleFileSelect(e) {
+                    const file = e.target.files && e.target.files[0];
+                    if (file) processImportFile(file);
+                }
+
+                function handleFileDrop(e) {
+                    dragOver.value = false;
+                    const file = e.dataTransfer.files && e.dataTransfer.files[0];
+                    if (file) processImportFile(file);
+                }
+
+                function formatBirthDate(val) {
+                    if (!val) return '';
+                    if (typeof val === 'number') {
+                        const date = new Date(Math.round((val - 25569) * 86400 * 1000));
+                        if (!isNaN(date.getTime())) {
+                            return date.toISOString().split('T')[0];
+                        }
+                    }
+                    const str = String(val).trim();
+                    const ddmmyyyy = str.match(/^(\d{1,2})[\/\-\.](\d{1,2})[\/\-\.](\d{4})$/);
+                    if (ddmmyyyy) {
+                        const day = ddmmyyyy[1].padStart(2, '0');
+                        const month = ddmmyyyy[2].padStart(2, '0');
+                        const year = ddmmyyyy[3];
+                        return `${year}-${month}-${day}`;
+                    }
+                    if (/^\d{4}-\d{2}-\d{2}$/.test(str)) {
+                        return str;
+                    }
+                    return str;
+                }
+
+                function cleanHeaderString(h) {
+                    if (!h) return '';
+                    return String(h)
+                        .toLowerCase()
+                        .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+                        .replace(/[^a-z0-9]/g, '');
+                }
+
+                async function processImportFile(file) {
+                    importFileName.value = file.name;
+                    importFileSize.value = (file.size / 1024).toFixed(1) + ' KB';
+                    importParsedStudents.value = [];
+                    importSkippedRows.value = 0;
+
+                    try {
+                        const buffer = await file.arrayBuffer();
+                        if (!window.XLSX) {
+                            showToast('Thư viện đọc bảng tính chưa sẵn sàng', 'error');
+                            return;
+                        }
+
+                        const workbook = XLSX.read(new Uint8Array(buffer), { type: 'array', cellDates: false });
+                        const firstSheetName = workbook.SheetNames[0];
+                        if (!firstSheetName) {
+                            showToast('File không có trang tính nào hợp lệ!', 'error');
+                            return;
+                        }
+
+                        const worksheet = workbook.Sheets[firstSheetName];
+                        const rawRows = XLSX.utils.sheet_to_json(worksheet, { header: 1, defval: '' });
+
+                        if (!rawRows || rawRows.length < 2) {
+                            showToast('File không có đủ dữ liệu (cần ít nhất dòng tiêu đề và 1 dòng học sinh)!', 'error');
+                            return;
+                        }
+
+                        // Tìm dòng tiêu đề (header row)
+                        let headerIndex = -1;
+                        for (let r = 0; r < Math.min(rawRows.length, 5); r++) {
+                            const row = rawRows[r].map(cleanHeaderString);
+                            if (row.some(c => c.includes('ten') || c.includes('name') || c.includes('hoten') || c.includes('mahs'))) {
+                                headerIndex = r;
+                                break;
+                            }
+                        }
+
+                        if (headerIndex === -1) headerIndex = 0;
+
+                        const headerRow = rawRows[headerIndex].map(cleanHeaderString);
+
+                        let colCode = headerRow.findIndex(c => c.includes('mahs') || c.includes('mahocsinh') || c.includes('studentcode') || c.includes('code') || c.includes('maso'));
+                        let colName = headerRow.findIndex(c => c.includes('hoten') || c.includes('ten') || c.includes('name') || c.includes('hovaten'));
+                        let colDob = headerRow.findIndex(c => c.includes('ngaysinh') || c.includes('dob') || c.includes('birth') || c.includes('namsinh'));
+                        let colPhone = headerRow.findIndex((c, i) => i !== colDob && (c === 'sdt' || c.includes('sdths') || c.includes('dienthoaihs') || (c.includes('phone') && !c.includes('ph'))));
+                        let colEmail = headerRow.findIndex((c, i) => (c === 'email' || c.includes('emailhs') || (c.includes('mail') && !c.includes('ph'))));
+                        let colParentPhone = headerRow.findIndex(c => c.includes('sdtph') || c.includes('sdtphuhuynh') || c.includes('parentphone') || c.includes('phoneph'));
+                        let colParentEmail = headerRow.findIndex(c => c.includes('emailph') || c.includes('emailphuhuynh') || c.includes('parentemail') || c.includes('mailph'));
+                        let colScore = headerRow.findIndex(c => c.includes('diem') || c.includes('hanhkiem') || c.includes('score'));
+
+                        if (colName === -1) {
+                            colCode = 1;
+                            colName = 2;
+                            colDob = 3;
+                            colPhone = 4;
+                            colEmail = 5;
+                            colParentPhone = 6;
+                            colParentEmail = 7;
+                            colScore = 8;
+                        }
+
+                        const parsed = [];
+                        let skipped = 0;
+
+                        for (let i = headerIndex + 1; i < rawRows.length; i++) {
+                            const row = rawRows[i];
+                            if (!row || row.length === 0) continue;
+
+                            const name = String(row[colName] || '').trim();
+                            if (!name) {
+                                skipped++;
+                                continue;
+                            }
+
+                            let code = String(row[colCode] || '').trim();
+                            if (!code) {
+                                code = `HS${Math.floor(1000 + Math.random() * 9000)}`;
+                            }
+
+                            const dob = formatBirthDate(row[colDob]);
+                            const phone = String(row[colPhone] || '').trim();
+                            const email = String(row[colEmail] || '').trim();
+                            const parentPhone = String(row[colParentPhone] || '').trim();
+                            const parentEmail = String(row[colParentEmail] || '').trim();
+                            let conductScore = 100;
+                            if (colScore !== -1 && row[colScore] !== '' && !isNaN(Number(row[colScore]))) {
+                                conductScore = Math.min(100, Math.max(0, Number(row[colScore])));
+                            }
+
+                            parsed.push({
+                                studentCode: code,
+                                name,
+                                dateOfBirth: dob,
+                                phone,
+                                email,
+                                parentPhone,
+                                parentEmail,
+                                conductScore
+                            });
+                        }
+
+                        importParsedStudents.value = parsed;
+                        importSkippedRows.value = skipped;
+
+                        if (parsed.length === 0) {
+                            showToast('Không đọc được học sinh nào có Họ và Tên hợp lệ từ file!', 'error');
+                        } else {
+                            showToast(`Đã đọc thành công ${parsed.length} học sinh từ file! Vui lòng kiểm tra và xác nhận.`);
+                        }
+                    } catch (err) {
+                        console.error('Lỗi khi đọc file import:', err);
+                        showToast('Không thể đọc file: ' + (err.message || 'Lỗi định dạng file!'), 'error');
+                    }
+                }
+
+                async function confirmImportStudents() {
+                    if (!userPermission.value.isOwner) {
+                        showToast('Chỉ Người sở hữu Tổ chức mới có quyền nhập học sinh!', 'error');
+                        return;
+                    }
+
+                    if (importParsedStudents.value.length === 0) {
+                        showToast('Chưa có danh sách học sinh hợp lệ để nhập!', 'error');
+                        return;
+                    }
+
+                    importingStudents.value = true;
+                    try {
+                        const classId = getClassIdFromUrl();
+                        const headers = { ...getTokenHeader(), 'Content-Type': 'application/json' };
+
+                        const creates = importParsedStudents.value.map(st => ({
+                            studentCode: st.studentCode,
+                            name: st.name,
+                            dateOfBirth: st.dateOfBirth || null,
+                            phone: st.phone || null,
+                            email: st.email || null,
+                            parentPhone: st.parentPhone || null,
+                            parentEmail: st.parentEmail || null,
+                            conductScore: st.conductScore ?? 100,
+                            conductDeductionReason: ''
+                        }));
+
+                        let deletes = [];
+                        if (importMode.value === 'replace' && students.value.length > 0) {
+                            deletes = students.value.filter(s => s.id && !s.isNew).map(s => s.id);
+                        }
+
+                        const res = await fetch(`/api/organization/classes/${classId}/students/batch`, {
+                            method: 'POST',
+                            headers,
+                            body: JSON.stringify({ creates, updates: [], deletes })
+                        });
+
+                        const data = await res.json();
+                        if (!res.ok) {
+                            throw new Error(data.message || 'Không thể lưu học sinh vào máy chủ');
+                        }
+
+                        localStorage.removeItem('draft_class_' + classId);
+                        lastDraftSavedTime.value = '';
+                        remoteUpdateDetected.value = false;
+
+                        showToast(`Đã import và lưu thành công ${creates.length} học sinh vào lớp học!`);
+                        closeImportModal();
+                        await fetchStudents();
+                    } catch (err) {
+                        console.error(err);
+                        showToast('Lỗi khi nhập học sinh: ' + (err.message || 'Lỗi máy chủ!'), 'error');
+                    } finally {
+                        importingStudents.value = false;
+                    }
+                }
+
                 const refreshIcons = () => {
                     nextTick(() => {
                         if (window.lucide && window.lucide.createIcons) {
@@ -2380,7 +2838,7 @@
                     });
                 };
 
-                watch([students, searchQuery, showAiDrawer, showAiPreviewModal, showDeductModal, showAuditLogsModal, showMonthlySummaryModal, showTermSummaryModal, chatMessages, debugMode, toast], () => {
+                watch([students, searchQuery, showAiDrawer, showAiPreviewModal, showDeductModal, showAuditLogsModal, showMonthlySummaryModal, showTermSummaryModal, showImportModal, chatMessages, debugMode, toast], () => {
                     refreshIcons();
                 }, { deep: true });
 
@@ -2491,7 +2949,25 @@
                     openTermSummaryModal,
                     switchTermType,
                     fetchTermSummaryData,
-                    exportTermSummaryCsv
+                    exportTermSummaryCsv,
+                    // CSV & Excel Import returns
+                    showImportModal,
+                    fileImportInput,
+                    dragOver,
+                    importFileName,
+                    importFileSize,
+                    importParsedStudents,
+                    importSkippedRows,
+                    importMode,
+                    importingStudents,
+                    openImportModal,
+                    closeImportModal,
+                    downloadCsvTemplate,
+                    downloadExcelTemplate,
+                    handleFileSelect,
+                    handleFileDrop,
+                    processImportFile,
+                    confirmImportStudents
                 };
             }
         }).mount('#app');
