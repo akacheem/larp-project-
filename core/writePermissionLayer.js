@@ -436,6 +436,7 @@ export async function secureBatchSaveStudents(actorUser, classId, { creates = []
                     .limit(1);
                 if (existing.length > 0) {
                     const beforeState = existing[0];
+                    await tx.delete(monthlyConductSummariesTable).where(eq(monthlyConductSummariesTable.studentId, numId));
                     await tx.delete(studentsTable).where(eq(studentsTable.id, numId));
                     deletedResults.push(numId);
                     auditEntries.push({
@@ -501,30 +502,86 @@ export async function secureBatchSaveStudents(actorUser, classId, { creates = []
         if (Array.isArray(creates)) {
             for (const item of creates) {
                 if (!item.name || !item.name.trim()) continue;
-                const created = await tx.insert(studentsTable).values({
-                    studentCode: item.studentCode ? item.studentCode.trim() : `HS${Date.now().toString().slice(-6)}${Math.floor(Math.random() * 1000)}`,
-                    name: item.name.trim(),
-                    classId: numClassId,
-                    dateOfBirth: item.dateOfBirth || null,
-                    phone: item.phone || null,
-                    email: item.email || null,
-                    parentPhone: item.parentPhone || null,
-                    parentEmail: item.parentEmail || null,
-                    conductScore: item.conductScore !== undefined ? Number(item.conductScore) : 100,
-                    conductDeductionReason: item.conductDeductionReason ? item.conductDeductionReason.trim() : null
-                }).returning();
 
-                if (created && created[0]) {
-                    createdResults.push(created[0]);
-                    auditEntries.push({
-                        action: 'ADD_STUDENT',
-                        entityType: 'student',
-                        entityId: created[0].id,
+                let targetCode = item.studentCode ? String(item.studentCode).trim() : '';
+
+                // Check if a student with this code already exists in this class
+                let existingInClass = null;
+                if (targetCode) {
+                    const found = await tx.select().from(studentsTable)
+                        .where(and(eq(studentsTable.studentCode, targetCode), eq(studentsTable.classId, numClassId)))
+                        .limit(1);
+                    if (found.length > 0) existingInClass = found[0];
+                }
+
+                if (existingInClass) {
+                    // Update existing student in this class (upsert behavior)
+                    const updated = await tx.update(studentsTable).set({
+                        name: item.name.trim(),
+                        dateOfBirth: item.dateOfBirth || existingInClass.dateOfBirth,
+                        phone: item.phone !== undefined ? (item.phone ? String(item.phone).trim() : null) : existingInClass.phone,
+                        email: item.email !== undefined ? (item.email ? String(item.email).trim() : null) : existingInClass.email,
+                        parentPhone: item.parentPhone !== undefined ? (item.parentPhone ? String(item.parentPhone).trim() : null) : existingInClass.parentPhone,
+                        parentEmail: item.parentEmail !== undefined ? (item.parentEmail ? String(item.parentEmail).trim() : null) : existingInClass.parentEmail,
+                        conductScore: item.conductScore !== undefined ? Number(item.conductScore) : existingInClass.conductScore,
+                        conductDeductionReason: item.conductDeductionReason !== undefined ? (item.conductDeductionReason ? item.conductDeductionReason.trim() : null) : existingInClass.conductDeductionReason
+                    }).where(eq(studentsTable.id, existingInClass.id)).returning();
+
+                    if (updated && updated[0]) {
+                        updatedResults.push(updated[0]);
+                        auditEntries.push({
+                            action: 'UPDATE_STUDENT',
+                            entityType: 'student',
+                            entityId: existingInClass.id,
+                            classId: numClassId,
+                            description: `Cập nhật học sinh "${updated[0].name}" (${updated[0].studentCode}) [Import / Batch Save]`,
+                            beforeState: existingInClass,
+                            afterState: updated[0]
+                        });
+                    }
+                } else {
+                    // Ensure unique studentCode across the database
+                    if (!targetCode) {
+                        targetCode = `HS${Date.now().toString().slice(-6)}${Math.floor(100 + Math.random() * 900)}`;
+                    }
+                    const taken = await tx.select({ id: studentsTable.id }).from(studentsTable)
+                        .where(eq(studentsTable.studentCode, targetCode))
+                        .limit(1);
+                    if (taken.length > 0) {
+                        targetCode = `${targetCode}_${numClassId}`;
+                        const takenAgain = await tx.select({ id: studentsTable.id }).from(studentsTable)
+                            .where(eq(studentsTable.studentCode, targetCode))
+                            .limit(1);
+                        if (takenAgain.length > 0) {
+                            targetCode = `${targetCode}_${Math.floor(100 + Math.random() * 900)}`;
+                        }
+                    }
+
+                    const created = await tx.insert(studentsTable).values({
+                        studentCode: targetCode,
+                        name: item.name.trim(),
                         classId: numClassId,
-                        description: `Thêm học sinh mới "${created[0].name}" (${created[0].studentCode}) [Batch Save]`,
-                        beforeState: null,
-                        afterState: created[0]
-                    });
+                        dateOfBirth: item.dateOfBirth || null,
+                        phone: item.phone ? String(item.phone).trim() : null,
+                        email: item.email ? String(item.email).trim() : null,
+                        parentPhone: item.parentPhone ? String(item.parentPhone).trim() : null,
+                        parentEmail: item.parentEmail ? String(item.parentEmail).trim() : null,
+                        conductScore: item.conductScore !== undefined ? Number(item.conductScore) : 100,
+                        conductDeductionReason: item.conductDeductionReason ? item.conductDeductionReason.trim() : null
+                    }).returning();
+
+                    if (created && created[0]) {
+                        createdResults.push(created[0]);
+                        auditEntries.push({
+                            action: 'ADD_STUDENT',
+                            entityType: 'student',
+                            entityId: created[0].id,
+                            classId: numClassId,
+                            description: `Thêm học sinh mới "${created[0].name}" (${created[0].studentCode}) [Batch Save]`,
+                            beforeState: null,
+                            afterState: created[0]
+                        });
+                    }
                 }
             }
         }

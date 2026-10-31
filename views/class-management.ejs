@@ -2597,6 +2597,14 @@
                     ];
 
                     const ws = XLSX.utils.aoa_to_sheet(data);
+                    // Explicitly format phone columns as strings to preserve leading zeros in Excel
+                    for (let r = 1; r < data.length; r++) {
+                        const cellPhone = XLSX.utils.encode_cell({ r, c: 4 });
+                        const cellParentPhone = XLSX.utils.encode_cell({ r, c: 6 });
+                        if (ws[cellPhone]) { ws[cellPhone].t = 's'; ws[cellPhone].z = '@'; }
+                        if (ws[cellParentPhone]) { ws[cellParentPhone].t = 's'; ws[cellParentPhone].z = '@'; }
+                    }
+
                     ws['!cols'] = [
                         { wch: 6 },
                         { wch: 14 },
@@ -2652,8 +2660,30 @@
                     if (!h) return '';
                     return String(h)
                         .toLowerCase()
+                        .replace(/đ/g, 'd')
+                        .replace(/Đ/g, 'd')
                         .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
                         .replace(/[^a-z0-9]/g, '');
+                }
+
+                function formatPhoneNumber(val) {
+                    if (val === null || val === undefined) return '';
+                    let str = String(val).trim();
+                    if (!str) return '';
+                    if (typeof val === 'number') {
+                        str = val.toLocaleString('fullwide', { useGrouping: false });
+                    }
+                    // Remove all spaces, hyphens, dots, brackets
+                    let cleaned = str.replace(/[\s\.\-\(\)]/g, '');
+                    if (cleaned.startsWith('+84')) {
+                        cleaned = '0' + cleaned.slice(3);
+                    } else if (cleaned.startsWith('84') && cleaned.length >= 11) {
+                        cleaned = '0' + cleaned.slice(2);
+                    } else if (/^[1-9]\d{8}$/.test(cleaned)) {
+                        // Excel stripped leading 0 from 10-digit number (e.g. 912345678 -> 0912345678)
+                        cleaned = '0' + cleaned;
+                    }
+                    return cleaned;
                 }
 
                 async function processImportFile(file) {
@@ -2663,13 +2693,21 @@
                     importSkippedRows.value = 0;
 
                     try {
-                        const buffer = await file.arrayBuffer();
                         if (!window.XLSX) {
                             showToast('Thư viện đọc bảng tính chưa sẵn sàng', 'error');
                             return;
                         }
 
-                        const workbook = XLSX.read(new Uint8Array(buffer), { type: 'array', cellDates: false });
+                        let workbook;
+                        const isCsv = file.name.toLowerCase().endsWith('.csv') || (file.type && file.type.includes('csv'));
+                        if (isCsv) {
+                            const text = await file.text();
+                            workbook = XLSX.read(text, { type: 'string' });
+                        } else {
+                            const buffer = await file.arrayBuffer();
+                            workbook = XLSX.read(new Uint8Array(buffer), { type: 'array', cellDates: false });
+                        }
+
                         const firstSheetName = workbook.SheetNames[0];
                         if (!firstSheetName) {
                             showToast('File không có trang tính nào hợp lệ!', 'error');
@@ -2677,7 +2715,7 @@
                         }
 
                         const worksheet = workbook.Sheets[firstSheetName];
-                        const rawRows = XLSX.utils.sheet_to_json(worksheet, { header: 1, defval: '' });
+                        const rawRows = XLSX.utils.sheet_to_json(worksheet, { header: 1, defval: '', raw: false });
 
                         if (!rawRows || rawRows.length < 2) {
                             showToast('File không có đủ dữ liệu (cần ít nhất dòng tiêu đề và 1 dòng học sinh)!', 'error');
@@ -2688,7 +2726,7 @@
                         let headerIndex = -1;
                         for (let r = 0; r < Math.min(rawRows.length, 5); r++) {
                             const row = rawRows[r].map(cleanHeaderString);
-                            if (row.some(c => c.includes('ten') || c.includes('name') || c.includes('hoten') || c.includes('mahs'))) {
+                            if (row.some(c => c.includes('ten') || c.includes('name') || c.includes('hoten') || c.includes('mahs') || c.includes('sdt'))) {
                                 headerIndex = r;
                                 break;
                             }
@@ -2698,14 +2736,58 @@
 
                         const headerRow = rawRows[headerIndex].map(cleanHeaderString);
 
-                        let colCode = headerRow.findIndex(c => c.includes('mahs') || c.includes('mahocsinh') || c.includes('studentcode') || c.includes('code') || c.includes('maso'));
-                        let colName = headerRow.findIndex(c => c.includes('hoten') || c.includes('ten') || c.includes('name') || c.includes('hovaten'));
-                        let colDob = headerRow.findIndex(c => c.includes('ngaysinh') || c.includes('dob') || c.includes('birth') || c.includes('namsinh'));
-                        let colPhone = headerRow.findIndex((c, i) => i !== colDob && (c === 'sdt' || c.includes('sdths') || c.includes('dienthoaihs') || (c.includes('phone') && !c.includes('ph'))));
-                        let colEmail = headerRow.findIndex((c, i) => (c === 'email' || c.includes('emailhs') || (c.includes('mail') && !c.includes('ph'))));
-                        let colParentPhone = headerRow.findIndex(c => c.includes('sdtph') || c.includes('sdtphuhuynh') || c.includes('parentphone') || c.includes('phoneph'));
-                        let colParentEmail = headerRow.findIndex(c => c.includes('emailph') || c.includes('emailphuhuynh') || c.includes('parentemail') || c.includes('mailph'));
-                        let colScore = headerRow.findIndex(c => c.includes('diem') || c.includes('hanhkiem') || c.includes('score'));
+                        let colCode = headerRow.findIndex(c => 
+                            c.includes('mahs') || c.includes('mahocsinh') || c.includes('studentcode') || 
+                            c.includes('code') || c.includes('maso') || c.includes('mshs') || c === 'id' || c.includes('idhs')
+                        );
+
+                        let colName = headerRow.findIndex(c => 
+                            c.includes('hoten') || c.includes('hovaten') || c.includes('tenhocsinh') || 
+                            c.includes('fullname') || c.includes('name') || c === 'ten'
+                        );
+
+                        let colDob = headerRow.findIndex(c => 
+                            c.includes('ngaysinh') || c.includes('dob') || c.includes('birth') || 
+                            c.includes('namsinh') || c.includes('dateofbirth')
+                        );
+
+                        // Cột SĐT Phụ Huynh (nhận diện cả sđt phụ huynh, sđt ph, sđt bố mẹ, sđt gia đình, v.v.)
+                        let colParentPhone = headerRow.findIndex(c => 
+                            (c.includes('sdt') || c.includes('dienthoai') || c.includes('phone') || c.includes('tel') || c.includes('mobile') || c.includes('sodt') || c.includes('didong')) &&
+                            (c.includes('ph') || c.includes('huynh') || c.includes('bo') || c.includes('me') || c.includes('cha') || c.includes('parent') || c.includes('giadinh') || c.includes('family'))
+                        );
+                        if (colParentPhone === -1) {
+                            colParentPhone = headerRow.findIndex(c => c.includes('sdtph') || c.includes('dienthoaiph') || c.includes('parentphone') || c.includes('phoneph'));
+                        }
+
+                        // Cột SĐT Học Sinh (nhận diện sđt, điện thoại, phone, sđt học sinh, di động...)
+                        let colPhone = headerRow.findIndex((c, i) => 
+                            i !== colDob && i !== colParentPhone &&
+                            (c === 'sdt' || c === 'sodt' || c === 'dienthoai' || c === 'phone' || c.includes('sdths') || 
+                             c.includes('dienthoaihs') || c.includes('phonehs') || c.includes('studentphone') || 
+                             c.includes('sdtcanhan') || c.includes('didong') ||
+                             ((c.includes('sdt') || c.includes('dienthoai') || c.includes('phone') || c.includes('tel') || c.includes('mobile')) && 
+                              !c.includes('ph') && !c.includes('huynh') && !c.includes('bo') && !c.includes('me') && !c.includes('cha') && !c.includes('parent') && !c.includes('giadinh')))
+                        );
+
+                        // Cột Email Phụ Huynh
+                        let colParentEmail = headerRow.findIndex(c => 
+                            (c.includes('email') || c.includes('mail')) &&
+                            (c.includes('ph') || c.includes('huynh') || c.includes('bo') || c.includes('me') || c.includes('cha') || c.includes('parent') || c.includes('giadinh') || c.includes('family'))
+                        );
+                        if (colParentEmail === -1) {
+                            colParentEmail = headerRow.findIndex(c => c.includes('emailph') || c.includes('mailph') || c.includes('parentemail'));
+                        }
+
+                        // Cột Email Học Sinh
+                        let colEmail = headerRow.findIndex((c, i) => 
+                            i !== colParentEmail &&
+                            (c === 'email' || c === 'mail' || c.includes('emailhs') || c.includes('mailhs') || c.includes('studentemail') ||
+                             ((c.includes('email') || c.includes('mail')) && 
+                              !c.includes('ph') && !c.includes('huynh') && !c.includes('bo') && !c.includes('me') && !c.includes('cha') && !c.includes('parent') && !c.includes('giadinh')))
+                        );
+
+                        let colScore = headerRow.findIndex(c => c.includes('diem') || c.includes('hanhkiem') || c.includes('score') || c.includes('conduct'));
 
                         if (colName === -1) {
                             colCode = 1;
@@ -2731,16 +2813,16 @@
                                 continue;
                             }
 
-                            let code = String(row[colCode] || '').trim();
+                            let code = (colCode !== -1 && row[colCode]) ? String(row[colCode]).trim() : '';
                             if (!code) {
                                 code = `HS${Math.floor(1000 + Math.random() * 9000)}`;
                             }
 
-                            const dob = formatBirthDate(row[colDob]);
-                            const phone = String(row[colPhone] || '').trim();
-                            const email = String(row[colEmail] || '').trim();
-                            const parentPhone = String(row[colParentPhone] || '').trim();
-                            const parentEmail = String(row[colParentEmail] || '').trim();
+                            const dob = colDob !== -1 ? formatBirthDate(row[colDob]) : '';
+                            const phone = colPhone !== -1 ? formatPhoneNumber(row[colPhone]) : '';
+                            const email = colEmail !== -1 ? String(row[colEmail] || '').trim() : '';
+                            const parentPhone = colParentPhone !== -1 ? formatPhoneNumber(row[colParentPhone]) : '';
+                            const parentEmail = colParentEmail !== -1 ? String(row[colParentEmail] || '').trim() : '';
                             let conductScore = 100;
                             if (colScore !== -1 && row[colScore] !== '' && !isNaN(Number(row[colScore]))) {
                                 conductScore = Math.min(100, Math.max(0, Number(row[colScore])));

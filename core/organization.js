@@ -381,17 +381,23 @@ export async function addStudentToClass(organizationId, studentData) {
         throw new Error("Lớp học không tồn tại hoặc không thuộc tổ chức của bạn");
     }
 
+    let finalStudentCode = (studentCode && String(studentCode).trim()) ? String(studentCode).trim() : `HS${Date.now().toString().slice(-6)}${Math.floor(100 + Math.random() * 900)}`;
+    const existing = await db.select({ id: studentsTable.id }).from(studentsTable).where(eq(studentsTable.studentCode, finalStudentCode)).limit(1);
+    if (existing.length > 0) {
+        finalStudentCode = `${finalStudentCode}_${numClassId}_${Math.floor(100 + Math.random() * 900)}`;
+    }
+
     const inserted = await db
         .insert(studentsTable)
         .values({
-            studentCode: studentCode || `HS${Date.now().toString().slice(-6)}`,
+            studentCode: finalStudentCode,
             name,
             classId: numClassId,
             dateOfBirth: dateOfBirth || null,
-            phone: phone || null,
-            email: email || null,
-            parentPhone: parentPhone || null,
-            parentEmail: parentEmail || null,
+            phone: phone ? String(phone).trim() : null,
+            email: email ? String(email).trim() : null,
+            parentPhone: parentPhone ? String(parentPhone).trim() : null,
+            parentEmail: parentEmail ? String(parentEmail).trim() : null,
             conductScore: conductScore !== undefined ? Number(conductScore) : 100,
             conductDeductionReason: conductDeductionReason ? conductDeductionReason.trim() : null
         })
