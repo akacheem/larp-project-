@@ -648,7 +648,11 @@ export async function secureRemoveMember(actorUser, memberRecordId, source = 'US
 }
 
 // Get Audit Logs with Field Diffs (Google Sheets Version History Style)
-export async function getAuditLogs(actorUser, { classId = null, limit = 100 } = {}) {
+export async function getAuditLogs(actorUser, options = {}) {
+    const actorUserId = typeof actorUser === 'object' && actorUser !== null ? actorUser.id : Number(actorUser);
+    const opts = typeof options === 'object' && options !== null ? options : { classId: options };
+    const classId = opts.classId || null;
+    const limit = opts.limit || 100;
     let query = db
         .select()
         .from(auditLogsTable);
@@ -665,11 +669,11 @@ export async function getAuditLogs(actorUser, { classId = null, limit = 100 } = 
     for (let log of logs) {
         // Permission check: User can read logs if they own org or are accepted member
         if (log.classId) {
-            const access = await checkUserClassAccess(actorUser.id, log.classId);
+            const access = await checkUserClassAccess(actorUserId, log.classId);
             if (!access.canRead) continue;
         } else {
-            const dbUser = await getUserById(actorUser.id);
-            if (dbUser && !dbUser.isOrganizationAccount && actorUser.id !== log.userId) {
+            const dbUser = await getUserById(actorUserId);
+            if (dbUser && !dbUser.isOrganizationAccount && actorUserId !== log.userId) {
                 continue;
             }
         }
@@ -981,6 +985,7 @@ export async function secureCloseMonthlyConduct(actorUser, classId, month, year,
 
     return {
         success: true,
+        isClosed: true,
         monthLabel,
         closedAt: nowIso,
         studentCount: students.length,
@@ -1068,7 +1073,12 @@ export async function getClosedMonthlySummaryList(actorUser, classId) {
  * Allows organization accounts to correct mistakes in historical snapshots.
  * Personal accounts are strictly forbidden from editing historical records.
  */
-export async function secureUpdateMonthlySummaryItem(actorUser, classId, summaryId, { finalScore, note }, source = 'USER') {
+export async function secureUpdateMonthlySummaryItem(actorUser, classId, summaryId, scoreOrPayload, noteArg = '', source = 'USER') {
+    const payload = (typeof scoreOrPayload === 'object' && scoreOrPayload !== null)
+        ? scoreOrPayload
+        : { finalScore: scoreOrPayload, note: noteArg };
+    const finalScore = payload.finalScore !== undefined ? payload.finalScore : scoreOrPayload;
+    const note = payload.note || (typeof noteArg === 'string' ? noteArg : '');
     const dbUser = await getUserById(actorUser.id);
     const access = await checkUserClassAccess(actorUser.id, classId);
 
@@ -1152,6 +1162,7 @@ export async function secureUpdateMonthlySummaryItem(actorUser, classId, summary
 
     return {
         success: true,
+        isClosed: true,
         summaryId: numSummaryId,
         studentName: oldRecord.studentName,
         finalScore: numScore,

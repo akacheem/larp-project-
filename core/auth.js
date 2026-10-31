@@ -21,6 +21,10 @@ export async function newUser(name, isOrganizationAccount, email, password) {
         throw new Error("PASSWORD_TOO_SHORT");
     }
 
+    if (await isUserAlreadySignup(cleanEmail)) {
+        throw new Error("EMAIL_ALREADY_EXISTS");
+    }
+
     let passwordHash;
     try {
         passwordHash = await hash(password, DEFAULT_SALT_ROUND);

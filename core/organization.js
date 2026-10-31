@@ -1,5 +1,5 @@
 import { db } from './db.js';
-import { userTable, academicYearsTable, classesTable, organizationMembersTable, memberClassPermissionsTable, studentsTable } from './schema.js';
+import { userTable, academicYearsTable, classesTable, organizationMembersTable, memberClassPermissionsTable, studentsTable, monthlyConductSummariesTable } from './schema.js';
 import { eq, and, inArray } from 'drizzle-orm';
 
 // Get user details by ID
@@ -309,7 +309,9 @@ export async function deleteClass(organizationId, classId) {
         throw new Error("ID lớp học không hợp lệ để xóa");
     }
 
-    // Delete students in class first
+    // Delete child relations first
+    await db.delete(memberClassPermissionsTable).where(eq(memberClassPermissionsTable.classId, numClassId));
+    await db.delete(monthlyConductSummariesTable).where(eq(monthlyConductSummariesTable.classId, numClassId));
     await db.delete(studentsTable).where(eq(studentsTable.classId, numClassId));
 
     const deleted = await db
@@ -453,6 +455,7 @@ export async function deleteStudent(organizationId, studentId) {
         throw new Error("Học sinh không tồn tại");
     }
 
+    await db.delete(monthlyConductSummariesTable).where(eq(monthlyConductSummariesTable.studentId, numStudentId));
     const deleted = await db
         .delete(studentsTable)
         .where(eq(studentsTable.id, numStudentId))
@@ -465,6 +468,8 @@ export async function deleteStudent(organizationId, studentId) {
 
 // Get Organizations that a non-organization user belongs to (accepted status)
 export async function getUserOrganizations(userId) {
+    const numUserId = Number(typeof userId === 'object' && userId !== null ? userId.id : userId);
+    if (!numUserId || isNaN(numUserId)) return [];
     const memberships = await db
         .select({
             memberRecordId: organizationMembersTable.id,
@@ -478,7 +483,7 @@ export async function getUserOrganizations(userId) {
         .innerJoin(userTable, eq(organizationMembersTable.organizationId, userTable.id))
         .where(
             and(
-                eq(organizationMembersTable.userId, userId),
+                eq(organizationMembersTable.userId, numUserId),
                 eq(organizationMembersTable.status, "accepted")
             )
         );
@@ -502,9 +507,11 @@ export async function getUserOrganizations(userId) {
 // Get Accessible Classes for a User (Owner or Member)
 export async function getAccessibleClassesForUser(user) {
     if (!user) return [];
+    const userObj = typeof user === 'object' && user !== null ? user : await getUserById(user);
+    if (!userObj) return [];
 
-    if (user.isOrganizationAccount) {
-        const classes = await getClasses(user.id);
+    if (userObj.isOrganizationAccount) {
+        const classes = await getClasses(userObj.id);
         return classes.map(c => ({
             ...c,
             canWrite: true,
@@ -513,7 +520,7 @@ export async function getAccessibleClassesForUser(user) {
     }
 
     // Non-organization user
-    const memberships = await getUserOrganizations(user.id);
+    const memberships = await getUserOrganizations(userObj.id);
     if (memberships.length === 0) return [];
 
     const accessibleClasses = [];
@@ -535,12 +542,14 @@ export async function getAccessibleClassesForUser(user) {
 // Get Accessible Academic Years for User (Owner or Member)
 export async function getAccessibleAcademicYearsForUser(user) {
     if (!user) return [];
+    const userObj = typeof user === 'object' && user !== null ? user : await getUserById(user);
+    if (!userObj) return [];
 
-    if (user.isOrganizationAccount) {
-        return await getAcademicYears(user.id);
+    if (userObj.isOrganizationAccount) {
+        return await getAcademicYears(userObj.id);
     }
 
-    const memberships = await getUserOrganizations(user.id);
+    const memberships = await getUserOrganizations(userObj.id);
     if (memberships.length === 0) return [];
 
     const years = [];
@@ -553,6 +562,7 @@ export async function getAccessibleAcademicYearsForUser(user) {
 
 // Check Class Access Permission for a User
 export async function checkUserClassAccess(userId, classId) {
+    const numUserId = Number(typeof userId === 'object' && userId !== null ? userId.id : userId);
     const numClassId = Number(classId);
     if (!numClassId || isNaN(numClassId)) {
         return { canRead: false, canWrite: false, organizationId: null, isOwner: false, class: null };
@@ -570,7 +580,7 @@ export async function checkUserClassAccess(userId, classId) {
     const targetClass = cls[0];
 
     // Check if user is the Organization Owner
-    if (targetClass.organizationId === userId) {
+    if (targetClass.organizationId === numUserId) {
         return { canRead: true, canWrite: true, organizationId: targetClass.organizationId, isOwner: true, class: targetClass };
     }
 
@@ -581,7 +591,7 @@ export async function checkUserClassAccess(userId, classId) {
         .where(
             and(
                 eq(organizationMembersTable.organizationId, targetClass.organizationId),
-                eq(organizationMembersTable.userId, userId),
+                eq(organizationMembersTable.userId, numUserId),
                 eq(organizationMembersTable.status, "accepted")
             )
         )

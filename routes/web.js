@@ -9,7 +9,8 @@ import {
     getAccessibleClassesForUser,
     getAccessibleAcademicYearsForUser,
     checkUserClassAccess,
-    checkUserStudentAccess
+    checkUserStudentAccess,
+    updateMemberPermission
 } from "../core/organization.js";
 
 import {
